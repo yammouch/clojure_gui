@@ -1,0 +1,10 @@
+To make executable jar after compiling *.clj,
+we need to expand clojure-1.6.0.jar,
+and archives it again. Follow the instruction below:
+- $ cd classes
+- $ cp /path/to/clojure-1.6.0.jar .
+- $ jar xvf clojure-1.6.0.jar
+- $ rm clojure-1.6.0.jar
+- $ cd ..
+- $ jar cvfe parent.jar parent -C .
+- $ java -jar parent.jar
