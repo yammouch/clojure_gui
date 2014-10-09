@@ -17,7 +17,7 @@
 (defn -init []
   [[] (atom [])])
 
-(let [font (Font. Font/MONOSPACED Font/PLAIN 10)]
+(let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-cursor [g pos]
     (let [cursor-size 10
           x (- (* (pos 0) pix-per-grid)
@@ -25,6 +25,7 @@
           y (- (* (pos 1) pix-per-grid)
                (* 0.5 cursor-size))]
       (.setColor g Color/BLUE)
+      (.setFont g font)
       (.drawString g (.toString @cursor-pos) 2 12)
       (.fillOval g x y cursor-size cursor-size))))
 
