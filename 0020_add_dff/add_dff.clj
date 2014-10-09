@@ -3,13 +3,13 @@
    :init init
    :state state))
 
-(import '[java.awt Color Dimension])
+(import '[java.awt Color Dimension Font])
 (import '[javax.swing JFrame JPanel])
 (import '[java.awt.event KeyListener KeyEvent])
 
 (def dffs '([10 10] [100 100]))
 
-(def direction (atom 'up))
+;(def direction (atom 'up))
 
 (def cursor-pos (atom [5 5]))
 (def pix-per-grid 10)
@@ -17,14 +17,16 @@
 (defn -init []
   [[] (atom [])])
 
-(defn draw-cursor [g pos]
-  (let [cursor-size 10
-        x (- (* (pos 0) pix-per-grid)
-             (* 0.5 cursor-size))
-        y (- (* (pos 1) pix-per-grid)
-             (* 0.5 cursor-size))]
-    (.setColor g Color/BLUE)
-    (.fillOval g x y cursor-size cursor-size)))
+(let [font (Font. Font/MONOSPACED Font/PLAIN 10)]
+  (defn draw-cursor [g pos]
+    (let [cursor-size 10
+          x (- (* (pos 0) pix-per-grid)
+               (* 0.5 cursor-size))
+          y (- (* (pos 1) pix-per-grid)
+               (* 0.5 cursor-size))]
+      (.setColor g Color/BLUE)
+      (.drawString g (.toString @cursor-pos) 2 12)
+      (.fillOval g x y cursor-size cursor-size))))
 
 ;(defn draw-arrow [g dir]
 ;  (let [end-size 10
