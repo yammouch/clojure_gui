@@ -4,7 +4,7 @@
    :state state))
 
 (import '[java.awt Color Dimension Font])
-(import '[javax.swing JFrame JPanel])
+(import '[javax.swing JFrame JPanel JOptionPane])
 (import '[java.awt.event KeyListener KeyEvent])
 
 (def dffs '([10 10] [100 100]))
@@ -13,6 +13,7 @@
 
 (def cursor-pos (atom [5 5]))
 (def pix-per-grid 10)
+(def mode (atom 'cursor))
 
 (defn -init []
   [[] (atom [])])
@@ -27,35 +28,8 @@
       (.setColor g Color/BLUE)
       (.setFont g font)
       (.drawString g (.toString @cursor-pos) 2 12)
+      (.drawString g (.toString @mode) 2 22)
       (.fillOval g x y cursor-size cursor-size))))
-
-;(defn draw-arrow [g dir]
-;  (let [end-size 10
-;        len 50
-;        [x0 y0] [200 200]
-;        [x1 y1] (case dir
-;                  up    [x0 (- y0 len)]
-;                  down  [x0 (+ y0 len)]
-;                  right [(+ x0 len) y0]
-;                  left  [(- x0 len) y0])
-;        [x2 y2 x3 y3] (case dir
-;                        up    [(- x1 end-size) (+ y1 end-size)
-;                               (+ x1 end-size) (+ y1 end-size)]
-;                        down  [(- x1 end-size) (- y1 end-size)
-;                               (+ x1 end-size) (- y1 end-size)]
-;                        right [(- x1 end-size) (+ y1 end-size)
-;                               (- x1 end-size) (- y1 end-size)]
-;                        left  [(+ x1 end-size) (+ y1 end-size)
-;                               (+ x1 end-size) (- y1 end-size)])]
-;    (.setColor g Color/BLACK)
-;    (.drawPolyline g
-;                   (int-array [x0 x1])
-;                   (int-array [y0 y1])
-;                   2)
-;    (.drawPolyline g
-;                   (int-array [x2 x1 x3])
-;                   (int-array [y2 y1 y3])
-;                   3)))
 
 (defn make-panel []
   (proxy [JPanel] []
@@ -72,23 +46,34 @@
     (getPreferredSize []
       (Dimension. 400 400))))
 
-(defn make-key-lis [panel]
+(defn move-cursor [dir]
+  (reset! cursor-pos
+          (case dir
+            left  (assoc @cursor-pos 0 (dec (@cursor-pos 0)))
+            right (assoc @cursor-pos 0 (inc (@cursor-pos 0)))
+            up    (assoc @cursor-pos 1 (dec (@cursor-pos 1)))
+            down  (assoc @cursor-pos 1 (inc (@cursor-pos 1))))))
+
+(defn change-mode []
+  (cond (= @mode 'cursor) (reset! mode 'dff)
+        (= @mode 'dff)    (reset! mode 'cursor)))
+
+(defn close-window [frame]
+  (let [yn (JOptionPane/showConfirmDialog
+            nil "Do you really want to quit?" "Quit" JOptionPane/YES_NO_OPTION)]
+    (when (= yn JOptionPane/YES_OPTION)
+      (.dispose frame))))
+
+(defn make-key-lis [frame panel]
   (proxy [KeyListener] []
     (keyPressed [e]
-      (let [code (.getKeyCode e)
-            new-pos (cond (= code KeyEvent/VK_LEFT)
-                          (assoc @cursor-pos 0 (dec (@cursor-pos 0)))
-                          (= code KeyEvent/VK_RIGHT)
-                          (assoc @cursor-pos 0 (inc (@cursor-pos 0)))
-                          (= code KeyEvent/VK_DOWN)
-                          (assoc @cursor-pos 1 (inc (@cursor-pos 1)))
-                          (= code KeyEvent/VK_UP)
-                          (assoc @cursor-pos 1 (dec (@cursor-pos 1))))]
-        (reset! cursor-pos new-pos))
-        ;(cond (= code KeyEvent/VK_LEFT)  (reset! direction 'left)
-        ;      (= code KeyEvent/VK_RIGHT) (reset! direction 'right)
-        ;      (= code KeyEvent/VK_UP)    (reset! direction 'up)
-        ;      (= code KeyEvent/VK_DOWN)  (reset! direction 'down))
+      (let [code (.getKeyCode e)]
+        (cond (#{KeyEvent/VK_LEFT  KeyEvent/VK_H} code) (move-cursor 'left)
+              (#{KeyEvent/VK_RIGHT KeyEvent/VK_L} code) (move-cursor 'right)
+              (#{KeyEvent/VK_UP    KeyEvent/VK_K} code) (move-cursor 'up)
+              (#{KeyEvent/VK_DOWN  KeyEvent/VK_J} code) (move-cursor 'down)
+              (= code KeyEvent/VK_M)                    (change-mode)
+              (= code KeyEvent/VK_Q)                    (close-window frame)))
       (.repaint panel))
     (keyReleased [e])
     (keyTyped [e])))
@@ -96,7 +81,7 @@
 (defn -main []
   (let [frame (JFrame. "add_dff")
         panel (make-panel)
-        key-lis (make-key-lis panel)]
+        key-lis (make-key-lis frame panel)]
     (doto panel
       (.setFocusable true)
       (.addKeyListener key-lis))
