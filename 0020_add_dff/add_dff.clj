@@ -7,11 +7,14 @@
 (import '[javax.swing JFrame JPanel JOptionPane])
 (import '[java.awt.event KeyListener KeyEvent])
 
-(def dffs (atom #{{:x 2 :y 2} {:x 10 :y 10}}))
+(require 'clojure.set)
 
-(def cursor-pos (atom {:x 5 :y 5}))
+(def dffs (ref #{{:x 2 :y 2} {:x 10 :y 10}}))
+(def selected (ref #{}))
+
+(def cursor-pos (ref {:x 5 :y 5}))
 (def pix-per-grid 10)
-(def mode (atom 'cursor))
+(def mode (ref 'cursor))
 
 (defn -init []
   [[] (atom [])])
@@ -48,30 +51,31 @@
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (draw-status g [@cursor-pos @mode @dffs])
-      (doseq [dff @dffs] (draw-dff g dff Color/BLACK))
-      (cond (= @mode 'cursor) (draw-cursor g @cursor-pos)
-            (= @mode 'dff)    (draw-dff g @cursor-pos Color/RED)
-            (and (seq? @mode)
-                 (= (first @mode) 'selected))
-            (do
-              (draw-cursor g @cursor-pos)
-              (draw-dff g (second @mode) Color/RED)
+      (draw-status g [@cursor-pos @mode @dffs @selected])
+      (case @mode
+        cursor (do
+                 (draw-cursor g @cursor-pos)
+                 (doseq [dff @dffs]
+                   (draw-dff g dff Color/BLACK))
+                 (doseq [dff @selected]
+                   (draw-dff g dff Color/RED)))
+        dff (do
+              (doseq [dff @dffs]
+                (draw-dff g dff Color/BLACK))
+              (draw-dff g @cursor-pos Color/RED)
               )))
     (getPreferredSize []
       (Dimension. 400 400))))
 
 (defn move-cursor [dir]
-  (reset! cursor-pos
-          (case dir
-            left  (assoc @cursor-pos :x (dec (@cursor-pos :x)))
-            right (assoc @cursor-pos :x (inc (@cursor-pos :x)))
-            up    (assoc @cursor-pos :y (dec (@cursor-pos :y)))
-            down  (assoc @cursor-pos :y (inc (@cursor-pos :y))))))
-
-(defn change-mode []
-  (cond (= @mode 'cursor) (reset! mode 'dff)
-        (= @mode 'dff)    (reset! mode 'cursor)))
+  (dosync
+    (ref-set cursor-pos
+             (case dir
+               left  (assoc @cursor-pos :x (dec (@cursor-pos :x)))
+               right (assoc @cursor-pos :x (inc (@cursor-pos :x)))
+               up    (assoc @cursor-pos :y (dec (@cursor-pos :y)))
+               down  (assoc @cursor-pos :y (inc (@cursor-pos :y)))
+               ))))
 
 (defn close-window [frame]
   (let [yn (JOptionPane/showConfirmDialog
@@ -79,36 +83,52 @@
     (when (= yn JOptionPane/YES_OPTION)
       (.dispose frame))))
 
+(defn release-selection []
+  (dosync
+    (alter dffs clojure.set/union @selected)
+    (ref-set selected #{})))
+
+(def key-command
+  {'cursor
+   {KeyEvent/VK_LEFT   (fn [& _] (move-cursor 'left))
+    KeyEvent/VK_RIGHT  (fn [& _] (move-cursor 'right))
+    KeyEvent/VK_UP     (fn [& _] (move-cursor 'up))
+    KeyEvent/VK_DOWN   (fn [& _] (move-cursor 'down))
+    KeyEvent/VK_H      (fn [& _] (move-cursor 'left))
+    KeyEvent/VK_L      (fn [& _] (move-cursor 'right))
+    KeyEvent/VK_K      (fn [& _] (move-cursor 'up))
+    KeyEvent/VK_J      (fn [& _] (move-cursor 'down))
+    KeyEvent/VK_Q      (fn [frame & _] (close-window frame))
+    KeyEvent/VK_A      (fn [& _] (dosync
+                                   (release-selection)
+                                   (ref-set mode 'dff)))
+    KeyEvent/VK_ENTER  (fn [& _]
+                         (let [dff (@dffs @cursor-pos)]
+                           (when dff
+                             (dosync
+                               (alter dffs disj dff)
+                               (alter selected conj dff)
+                               ))))
+    KeyEvent/VK_ESCAPE (fn [& _] (release-selection))
+    KeyEvent/VK_X      (fn [& _] (dosync (ref-set selected #{})))}
+   'dff
+   {KeyEvent/VK_LEFT   (fn [& _] (move-cursor 'left))
+    KeyEvent/VK_RIGHT  (fn [& _] (move-cursor 'right))
+    KeyEvent/VK_UP     (fn [& _] (move-cursor 'up))
+    KeyEvent/VK_DOWN   (fn [& _] (move-cursor 'down))
+    KeyEvent/VK_H      (fn [& _] (move-cursor 'left))
+    KeyEvent/VK_L      (fn [& _] (move-cursor 'right))
+    KeyEvent/VK_K      (fn [& _] (move-cursor 'up))
+    KeyEvent/VK_J      (fn [& _] (move-cursor 'down))
+    KeyEvent/VK_ENTER  (fn [& _] (dosync (alter dffs conj @cursor-pos)))
+    KeyEvent/VK_ESCAPE (fn [& _] (dosync (ref-set mode 'cursor)))
+    }})
+
 (defn make-key-lis [frame panel]
   (proxy [KeyListener] []
     (keyPressed [e]
-      (let [code (.getKeyCode e)]
-        (cond (#{KeyEvent/VK_LEFT  KeyEvent/VK_H} code) (move-cursor 'left)
-              (#{KeyEvent/VK_RIGHT KeyEvent/VK_L} code) (move-cursor 'right)
-              (#{KeyEvent/VK_UP    KeyEvent/VK_K} code) (move-cursor 'up)
-              (#{KeyEvent/VK_DOWN  KeyEvent/VK_J} code) (move-cursor 'down)
-              (= code KeyEvent/VK_Q)                    (close-window frame))
-        (cond (= @mode 'cursor)
-              (cond (= code KeyEvent/VK_A)
-                    (reset! mode 'dff)
-                    (and (= code KeyEvent/VK_ENTER)
-                         (@dffs @cursor-pos))
-                    (reset! mode (list 'selected @cursor-pos))
-                    ))
-        (cond (= @mode 'dff)
-              (cond (= code KeyEvent/VK_ENTER)
-                    (swap! dffs conj @cursor-pos)
-                    (= code KeyEvent/VK_ESCAPE)
-                    (reset! mode 'cursor)
-                    ))
-        (cond (and (seq? @mode)
-                   (= (first @mode) 'selected))
-              (cond (= code KeyEvent/VK_X)
-                    (do
-                      (swap! dffs disj (second @mode))
-                      (reset! mode 'cursor))
-                    (= code KeyEvent/VK_ESCAPE)
-                    (reset! mode 'cursor))))
+      (let [f ((key-command @mode) (.getKeyCode e))]
+        (when f (f frame)))
       (.repaint panel))
     (keyReleased [e])
     (keyTyped [e])))
