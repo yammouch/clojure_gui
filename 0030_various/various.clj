@@ -1,4 +1,4 @@
-(ns add-dff
+(ns various
   (:gen-class
    :init init
    :state state))
@@ -35,6 +35,16 @@
     (doseq [[obj ypos] (map #(list %1 (+ 12 (* 12 %2))) objs (range))]
       (.drawString g (.toString obj) 2 ypos))))
 
+(defn draw-mux21 [g pos color]
+  (let [grid pix-per-grid
+        [x y] (map #(* pix-per-grid (pos %)) [:x :y])]
+    (.setColor g color)
+    (.drawPolygon g
+                  (int-array [x (+ x (* 2 grid)) (+ x (* 2 grid)) x])
+                  (int-array [y (+ y (* 2 grid)) (+ y (* 4 grid))
+                              (+ y (* 6 grid))])
+                  4)))
+
 (defn draw-dff [g dff color]
   (let [[x y] (map #(* pix-per-grid (dff %)) [:x :y])]
     (.setColor g color)
@@ -52,6 +62,7 @@
     (paintComponent [g]
       (proxy-super paintComponent g)
       (draw-status g [@cursor-pos @mode @dffs @selected])
+      (draw-mux21 g {:x 6 :y 6} Color/GREEN)
       (case @mode
         cursor (do
                  (draw-cursor g @cursor-pos)
