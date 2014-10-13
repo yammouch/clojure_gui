@@ -13,7 +13,7 @@
 (def selected (ref #{}))
 
 (def cursor-pos (ref {:x 5 :y 5}))
-(def pix-per-grid 10)
+(def pix-per-grid 8)
 (def mode (ref 'cursor))
 
 (defn -init []
@@ -37,7 +37,7 @@
 
 (defn draw-mux21 [g pos color]
   (let [grid pix-per-grid
-        [x y] (map #(* pix-per-grid (pos %)) [:x :y])]
+        [x y] (map #(* grid (pos %)) [:x :y])]
     (.setColor g color)
     (.drawPolygon g
                   (int-array [x (+ x (* 2 grid)) (+ x (* 2 grid)) x])
@@ -46,15 +46,18 @@
                   4)))
 
 (defn draw-dff [g dff color]
-  (let [[x y] (map #(* pix-per-grid (dff %)) [:x :y])]
+  (let [grid pix-per-grid
+        [x y] (map #(* grid (dff %)) [:x :y])]
     (.setColor g color)
     (.drawPolygon g
-                  (int-array [x x (+ x 40) (+ x 40)])
-                  (int-array [y (+ y 50) (+ y 50) y])
+                  (int-array [x x (+ x (* grid 4)) (+ x (* grid 4))])
+                  (int-array [y (+ y (* grid 5)) (+ y (* grid 5)) y])
                   4)
     (.drawPolyline g
-                   (int-array [(+ x 10) (+ x 20) (+ x 30)])
-                   (int-array [(+ y 50) (+ y 40) (+ y 50)])
+                   (int-array [(+ x grid) (+ x (* grid 2))
+                               (+ x (* grid 3))])
+                   (int-array [(+ y (* grid 5)) (+ y (* grid 4))
+                               (+ y (* grid 5))])
                    3)))
 
 (defn make-panel []
