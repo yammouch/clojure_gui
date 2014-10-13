@@ -10,10 +10,17 @@
 
 (require 'clojure.set)
 
-(def lels (ref {[2 2] 'dff [10 10] 'mux21}))
-(def selected (ref {}))
+(def lels (ref (let [g0 (gensym)
+                     g1 (gensym)]
+                 {g0 {:type 'dff :x 2 :y 2}
+                  g1 {:type 'mux21 :x 10 :y 10}
+                  })))
+; Clojure 1.6.0 does not accept {(gensym) x (gensym) y}
+; by saying (gensym)s are duplicated. Bug?
+; It is the same for #{(gensym) (gensym)}.
+(def selected (ref #{}))
 
-(def cursor-pos (ref [5 5]))
+(def cursor-pos (ref {:x 5 :y 5}))
 (def pix-per-grid 8)
 (def mode (ref 'cursor))
 
@@ -22,9 +29,9 @@
 
 (defn draw-cursor [g pos]
   (let [cursor-size 10
-        x (- (* (pos 0) pix-per-grid)
+        x (- (* (pos :x) pix-per-grid)
              (* 0.5 cursor-size))
-        y (- (* (pos 1) pix-per-grid)
+        y (- (* (pos :y) pix-per-grid)
              (* 0.5 cursor-size))]
     (.setColor g Color/BLUE)
     (.fillOval g x y cursor-size cursor-size)))
@@ -38,7 +45,7 @@
 
 (defn draw-mux21 [g pos color]
   (let [grid pix-per-grid
-        [x y] (map #(* grid (pos %)) [0 1])
+        [x y] (map #(* grid (pos %)) [:x :y])
         font (Font. Font/MONOSPACED Font/PLAIN grid)
         frc (.getFontRenderContext g)
         [bound0 bound1] (map #(.getBounds (TextLayout. % font frc))
@@ -61,7 +68,7 @@
 
 (defn draw-dff [g pos color]
   (let [grid pix-per-grid
-        [x y] (map #(* grid (pos %)) [0 1])]
+        [x y] (map #(* grid (pos %)) [:x :y])]
     (.setColor g color)
     (.drawPolygon g
                   (int-array [x x (+ x (* grid 4)) (+ x (* grid 4))])
@@ -76,27 +83,24 @@
 
 (defn draw-cursor-mode [g]
   (draw-cursor g @cursor-pos)
-  (doseq [[pos type] @lels]
-    (case type
-      dff (draw-dff g pos Color/BLACK)
-      mux21 (draw-mux21 g pos Color/BLACK)))
-  (doseq [[pos type] @selected]
-    (case type
-      dff (draw-dff g pos Color/RED)
-      mux21 (draw-mux21 g pos Color/RED))))
+  (doseq [[k v] @lels]
+    (case (v :type)
+      dff (draw-dff g v (if (@selected k) Color/RED Color/BLACK))
+      mux21 (draw-mux21 g v (if (@selected k) Color/RED Color/BLACK))
+      )))
 
 (defn draw-dff-mode [g]
-  (doseq [[pos type] @lels]
-    (case type
-      dff (draw-dff g pos Color/BLACK)
-      mux21 (draw-mux21 g pos Color/BLACK)))
+  (doseq [[k v] @lels]
+    (case (v :type)
+      dff (draw-dff g v Color/BLACK)
+      mux21 (draw-mux21 g v Color/BLACK)))
   (draw-dff g @cursor-pos Color/RED))
 
 (defn draw-mux21-mode [g]
-  (doseq [[pos type] @lels]
-    (case type
-      dff (draw-dff g pos Color/BLACK)
-      mux21 (draw-mux21 g pos Color/BLACK)))
+  (doseq [[k v] @lels]
+    (case (v :type)
+      dff (draw-dff g v Color/BLACK)
+      mux21 (draw-mux21 g v Color/BLACK)))
   (draw-mux21 g @cursor-pos Color/RED))
 
 (defn make-panel []
@@ -109,16 +113,16 @@
         dff (draw-dff-mode g)
         mux21 (draw-mux21-mode g)))
     (getPreferredSize []
-      (Dimension. 400 400))))
+      (Dimension. 800 400))))
 
 (defn move-cursor [dir]
   (dosync
     (ref-set cursor-pos
              (case dir
-               left  (assoc @cursor-pos 0 (dec (@cursor-pos 0)))
-               right (assoc @cursor-pos 0 (inc (@cursor-pos 0)))
-               up    (assoc @cursor-pos 1 (dec (@cursor-pos 1)))
-               down  (assoc @cursor-pos 1 (inc (@cursor-pos 1)))
+               left  (assoc @cursor-pos :x (dec (@cursor-pos :x)))
+               right (assoc @cursor-pos :x (inc (@cursor-pos :x)))
+               up    (assoc @cursor-pos :y (dec (@cursor-pos :y)))
+               down  (assoc @cursor-pos :y (inc (@cursor-pos :y)))
                ))))
 
 (defn close-window [frame]
@@ -129,8 +133,20 @@
 
 (defn release-selection []
   (dosync
-    (alter lels conj @selected)
-    (ref-set selected {})))
+    (ref-set selected #{})))
+
+(defn find-lel-by-pos [lels pos]
+  (some (fn [[k v]]
+          (when (and (= (pos :x) (v :x))
+                     (= (pos :y) (v :y)))
+            k))
+        lels))
+
+(defn remove-lel-by-key [lels keys]
+  (apply hash-map
+         (apply concat
+                (remove (fn [[k v]] (keys k))
+                        lels))))
 
 (def key-command
   {'cursor
@@ -149,15 +165,17 @@
     KeyEvent/VK_B      (fn [& _] (dosync
                                    (release-selection)
                                    (ref-set mode 'mux21)))
-    KeyEvent/VK_ENTER  (fn [& _]
-                         (let [lel (@lels @cursor-pos)]
-                           (when lel
-                             (dosync
-                               (alter lels dissoc @cursor-pos)
-                               (alter selected conj {@cursor-pos lel})
-                               ))))
+    KeyEvent/VK_ENTER
+    (fn [& _]
+      (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
+        (when lel-key
+          (dosync
+            (alter selected conj lel-key)
+            ))))
     KeyEvent/VK_ESCAPE (fn [& _] (release-selection))
-    KeyEvent/VK_X      (fn [& _] (dosync (ref-set selected {})))}
+    KeyEvent/VK_X      (fn [& _] (dosync
+                                   (alter lels remove-lel-by-key @selected)
+                                   (ref-set selected #{})))}
    'dff
    {KeyEvent/VK_LEFT   (fn [& _] (move-cursor 'left))
     KeyEvent/VK_RIGHT  (fn [& _] (move-cursor 'right))
@@ -168,7 +186,12 @@
     KeyEvent/VK_K      (fn [& _] (move-cursor 'up))
     KeyEvent/VK_J      (fn [& _] (move-cursor 'down))
     KeyEvent/VK_Q      (fn [frame & _] (close-window frame))
-    KeyEvent/VK_ENTER  (fn [& _] (dosync (alter lels conj {@cursor-pos 'dff})))
+    KeyEvent/VK_ENTER
+    (fn [& _]
+      (dosync
+        (alter lels conj
+               {(gensym) (conj @cursor-pos {:type 'dff})}
+               )))
     KeyEvent/VK_ESCAPE (fn [& _] (dosync (ref-set mode 'cursor)))
     KeyEvent/VK_B      (fn [& _] (dosync (ref-set mode 'mux21)))}
    'mux21
@@ -181,8 +204,12 @@
     KeyEvent/VK_K      (fn [& _] (move-cursor 'up))
     KeyEvent/VK_J      (fn [& _] (move-cursor 'down))
     KeyEvent/VK_Q      (fn [frame & _] (close-window frame))
-    KeyEvent/VK_ENTER  (fn [& _] (dosync
-                                   (alter lels conj {@cursor-pos 'mux21})))
+    KeyEvent/VK_ENTER
+    (fn [& _]
+      (dosync
+        (alter lels conj
+               {(gensym) (conj @cursor-pos {:type 'mux21})}
+               )))
     KeyEvent/VK_ESCAPE (fn [& _] (dosync (ref-set mode 'cursor)))
     KeyEvent/VK_A      (fn [& _] (dosync (ref-set mode 'dff)))
     }})
