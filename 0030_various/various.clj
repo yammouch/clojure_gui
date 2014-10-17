@@ -110,6 +110,7 @@
       (draw-status g [@cursor-pos @mode @lels @selected])
       (case @mode
         cursor (draw-cursor-mode g)
+        move (draw-cursor-mode g)
         dff (draw-dff-mode g)
         mux21 (draw-mux21-mode g)))
     (getPreferredSize []
@@ -124,6 +125,24 @@
                up    (assoc @cursor-pos :y (dec (@cursor-pos :y)))
                down  (assoc @cursor-pos :y (inc (@cursor-pos :y)))
                ))))
+
+(defn move-selected [dir]
+  (dosync
+    (move-cursor dir)
+    (ref-set lels
+             (reduce (fn [lels sel]
+                       (assoc lels sel
+                              (assoc (lels sel)
+                                     (cond (#{'left 'right} dir) :x
+                                           (#{'up 'down} dir)    :y)
+                                     (case dir
+                                       left  (dec ((lels sel) :x))
+                                       right (inc ((lels sel) :x))
+                                       up    (dec ((lels sel) :y))
+                                       down  (inc ((lels sel) :y))
+                                       ))))
+                     @lels
+                     @selected))))
 
 (defn close-window [frame]
   (let [yn (JOptionPane/showConfirmDialog
@@ -164,6 +183,8 @@
    KeyEvent/VK_B      (fn [_] (dosync
                                 (release-selection)
                                 (ref-set mode 'mux21)))
+   KeyEvent/VK_M      (fn [_] (dosync
+                                (ref-set mode 'move)))
    KeyEvent/VK_ENTER
    (fn [_]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
@@ -217,10 +238,26 @@
    KeyEvent/VK_A      (fn [_] (dosync (ref-set mode 'dff)))
    })
 
+(def key-command-move-mode
+  {KeyEvent/VK_LEFT   (fn [_] (move-selected 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-selected 'right))
+   KeyEvent/VK_UP     (fn [_] (move-selected 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-selected 'down))
+   KeyEvent/VK_H      (fn [_] (move-selected 'left))
+   KeyEvent/VK_L      (fn [_] (move-selected 'right))
+   KeyEvent/VK_K      (fn [_] (move-selected 'up))
+   KeyEvent/VK_J      (fn [_] (move-selected 'down))
+   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync
+                                (release-selection)
+                                (ref-set mode 'cursor)))
+   })
+
 (def key-command
   {'cursor key-command-cursor-mode
    'dff    key-command-dff-mode
    'mux21  key-command-mux21-mode
+   'move   key-command-move-mode
    })
 
 (defn make-key-lis [frame panel]
