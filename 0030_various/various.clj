@@ -148,77 +148,86 @@
                 (remove (fn [[k v]] (keys k))
                         lels))))
 
+(def key-command-cursor-mode
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_A      (fn [_] (dosync
+                                (release-selection)
+                                (ref-set mode 'dff)))
+   KeyEvent/VK_B      (fn [_] (dosync
+                                (release-selection)
+                                (ref-set mode 'mux21)))
+   KeyEvent/VK_ENTER
+   (fn [_]
+     (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
+       (when lel-key
+         (dosync
+           (alter selected conj lel-key)
+           ))))
+   KeyEvent/VK_ESCAPE (fn [_] (release-selection))
+   KeyEvent/VK_X      (fn [_] (dosync
+                                (alter lels remove-lel-by-key @selected)
+                                (ref-set selected #{})
+                                ))})
+
+(def key-command-dff-mode
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_ENTER
+   (fn [_]
+     (dosync
+       (alter lels conj
+              {(gensym) (conj @cursor-pos {:type 'dff})}
+              )))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode 'cursor)))
+   KeyEvent/VK_B      (fn [_] (dosync (ref-set mode 'mux21)))
+   })
+
+(def key-command-mux21-mode
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_ENTER
+   (fn [_]
+     (dosync
+       (alter lels conj
+              {(gensym) (conj @cursor-pos {:type 'mux21})}
+              )))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode 'cursor)))
+   KeyEvent/VK_A      (fn [_] (dosync (ref-set mode 'dff)))
+   })
+
 (def key-command
-  {'cursor
-   {KeyEvent/VK_LEFT   (fn [& _] (move-cursor 'left))
-    KeyEvent/VK_RIGHT  (fn [& _] (move-cursor 'right))
-    KeyEvent/VK_UP     (fn [& _] (move-cursor 'up))
-    KeyEvent/VK_DOWN   (fn [& _] (move-cursor 'down))
-    KeyEvent/VK_H      (fn [& _] (move-cursor 'left))
-    KeyEvent/VK_L      (fn [& _] (move-cursor 'right))
-    KeyEvent/VK_K      (fn [& _] (move-cursor 'up))
-    KeyEvent/VK_J      (fn [& _] (move-cursor 'down))
-    KeyEvent/VK_Q      (fn [frame & _] (close-window frame))
-    KeyEvent/VK_A      (fn [& _] (dosync
-                                   (release-selection)
-                                   (ref-set mode 'dff)))
-    KeyEvent/VK_B      (fn [& _] (dosync
-                                   (release-selection)
-                                   (ref-set mode 'mux21)))
-    KeyEvent/VK_ENTER
-    (fn [& _]
-      (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
-        (when lel-key
-          (dosync
-            (alter selected conj lel-key)
-            ))))
-    KeyEvent/VK_ESCAPE (fn [& _] (release-selection))
-    KeyEvent/VK_X      (fn [& _] (dosync
-                                   (alter lels remove-lel-by-key @selected)
-                                   (ref-set selected #{})))}
-   'dff
-   {KeyEvent/VK_LEFT   (fn [& _] (move-cursor 'left))
-    KeyEvent/VK_RIGHT  (fn [& _] (move-cursor 'right))
-    KeyEvent/VK_UP     (fn [& _] (move-cursor 'up))
-    KeyEvent/VK_DOWN   (fn [& _] (move-cursor 'down))
-    KeyEvent/VK_H      (fn [& _] (move-cursor 'left))
-    KeyEvent/VK_L      (fn [& _] (move-cursor 'right))
-    KeyEvent/VK_K      (fn [& _] (move-cursor 'up))
-    KeyEvent/VK_J      (fn [& _] (move-cursor 'down))
-    KeyEvent/VK_Q      (fn [frame & _] (close-window frame))
-    KeyEvent/VK_ENTER
-    (fn [& _]
-      (dosync
-        (alter lels conj
-               {(gensym) (conj @cursor-pos {:type 'dff})}
-               )))
-    KeyEvent/VK_ESCAPE (fn [& _] (dosync (ref-set mode 'cursor)))
-    KeyEvent/VK_B      (fn [& _] (dosync (ref-set mode 'mux21)))}
-   'mux21
-   {KeyEvent/VK_LEFT   (fn [& _] (move-cursor 'left))
-    KeyEvent/VK_RIGHT  (fn [& _] (move-cursor 'right))
-    KeyEvent/VK_UP     (fn [& _] (move-cursor 'up))
-    KeyEvent/VK_DOWN   (fn [& _] (move-cursor 'down))
-    KeyEvent/VK_H      (fn [& _] (move-cursor 'left))
-    KeyEvent/VK_L      (fn [& _] (move-cursor 'right))
-    KeyEvent/VK_K      (fn [& _] (move-cursor 'up))
-    KeyEvent/VK_J      (fn [& _] (move-cursor 'down))
-    KeyEvent/VK_Q      (fn [frame & _] (close-window frame))
-    KeyEvent/VK_ENTER
-    (fn [& _]
-      (dosync
-        (alter lels conj
-               {(gensym) (conj @cursor-pos {:type 'mux21})}
-               )))
-    KeyEvent/VK_ESCAPE (fn [& _] (dosync (ref-set mode 'cursor)))
-    KeyEvent/VK_A      (fn [& _] (dosync (ref-set mode 'dff)))
-    }})
+  {'cursor key-command-cursor-mode
+   'dff    key-command-dff-mode
+   'mux21  key-command-mux21-mode
+   })
 
 (defn make-key-lis [frame panel]
   (proxy [KeyListener] []
     (keyPressed [e]
       (let [f ((key-command @mode) (.getKeyCode e))]
-        (when f (f frame)))
+        (when f (f {:frame frame})))
       (.repaint panel))
     (keyReleased [e])
     (keyTyped [e])))
