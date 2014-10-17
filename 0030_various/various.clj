@@ -20,6 +20,8 @@
 ; It is the same for #{(gensym) (gensym)}.
 (def selected (ref #{}))
 
+(def wires (ref {(gensym) {:x0 3, :y0 3, :x1 6, :y1 7}}))
+
 (def cursor-pos (ref {:x 5 :y 5}))
 (def pix-per-grid 8)
 (def mode (ref 'cursor))
@@ -81,8 +83,17 @@
                                (+ y (* grid 5))])
                    3)))
 
+(defn draw-wire [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
+  (.setColor g color)
+  (.drawPolyline g
+                 (int-array (map #(* pix-per-grid %) [x0 x1]))
+                 (int-array (map #(* pix-per-grid %) [y0 y1]))
+                 2))
+
 (defn draw-cursor-mode [g]
   (draw-cursor g @cursor-pos)
+  (doseq [[k v] @wires]
+    (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
     (case (v :type)
       dff (draw-dff g v (if (@selected k) Color/RED Color/BLACK))
@@ -90,6 +101,8 @@
       )))
 
 (defn draw-dff-mode [g]
+  (doseq [[k v] @wires]
+    (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
     (case (v :type)
       dff (draw-dff g v Color/BLACK)
@@ -97,6 +110,8 @@
   (draw-dff g @cursor-pos Color/RED))
 
 (defn draw-mux21-mode [g]
+  (doseq [[k v] @wires]
+    (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
     (case (v :type)
       dff (draw-dff g v Color/BLACK)
@@ -107,7 +122,7 @@
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (draw-status g [@cursor-pos @mode @lels @selected])
+      (draw-status g [@cursor-pos @mode @lels @selected @wires])
       (case @mode
         cursor (draw-cursor-mode g)
         move (draw-cursor-mode g)
