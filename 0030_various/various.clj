@@ -8,8 +8,6 @@
 (import '[javax.swing JFrame JPanel JOptionPane])
 (import '[java.awt.event KeyListener KeyEvent])
 
-(require 'clojure.set)
-
 (def lels (ref (let [g0 (gensym)
                      g1 (gensym)]
                  {g0 {:type 'dff :x 2 :y 2}
@@ -20,11 +18,12 @@
 ; It is the same for #{(gensym) (gensym)}.
 (def selected (ref #{}))
 
-(def wires (ref {(gensym) {:x0 3, :y0 3, :x1 6, :y1 7}}))
+(def wires (ref {(gensym) {:x0 3 :y0 3 :x1 6 :y1 7}}))
 
 (def cursor-pos (ref {:x 5 :y 5}))
 (def pix-per-grid 8)
 (def mode (ref 'cursor))
+(def wire-p0 (ref {:x 0 :y 0}))
 
 (defn -init []
   [[] (atom [])])
@@ -118,6 +117,20 @@
       mux21 (draw-mux21 g v Color/BLACK)))
   (draw-mux21 g @cursor-pos Color/RED))
 
+(defn draw-wire-mode [g]
+  (draw-cursor g @cursor-pos)
+  (doseq [[k v] @wires]
+    (draw-wire g v Color/BLACK))
+  (doseq [[k v] @lels]
+    (case (v :type)
+      dff (draw-dff g v (if (@selected k) Color/RED Color/BLACK))
+      mux21 (draw-mux21 g v (if (@selected k) Color/RED Color/BLACK))
+      ))
+  (draw-wire g
+             {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
+              :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
+             Color/RED))
+
 (defn make-panel []
   (proxy [JPanel] []
     (paintComponent [g]
@@ -127,7 +140,8 @@
         cursor (draw-cursor-mode g)
         move (draw-cursor-mode g)
         dff (draw-dff-mode g)
-        mux21 (draw-mux21-mode g)))
+        mux21 (draw-mux21-mode g)
+        wire (draw-wire-mode g)))
     (getPreferredSize []
       (Dimension. 800 400))))
 
@@ -200,6 +214,10 @@
                                 (ref-set mode 'mux21)))
    KeyEvent/VK_M      (fn [_] (dosync
                                 (ref-set mode 'move)))
+   KeyEvent/VK_W      (fn [_] (dosync
+                                (release-selection)
+                                (ref-set wire-p0 @cursor-pos)
+                                (ref-set mode 'wire)))
    KeyEvent/VK_ENTER
    (fn [_]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
@@ -266,13 +284,35 @@
    KeyEvent/VK_ESCAPE (fn [_] (dosync
                                 (release-selection)
                                 (ref-set mode 'cursor)))
-   })
+                                })
+
+(def key-command-wire-mode  
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync
+                                (ref-set mode 'cursor)))
+   KeyEvent/VK_ENTER  (fn [_] (dosync
+                                (alter wires conj
+                                      {(gensym) {:x0 (@wire-p0 :x)
+                                                 :y0 (@wire-p0 :y)
+                                                 :x1 (@cursor-pos :x)
+                                                 :y1 (@cursor-pos :y)}})
+                                (ref-set mode 'cursor)))
+                                })
 
 (def key-command
   {'cursor key-command-cursor-mode
    'dff    key-command-dff-mode
    'mux21  key-command-mux21-mode
    'move   key-command-move-mode
+   'wire   key-command-wire-mode
    })
 
 (defn make-key-lis [frame panel]
