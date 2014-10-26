@@ -17,6 +17,7 @@
 ; by saying (gensym)s are duplicated. Bug?
 ; It is the same for #{(gensym) (gensym)}.
 (def selected-lels (ref #{}))
+(def selected-wires (ref #{}))
 
 (def wires
   (let [g0 (gensym)
@@ -113,7 +114,7 @@
 (defn draw-cursor-mode [g]
   (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
-    (draw-wire g v Color/BLACK))
+    (draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
   (doseq [[k v] @lels]
     (case (v :type)
       dff (draw-dff g v (if (@selected-lels k) Color/RED Color/BLACK))
@@ -201,7 +202,8 @@
 
 (defn release-selection []
   (dosync
-    (ref-set selected-lels #{})))
+    (ref-set selected-lels #{})
+    (ref-set selected-wires #{})))
 
 (defn find-lel-by-pos [lels pos]
   (some (fn [[k v]]
@@ -209,6 +211,15 @@
                      (= (pos :y) (v :y)))
             k))
         lels))
+
+(defn find-wire-by-pos [wires pos]
+  (some (fn [[k {x0 :x0 y0 :y0 x1 :x1 y1 :y1}]]
+          (when (or (and (= (pos :x) x0)
+                         (= (pos :y) y0))
+                    (and (= (pos :x) x1)
+                         (= (pos :y) y1)))
+            k))
+        wires))
 
 (defn remove-lel-by-key [lels keys]
   (apply hash-map
@@ -240,10 +251,14 @@
                                 (ref-set mode 'wire)))
    KeyEvent/VK_ENTER
    (fn [_]
-     (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
-       (when lel-key
-         (dosync
-           (alter selected-lels conj lel-key)
+     (let [lel-key (find-lel-by-pos @lels @cursor-pos)
+           wire-key (when (not lel-key)
+                      (find-wire-by-pos @wires @cursor-pos))]
+       (dosync
+         (when lel-key
+           (alter selected-lels conj lel-key))
+         (when wire-key
+           (alter selected-wires conj wire-key)
            ))))
    KeyEvent/VK_ESCAPE (fn [_] (release-selection))
    KeyEvent/VK_X      (fn [_] (dosync
