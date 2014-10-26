@@ -35,15 +35,6 @@
 (defn -init []
   [[] (atom [])])
 
-(defn draw-cursor [g pos]
-  (let [cursor-size 10
-        x (- (* (pos :x) pix-per-grid)
-             (* 0.5 cursor-size))
-        y (- (* (pos :y) pix-per-grid)
-             (* 0.5 cursor-size))]
-    (.setColor g Color/BLUE)
-    (.fillOval g x y cursor-size cursor-size)))
-
 (defn draw-dot [g pos size color]
   (let [x (- (* (pos :x) pix-per-grid)
              (int (* 0.5 size)))
@@ -120,7 +111,7 @@
     (draw-dot g {:x (p 0) :y (p 1)} 7 Color/BLACK)))
 
 (defn draw-cursor-mode [g]
-  (draw-cursor g @cursor-pos)
+  (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
@@ -148,7 +139,7 @@
   (draw-mux21 g @cursor-pos Color/RED))
 
 (defn draw-wire-mode [g]
-  (draw-cursor g @cursor-pos)
+  (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
