@@ -16,7 +16,7 @@
 ; Clojure 1.6.0 does not accept {(gensym) x (gensym) y}
 ; by saying (gensym)s are duplicated. Bug?
 ; It is the same for #{(gensym) (gensym)}.
-(def selected (ref #{}))
+(def selected-lels (ref #{}))
 
 (def wires
   (let [g0 (gensym)
@@ -116,8 +116,8 @@
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
     (case (v :type)
-      dff (draw-dff g v (if (@selected k) Color/RED Color/BLACK))
-      mux21 (draw-mux21 g v (if (@selected k) Color/RED Color/BLACK))
+      dff (draw-dff g v (if (@selected-lels k) Color/RED Color/BLACK))
+      mux21 (draw-mux21 g v (if (@selected-lels k) Color/RED Color/BLACK))
       )))
 
 (defn draw-dff-mode [g]
@@ -144,8 +144,8 @@
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
     (case (v :type)
-      dff (draw-dff g v (if (@selected k) Color/RED Color/BLACK))
-      mux21 (draw-mux21 g v (if (@selected k) Color/RED Color/BLACK))
+      dff (draw-dff g v (if (@selected-lels k) Color/RED Color/BLACK))
+      mux21 (draw-mux21 g v (if (@selected-lels k) Color/RED Color/BLACK))
       ))
   (draw-wire g
              {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
@@ -156,7 +156,7 @@
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (draw-status g [@cursor-pos @mode @lels @selected @wires])
+      (draw-status g [@cursor-pos @mode @lels @selected-lels @wires])
       (case @mode
         cursor (draw-cursor-mode g)
         move (draw-cursor-mode g)
@@ -176,9 +176,8 @@
                down  (assoc @cursor-pos :y (inc (@cursor-pos :y)))
                ))))
 
-(defn move-selected [dir]
+(defn move-selected-lels [dir]
   (dosync
-    (move-cursor dir)
     (ref-set lels
              (reduce (fn [lels sel]
                        (assoc lels sel
@@ -192,7 +191,7 @@
                                        down  (inc ((lels sel) :y))
                                        ))))
                      @lels
-                     @selected))))
+                     @selected-lels))))
 
 (defn close-window [frame]
   (let [yn (JOptionPane/showConfirmDialog
@@ -202,7 +201,7 @@
 
 (defn release-selection []
   (dosync
-    (ref-set selected #{})))
+    (ref-set selected-lels #{})))
 
 (defn find-lel-by-pos [lels pos]
   (some (fn [[k v]]
@@ -244,12 +243,12 @@
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
        (when lel-key
          (dosync
-           (alter selected conj lel-key)
+           (alter selected-lels conj lel-key)
            ))))
    KeyEvent/VK_ESCAPE (fn [_] (release-selection))
    KeyEvent/VK_X      (fn [_] (dosync
-                                (alter lels remove-lel-by-key @selected)
-                                (ref-set selected #{})
+                                (alter lels remove-lel-by-key @selected-lels)
+                                (ref-set selected-lels #{})
                                 ))})
 
 (def key-command-dff-mode
@@ -293,14 +292,22 @@
    })
 
 (def key-command-move-mode
-  {KeyEvent/VK_LEFT   (fn [_] (move-selected 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-selected 'right))
-   KeyEvent/VK_UP     (fn [_] (move-selected 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-selected 'down))
-   KeyEvent/VK_H      (fn [_] (move-selected 'left))
-   KeyEvent/VK_L      (fn [_] (move-selected 'right))
-   KeyEvent/VK_K      (fn [_] (move-selected 'up))
-   KeyEvent/VK_J      (fn [_] (move-selected 'down))
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor        'left)
+                              (move-selected-lels 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor        'right)
+                              (move-selected-lels 'right))
+   KeyEvent/VK_UP     (fn [_] (move-cursor        'up)
+                              (move-selected-lels 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor        'down)
+                              (move-selected-lels 'down))
+   KeyEvent/VK_H      (fn [_] (move-cursor        'left)
+                              (move-selected-lels 'left))
+   KeyEvent/VK_L      (fn [_] (move-cursor        'right)
+                              (move-selected-lels 'right))
+   KeyEvent/VK_K      (fn [_] (move-cursor        'up)
+                              (move-selected-lels 'up))
+   KeyEvent/VK_J      (fn [_] (move-cursor        'down)
+                              (move-selected-lels 'down))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyEvent/VK_ESCAPE (fn [_] (dosync
                                 (release-selection)
