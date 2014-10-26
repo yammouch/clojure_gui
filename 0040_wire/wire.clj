@@ -194,6 +194,29 @@
                      @lels
                      @selected-lels))))
 
+(defn move-wire [wire dir]
+  (let [[f & keys] (case dir
+                     left  [dec :x0 :x1]
+                     right [inc :x0 :x1]
+                     up    [dec :y0 :y1]
+                     down  [inc :y0 :y1])]
+    (reduce (fn [wire k] (assoc wire k (f (wire k))))
+            wire keys)))
+
+(defn move-selected-wires [dir]
+  (let [moved (reduce (fn [wires sel]
+                        (assoc wires sel
+                               (move-wire (wires sel) dir)))
+                      @wires
+                      @selected-wires)]
+    (dosync
+      (ref-set wires moved)
+      )))
+
+(defn move-selected [dir]
+  (move-selected-lels dir)
+  (move-selected-wires dir))
+
 (defn close-window [frame]
   (let [yn (JOptionPane/showConfirmDialog
             nil "Do you really want to quit?" "Quit" JOptionPane/YES_NO_OPTION)]
@@ -307,22 +330,22 @@
    })
 
 (def key-command-move-mode
-  {KeyEvent/VK_LEFT   (fn [_] (move-cursor        'left)
-                              (move-selected-lels 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-cursor        'right)
-                              (move-selected-lels 'right))
-   KeyEvent/VK_UP     (fn [_] (move-cursor        'up)
-                              (move-selected-lels 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-cursor        'down)
-                              (move-selected-lels 'down))
-   KeyEvent/VK_H      (fn [_] (move-cursor        'left)
-                              (move-selected-lels 'left))
-   KeyEvent/VK_L      (fn [_] (move-cursor        'right)
-                              (move-selected-lels 'right))
-   KeyEvent/VK_K      (fn [_] (move-cursor        'up)
-                              (move-selected-lels 'up))
-   KeyEvent/VK_J      (fn [_] (move-cursor        'down)
-                              (move-selected-lels 'down))
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor   'left)
+                              (move-selected 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor   'right)
+                              (move-selected 'right))
+   KeyEvent/VK_UP     (fn [_] (move-cursor   'up)
+                              (move-selected 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor   'down)
+                              (move-selected 'down))
+   KeyEvent/VK_H      (fn [_] (move-cursor   'left)
+                              (move-selected 'left))
+   KeyEvent/VK_L      (fn [_] (move-cursor   'right)
+                              (move-selected 'right))
+   KeyEvent/VK_K      (fn [_] (move-cursor   'up)
+                              (move-selected 'up))
+   KeyEvent/VK_J      (fn [_] (move-cursor   'down)
+                              (move-selected 'down))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyEvent/VK_ESCAPE (fn [_] (dosync
                                 (release-selection)
