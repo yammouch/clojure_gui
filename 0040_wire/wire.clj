@@ -18,7 +18,14 @@
 ; It is the same for #{(gensym) (gensym)}.
 (def selected (ref #{}))
 
-(def wires (ref {(gensym) {:x0 3 :y0 3 :x1 6 :y1 7}}))
+(def wires
+  (let [g0 (gensym)
+        g1 (gensym)
+        g2 (gensym)]
+    (ref {g0 {:x0 10 :y0 10 :x1 20 :y1 10}
+          g1 {:x0 20 :y0 10 :x1 20 :y1 20}
+          g2 {:x0 20 :y0 10 :x1 30 :y1  5}
+          })))
 
 (def cursor-pos (ref {:x 5 :y 5}))
 (def pix-per-grid 8)
@@ -36,6 +43,14 @@
              (* 0.5 cursor-size))]
     (.setColor g Color/BLUE)
     (.fillOval g x y cursor-size cursor-size)))
+
+(defn draw-dot [g pos size color]
+  (let [x (- (* (pos :x) pix-per-grid)
+             (int (* 0.5 size)))
+        y (- (* (pos :y) pix-per-grid)
+             (int (* 0.5 size)))]
+    (.setColor g color)
+    (.fillOval g x y size size)))
 
 (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-status [g objs]
@@ -82,12 +97,27 @@
                                (+ y (* grid 5))])
                    3)))
 
+(defn wire-connected-points [wires]
+  (let [points (apply concat (map (fn [{x0 :x0 y0 :y0 x1 :x1 y1 :y1}]
+                                    [[x0 y0] [x1 y1]])
+                                  wires))
+        points-counts (reduce (fn [acc p]
+                                (if (acc p)
+                                  (assoc acc p (inc (acc p)))
+                                  (conj acc {p 1})))
+                              {}
+                              points)]
+    (keys (filter (fn [[k v]] (<= 3 v))
+                  points-counts))))
+
 (defn draw-wire [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
   (.setColor g color)
   (.drawPolyline g
                  (int-array (map #(* pix-per-grid %) [x0 x1]))
                  (int-array (map #(* pix-per-grid %) [y0 y1]))
-                 2))
+                 2)
+  (doseq [p (wire-connected-points (vals @wires))]
+    (draw-dot g {:x (p 0) :y (p 1)} 7 Color/BLACK)))
 
 (defn draw-cursor-mode [g]
   (draw-cursor g @cursor-pos)
