@@ -1,4 +1,4 @@
-(ns various
+(ns wire
   (:gen-class
    :init init
    :state state))
