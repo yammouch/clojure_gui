@@ -1,4 +1,4 @@
-(ns wire
+(ns catalog
   (:gen-class
    :init init
    :state state))
