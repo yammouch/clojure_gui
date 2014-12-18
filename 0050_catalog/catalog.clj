@@ -167,14 +167,49 @@
               :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
              Color/RED))
 
+(def catalog-table
+  [[{:name 'in    :w 3 :h 2
+     ;:fdraw (fn [g pos] (draw-in g pos Color/BLACK))}
+     :fdraw (fn [g pos])}
+    {:name 'out   :w 3 :h 2
+     ;:fdraw (fn [g pos] (draw-out g pos Color/BLACK))}
+     :fdraw (fn [g pos])}
+    {:name 'inout :w 3 :h 2
+     ;:fdraw (fn [g pos] (draw-inout g pos Color/BLACK))}
+     :fdraw (fn [g pos])}
+    {:name 'dot   :w 2 :h 2
+     :fdraw (fn [g pos] (draw-dot g pos 7 Color/BLACK))}
+    {:name 'name  :w 2 :h 4
+     ;:fdraw (fn [g pos] (draw-name g pos Color/BLACK))}
+     :fdraw (fn [g pos])}
+     ]
+   [{:name 'not   :w 4 :h 4
+     :fdraw (fn [g pos])}
+    {:name 'and   :w 4 :h 4
+     :fdraw (fn [g pos])}
+    {:name 'or    :w 4 :h 4
+     :fdraw (fn [g pos])}
+    {:name 'dff   :w 4 :h 5
+     :fdraw (fn [g pos] (draw-dff g pos Color/BLACK))}
+    {:name 'mux21 :w 2 :h 6
+     :fdraw (fn [g pos] (draw-mux21 g pos Color/BLACK))}
+    ]])
+
 (defn draw-mode-catalog [g]
+  (doseq [[idx0 parts] (map #(list %1 %2) (range) catalog-table)]
+    (doseq [[idx1 part] (map #(list %1 %2) (range) parts)]
+      ((part :fdraw) g
+                     {:x (- (+ (* 10 idx1) 6)
+                            (int (/ (part :w) 2)))
+                      :y (- (+ (* 10 idx0) 6)
+                            (int (/ (part :h) 2))
+                            )})))
   (.setStroke g (BasicStroke. 2.0))
   (.setColor g Color/RED)
-  (.drawRect g (+ 5 (* 10 pix-per-grid (@catalog-pos :x)))
-               (+ 5 (* 10 pix-per-grid (@catalog-pos :y)))
-               (* 10 pix-per-grid)
-               (* 10 pix-per-grid)
-               ))
+  (.drawRect g (* pix-per-grid (+ (* 10 (@catalog-pos :x)) 1))
+               (* pix-per-grid (+ (* 10 (@catalog-pos :y)) 1))
+               (* pix-per-grid 10)
+               (* pix-per-grid 10)))
 
 ;--------------------------------------------------
 ; drawing on Java GUI
