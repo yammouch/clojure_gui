@@ -3,7 +3,7 @@
    :init init
    :state state))
 
-(import '[java.awt Color Dimension Font])
+(import '[java.awt Color Dimension Font BasicStroke])
 (import '[java.awt.font TextLayout])
 (import '[javax.swing JFrame JPanel JOptionPane])
 (import '[java.awt.event KeyListener KeyEvent])
@@ -167,7 +167,14 @@
               :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
              Color/RED))
 
-(defn draw-mode-catalog [g])
+(defn draw-mode-catalog [g]
+  (.setStroke g (BasicStroke. 2.0))
+  (.setColor g Color/RED)
+  (.drawRect g (+ 5 (* 10 pix-per-grid (@catalog-pos :x)))
+               (+ 5 (* 10 pix-per-grid (@catalog-pos :y)))
+               (* 10 pix-per-grid)
+               (* 10 pix-per-grid)
+               ))
 
 ;--------------------------------------------------
 ; drawing on Java GUI
