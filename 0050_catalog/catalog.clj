@@ -36,6 +36,10 @@
 (defn -init []
   [[] (atom [])])
 
+;--------------------------------------------------
+; draw-* functions to draw parts
+;--------------------------------------------------
+
 (defn draw-dot [g pos size color]
   (let [x (- (* (pos :x) pix-per-grid)
              (int (* 0.5 size)))
@@ -111,7 +115,11 @@
   (doseq [p (wire-connected-points (vals @wires))]
     (draw-dot g {:x (p 0) :y (p 1)} 7 Color/BLACK)))
 
-(defn draw-cursor-mode [g]
+;--------------------------------------------------
+; draw-mode-*
+;--------------------------------------------------
+
+(defn draw-mode-cursor [g]
   (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
     (draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
@@ -121,7 +129,7 @@
       mux21 (draw-mux21 g v (if (@selected-lels k) Color/RED Color/BLACK))
       )))
 
-(defn draw-dff-mode [g]
+(defn draw-mode-dff [g]
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
@@ -130,7 +138,7 @@
       mux21 (draw-mux21 g v Color/BLACK)))
   (draw-dff g @cursor-pos Color/RED))
 
-(defn draw-mux21-mode [g]
+(defn draw-mode-mux21 [g]
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
@@ -139,7 +147,7 @@
       mux21 (draw-mux21 g v Color/BLACK)))
   (draw-mux21 g @cursor-pos Color/RED))
 
-(defn draw-wire-mode [g]
+(defn draw-mode-wire [g]
   (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
@@ -153,19 +161,30 @@
               :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
              Color/RED))
 
+(defn draw-mode-catalog [g])
+
+;--------------------------------------------------
+; drawing on Java GUI
+;--------------------------------------------------
+
 (defn make-panel []
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
       (draw-status g [@cursor-pos @mode @lels @selected-lels @wires])
       (case @mode
-        cursor (draw-cursor-mode g)
-        move (draw-cursor-mode g)
-        dff (draw-dff-mode g)
-        mux21 (draw-mux21-mode g)
-        wire (draw-wire-mode g)))
+        cursor  (draw-mode-cursor  g)
+        move    (draw-mode-cursor  g)
+        dff     (draw-mode-dff     g)
+        mux21   (draw-mode-mux21   g)
+        wire    (draw-mode-wire    g)
+        catalog (draw-mode-catalog g)))
     (getPreferredSize []
       (Dimension. 800 400))))
+
+;--------------------------------------------------
+; move-*
+;--------------------------------------------------
 
 (defn move-cursor [dir]
   (dosync
@@ -217,11 +236,9 @@
   (move-selected-lels dir)
   (move-selected-wires dir))
 
-(defn close-window [frame]
-  (let [yn (JOptionPane/showConfirmDialog
-            nil "Do you really want to quit?" "Quit" JOptionPane/YES_NO_OPTION)]
-    (when (= yn JOptionPane/YES_OPTION)
-      (.dispose frame))))
+;--------------------------------------------------
+; sub functions for key commands
+;--------------------------------------------------
 
 (defn release-selection []
   (dosync
@@ -249,6 +266,16 @@
          (apply concat
                 (remove (fn [[k v]] (keys k))
                         lels))))
+
+(defn close-window [frame]
+  (let [yn (JOptionPane/showConfirmDialog
+            nil "Do you really want to quit?" "Quit" JOptionPane/YES_NO_OPTION)]
+    (when (= yn JOptionPane/YES_OPTION)
+      (.dispose frame))))
+
+;--------------------------------------------------
+; key commands for each mode
+;--------------------------------------------------
 
 (def key-command-cursor-mode
   {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
@@ -381,6 +408,10 @@
    'wire   key-command-wire-mode
    })
 
+;--------------------------------------------------
+; key listener
+;--------------------------------------------------
+
 (defn make-key-lis [frame panel]
   (proxy [KeyListener] []
     (keyPressed [e]
@@ -389,6 +420,10 @@
       (.repaint panel))
     (keyReleased [e])
     (keyTyped [e])))
+
+;--------------------------------------------------
+; main
+;--------------------------------------------------
 
 (defn -main []
   (let [frame (JFrame. "various")
