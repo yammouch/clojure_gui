@@ -8,6 +8,15 @@
 (import '[javax.swing JFrame JPanel JOptionPane])
 (import '[java.awt.event KeyListener KeyEvent])
 
+(def pix-per-grid 8)
+
+(defn -init []
+  [[] (atom [])])
+
+;--------------------------------------------------
+; states
+;--------------------------------------------------
+
 (def lels (ref (let [g0 (gensym)
                      g1 (gensym)]
                  {g0 {:type 'dff :x 2 :y 2}
@@ -29,12 +38,9 @@
           })))
 
 (def cursor-pos (ref {:x 5 :y 5}))
-(def pix-per-grid 8)
 (def mode (ref 'cursor))
 (def wire-p0 (ref {:x 0 :y 0}))
-
-(defn -init []
-  [[] (atom [])])
+(def catalog-pos (ref {:x 0 :y 0}))
 
 ;--------------------------------------------------
 ; draw-* functions to draw parts
@@ -171,7 +177,8 @@
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (draw-status g [@cursor-pos @mode @lels @selected-lels @wires])
+      (draw-status g [@cursor-pos @mode @lels @selected-lels
+                      @wires @catalog-pos])
       (case @mode
         cursor  (draw-mode-cursor  g)
         move    (draw-mode-cursor  g)
@@ -236,6 +243,16 @@
   (move-selected-lels dir)
   (move-selected-wires dir))
 
+(defn move-catalog [dir]
+  (dosync
+    (ref-set catalog-pos
+             (case dir
+               left  (assoc @catalog-pos :x (dec (@catalog-pos :x)))
+               right (assoc @catalog-pos :x (inc (@catalog-pos :x)))
+               up    (assoc @catalog-pos :y (dec (@catalog-pos :y)))
+               down  (assoc @catalog-pos :y (inc (@catalog-pos :y)))
+               ))))
+
 ;--------------------------------------------------
 ; sub functions for key commands
 ;--------------------------------------------------
@@ -287,6 +304,7 @@
    KeyEvent/VK_K      (fn [_] (move-cursor 'up))
    KeyEvent/VK_J      (fn [_] (move-cursor 'down))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_C      (fn [_] (dosync (ref-set mode 'catalog)))
    KeyEvent/VK_A      (fn [_] (dosync
                                 (release-selection)
                                 (ref-set mode 'dff)))
@@ -400,12 +418,26 @@
                                 (ref-set mode 'cursor)))
                                 })
 
+(def key-command-catalog-mode
+  {KeyEvent/VK_LEFT   (fn [_] (move-catalog 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-catalog 'right))
+   KeyEvent/VK_UP     (fn [_] (move-catalog 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-catalog 'down))
+   KeyEvent/VK_H      (fn [_] (move-catalog 'left))
+   KeyEvent/VK_L      (fn [_] (move-catalog 'right))
+   KeyEvent/VK_K      (fn [_] (move-catalog 'up))
+   KeyEvent/VK_J      (fn [_] (move-catalog 'down))
+   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode 'cursor)))
+   })
+
 (def key-command
-  {'cursor key-command-cursor-mode
-   'dff    key-command-dff-mode
-   'mux21  key-command-mux21-mode
-   'move   key-command-move-mode
-   'wire   key-command-wire-mode
+  {'cursor  key-command-cursor-mode
+   'dff     key-command-dff-mode
+   'mux21   key-command-mux21-mode
+   'move    key-command-move-mode
+   'wire    key-command-wire-mode
+   'catalog key-command-catalog-mode
    })
 
 ;--------------------------------------------------
@@ -426,7 +458,7 @@
 ;--------------------------------------------------
 
 (defn -main []
-  (let [frame (JFrame. "various")
+  (let [frame (JFrame. "catalog")
         panel (make-panel)
         key-lis (make-key-lis frame panel)]
     (doto panel
