@@ -108,19 +108,19 @@
                   4)))
 
 (defn draw-dff [g pos color]
-  (let [grid pix-per-grid
-        [x y] (map #(* grid (pos %)) [:x :y])]
-    (.setColor g color)
-    (.drawPolygon g
-                  (int-array [x x (+ x (* grid 4)) (+ x (* grid 4))])
-                  (int-array [y (+ y (* grid 5)) (+ y (* grid 5)) y])
-                  4)
-    (.drawPolyline g
-                   (int-array [(+ x grid) (+ x (* grid 2))
-                               (+ x (* grid 3))])
-                   (int-array [(+ y (* grid 5)) (+ y (* grid 4))
-                               (+ y (* grid 5))])
-                   3)))
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                [0 0 4 4]))
+                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                [0 5 5 0]))
+                4)
+  (.drawPolyline g
+                 (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                 [1 2 3]))
+                 (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                 [5 4 5]))
+                 3))
 
 (defn wire-connected-points [wires]
   (let [points (apply concat (map (fn [{x0 :x0 y0 :y0 x1 :x1 y1 :y1}]
