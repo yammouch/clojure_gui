@@ -78,6 +78,28 @@
   (draw-text g {:x (+ (pos :x) 1.5) :y (+ (pos :y) 1)}
              "I" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
 
+(defn draw-out [g pos color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                [0 2 3 2 0]))
+                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                [0 0 1 2 2]))
+                5)
+  (draw-text g {:x (+ (pos :x) 1.5) :y (+ (pos :y) 1)}
+             "O" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+
+(defn draw-inout [g pos color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                [0 1 2 3 2 1]))
+                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                [1 0 0 1 2 2]))
+                6)
+  (draw-text g {:x (+ (pos :x) 1.5) :y (+ (pos :y) 1)}
+             "IO" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+
 (defn draw-dot [g pos size color]
   (let [x (- (* (pos :x) pix-per-grid)
              (int (* 0.5 size)))
@@ -194,11 +216,9 @@
   [[{:name 'in    :w 3 :h 2
      :fdraw (fn [g pos] (draw-in g pos Color/BLACK))}
     {:name 'out   :w 3 :h 2
-     ;:fdraw (fn [g pos] (draw-out g pos Color/BLACK))}
-     :fdraw (fn [g pos])}
+     :fdraw (fn [g pos] (draw-out g pos Color/BLACK))}
     {:name 'inout :w 3 :h 2
-     ;:fdraw (fn [g pos] (draw-inout g pos Color/BLACK))}
-     :fdraw (fn [g pos])}
+     :fdraw (fn [g pos] (draw-inout g pos Color/BLACK))}
     {:name 'dot   :w 2 :h 2
      :fdraw (fn [g pos] (draw-dot g pos 7 Color/BLACK))}
     {:name 'name  :w 2 :h 4
