@@ -96,20 +96,12 @@
 (defn draw-mux21 [g pos color]
   (let [grid pix-per-grid
         [x y] (map #(* grid (pos %)) [:x :y])
-        font (Font. Font/MONOSPACED Font/PLAIN grid)
-        frc (.getFontRenderContext g)
-        [bound0 bound1] (map #(.getBounds (TextLayout. % font frc))
-                             ["0" "1"])
-        wh2ofs #(int (+ 0.5 (* 0.5 %)))
-        [ofs0-x ofs1-x] (map #(wh2ofs (.getWidth %)) [bound0 bound1])
-        [ofs0-y ofs1-y] (map #(wh2ofs (.getHeight %)) [bound0 bound1])]
+        font (Font. Font/MONOSPACED Font/PLAIN 12)]
     (.setColor g color)
-    (.drawString g "0"
-                 (int (+ x (* grid 1) (- ofs0-x)))
-                 (int (+ y (* grid 2) ofs0-y)))
-    (.drawString g "1"
-                 (int (+ x (* grid 1) (- ofs1-x)))
-                 (int (+ y (* grid 4) ofs1-y)))
+    (draw-text g {:x (+ (pos :x) 1) :y (+ (pos :y) 2)}
+               "0" color font 'm 'c)
+    (draw-text g {:x (+ (pos :x) 1) :y (+ (pos :y) 4)}
+               "1" color font 'm 'c)
     (.drawPolygon g
                   (int-array [x (+ x (* 2 grid)) (+ x (* 2 grid)) x])
                   (int-array [y (+ y (* 2 grid)) (+ y (* 4 grid))
