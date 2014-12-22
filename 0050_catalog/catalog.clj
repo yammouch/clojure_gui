@@ -94,18 +94,17 @@
       (.drawString g (.toString obj) 2 ypos))))
 
 (defn draw-mux21 [g pos color]
-  (let [grid pix-per-grid
-        [x y] (map #(* grid (pos %)) [:x :y])
-        font (Font. Font/MONOSPACED Font/PLAIN 12)]
-    (.setColor g color)
+  (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
     (draw-text g {:x (+ (pos :x) 1) :y (+ (pos :y) 2)}
                "0" color font 'm 'c)
     (draw-text g {:x (+ (pos :x) 1) :y (+ (pos :y) 4)}
                "1" color font 'm 'c)
+    (.setColor g color)
     (.drawPolygon g
-                  (int-array [x (+ x (* 2 grid)) (+ x (* 2 grid)) x])
-                  (int-array [y (+ y (* 2 grid)) (+ y (* 4 grid))
-                              (+ y (* 6 grid))])
+                  (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                  [0 2 2 0]))
+                  (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                  [0 2 4 6]))
                   4)))
 
 (defn draw-dff [g pos color]
