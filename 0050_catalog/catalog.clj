@@ -43,8 +43,40 @@
 (def catalog-pos (ref {:x 0 :y 0}))
 
 ;--------------------------------------------------
+; subfunctions for draw-*
+;--------------------------------------------------
+
+(defn draw-text [g pos str color font v-align h-align]
+  (let [frc (.getFontRenderContext g)
+        bound (.getBounds (TextLayout. str font frc))
+        x (int (- (* (pos :x) pix-per-grid)
+                  (case h-align
+                    l 0
+                    c (* 0.5 (.getWidth bound))
+                    r (.getWidth bound))))
+        y (int (+ (* (pos :y) pix-per-grid)
+                  (case v-align
+                    b 0
+                    m (* 0.5 (.getHeight bound))
+                    t (.getHeight bound))))]
+    (.setColor g color)
+    (.setFont g font)
+    (.drawString g str x y)))
+
+;--------------------------------------------------
 ; draw-* functions to draw parts
 ;--------------------------------------------------
+
+(defn draw-in [g pos color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                [0 2 3 2 0]))
+                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                [0 0 1 2 2]))
+                5)
+  (draw-text g {:x (+ (pos :x) 1.5) :y (+ (pos :y) 1)}
+             "I" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
 
 (defn draw-dot [g pos size color]
   (let [x (- (* (pos :x) pix-per-grid)
@@ -169,8 +201,7 @@
 
 (def catalog-table
   [[{:name 'in    :w 3 :h 2
-     ;:fdraw (fn [g pos] (draw-in g pos Color/BLACK))}
-     :fdraw (fn [g pos])}
+     :fdraw (fn [g pos] (draw-in g pos Color/BLACK))}
     {:name 'out   :w 3 :h 2
      ;:fdraw (fn [g pos] (draw-out g pos Color/BLACK))}
      :fdraw (fn [g pos])}
