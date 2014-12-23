@@ -191,27 +191,12 @@
                                  [5 4 5]))
                  3))
 
-(defn wire-connected-points [wires]
-  (let [points (apply concat (map (fn [{x0 :x0 y0 :y0 x1 :x1 y1 :y1}]
-                                    [[x0 y0] [x1 y1]])
-                                  wires))
-        points-counts (reduce (fn [acc p]
-                                (if (acc p)
-                                  (assoc acc p (inc (acc p)))
-                                  (conj acc {p 1})))
-                              {}
-                              points)]
-    (keys (filter (fn [[k v]] (<= 3 v))
-                  points-counts))))
-
 (defn draw-wire [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
   (.setColor g color)
   (.drawPolyline g
                  (int-array (map #(* pix-per-grid %) [x0 x1]))
                  (int-array (map #(* pix-per-grid %) [y0 y1]))
-                 2)
-  (doseq [p (wire-connected-points (vals @wires))]
-    (draw-dot g {:x (p 0) :y (p 1)} 7 Color/BLACK)))
+                 2))
 
 ;--------------------------------------------------
 ; draw-mode-*
