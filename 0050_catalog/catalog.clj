@@ -295,7 +295,7 @@
     (paintComponent [g]
       (proxy-super paintComponent g)
       (draw-status g [@cursor-pos @mode @lels @selected-lels
-                      @wires @catalog-pos])
+                      @wires @selected-wires @catalog-pos])
       (case @mode
         cursor  (draw-mode-cursor  g)
         move    (draw-mode-cursor  g)
@@ -395,6 +395,7 @@
             k))
         wires))
 
+; Function name should be generalized? Wires also can be removed by it.
 (defn remove-lel-by-key [lels keys]
   (apply hash-map
          (apply concat
@@ -448,6 +449,7 @@
    KeyEvent/VK_ESCAPE (fn [_] (release-selection))
    KeyEvent/VK_X      (fn [_] (dosync
                                 (alter lels remove-lel-by-key @selected-lels)
+                                (alter wires remove-lel-by-key @selected-wires)
                                 (ref-set selected-lels #{})
                                 ))})
 
