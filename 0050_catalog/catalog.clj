@@ -122,6 +122,22 @@
              pix-per-grid
              pix-per-grid))
 
+(defn draw-and [g pos color]
+  (.setColor g color)
+  (.drawPolyline g
+                 (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                 [2 0 0 2]))
+                 (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                 [0 0 4 4]))
+                 4)
+  (.drawArc g
+            (int (* (pos :x) pix-per-grid))
+            (int (* (pos :y) pix-per-grid))
+            (* 4 pix-per-grid)
+            (* 4 pix-per-grid)
+            -90
+            180))
+
 (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-status [g objs]
     (.setColor g Color/BLUE)
@@ -242,7 +258,7 @@
    [{:name 'not   :w 4 :h 4
      :fdraw (fn [g pos] (draw-not g pos Color/BLACK))}
     {:name 'and   :w 4 :h 4
-     :fdraw (fn [g pos])}
+     :fdraw (fn [g pos] (draw-and g pos Color/BLACK))}
     {:name 'or    :w 4 :h 4
      :fdraw (fn [g pos])}
     {:name 'dff   :w 4 :h 5
