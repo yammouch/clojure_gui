@@ -108,6 +108,20 @@
     (.setColor g color)
     (.fillOval g x y size size)))
 
+(defn draw-not [g pos color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                [0 2 0]))
+                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                [0 2 4]))
+                3)
+  (.drawOval g
+             (int (* (+ (pos :x) 2  ) pix-per-grid))
+             (int (* (+ (pos :y) 1.5) pix-per-grid))
+             pix-per-grid
+             pix-per-grid))
+
 (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-status [g objs]
     (.setColor g Color/BLUE)
@@ -226,7 +240,7 @@
      :fdraw (fn [g pos])}
      ]
    [{:name 'not   :w 4 :h 4
-     :fdraw (fn [g pos])}
+     :fdraw (fn [g pos] (draw-not g pos Color/BLACK))}
     {:name 'and   :w 4 :h 4
      :fdraw (fn [g pos])}
     {:name 'or    :w 4 :h 4
