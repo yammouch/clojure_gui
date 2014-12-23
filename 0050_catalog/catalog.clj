@@ -138,6 +138,23 @@
             -90
             180))
 
+(defn draw-or [g pos color]
+  (.setColor g color)
+  (.drawArc g
+            (int (* (- (pos :x) 1) pix-per-grid))
+            (int (* (pos :y) pix-per-grid))
+            (* 2 pix-per-grid)
+            (* 4 pix-per-grid)
+            -90
+            180)
+  (.drawArc g
+            (int (* (- (pos :x) 4) pix-per-grid))
+            (int (* (pos :y) pix-per-grid))
+            (* 8 pix-per-grid)
+            (* 4 pix-per-grid)
+            -90
+            180))
+
 (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-status [g objs]
     (.setColor g Color/BLUE)
@@ -253,14 +270,15 @@
      :fdraw (fn [g pos] (draw-dot g pos 7 Color/BLACK))}
     {:name 'name  :w 2 :h 4
      ;:fdraw (fn [g pos] (draw-name g pos Color/BLACK))}
-     :fdraw (fn [g pos])}
-     ]
+     :fdraw (fn [g pos] (draw-text g pos "blah" Color/BLACK
+                                   (Font. Font/MONOSPACED Font/PLAIN 12)
+                                   't 'l))}]
    [{:name 'not   :w 4 :h 4
      :fdraw (fn [g pos] (draw-not g pos Color/BLACK))}
     {:name 'and   :w 4 :h 4
      :fdraw (fn [g pos] (draw-and g pos Color/BLACK))}
     {:name 'or    :w 4 :h 4
-     :fdraw (fn [g pos])}
+     :fdraw (fn [g pos] (draw-or g pos Color/BLACK))}
     {:name 'dff   :w 4 :h 5
      :fdraw (fn [g pos] (draw-dff g pos Color/BLACK))}
     {:name 'mux21 :w 2 :h 6
