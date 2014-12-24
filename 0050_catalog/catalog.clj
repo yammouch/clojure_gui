@@ -198,6 +198,18 @@
                  (int-array (map #(* pix-per-grid %) [y0 y1]))
                  2))
 
+(defn draw-lel [g lel color]
+  (case (lel :type)
+    in    (draw-in    g lel color)
+    out   (draw-out   g lel color)
+    inout (draw-inout g lel color)
+    dot   (draw-dot   g lel 7 color)
+    not   (draw-not   g lel color)
+    and   (draw-and   g lel color)
+    or    (draw-or    g lel color)
+    dff   (draw-dff   g lel color)
+    mux21 (draw-mux21 g lel color)))
+
 ;--------------------------------------------------
 ; draw-mode-*
 ;--------------------------------------------------
@@ -207,38 +219,32 @@
   (doseq [[k v] @wires]
     (draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
   (doseq [[k v] @lels]
-    (case (v :type)
-      dff (draw-dff g v (if (@selected-lels k) Color/RED Color/BLACK))
-      mux21 (draw-mux21 g v (if (@selected-lels k) Color/RED Color/BLACK))
-      )))
+    (draw-lel g v (if (@selected-lels k) Color/RED Color/BLACK))))
 
 (defn draw-mode-dff [g]
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
-    (case (v :type)
-      dff (draw-dff g v Color/BLACK)
-      mux21 (draw-mux21 g v Color/BLACK)))
-  (draw-dff g @cursor-pos Color/RED))
+    (draw-lel g v Color/BLACK))
+  (draw-lel g
+            (conj {:type 'dff} @cursor-pos)
+            Color/RED))
 
 (defn draw-mode-mux21 [g]
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
-    (case (v :type)
-      dff (draw-dff g v Color/BLACK)
-      mux21 (draw-mux21 g v Color/BLACK)))
-  (draw-mux21 g @cursor-pos Color/RED))
+    (draw-lel g v Color/BLACK))
+  (draw-lel g
+            (conj {:type 'mux21} @cursor-pos)
+            Color/RED))
 
 (defn draw-mode-wire [g]
   (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
-    (case (v :type)
-      dff (draw-dff g v (if (@selected-lels k) Color/RED Color/BLACK))
-      mux21 (draw-mux21 g v (if (@selected-lels k) Color/RED Color/BLACK))
-      ))
+    (draw-lel g v Color/BLACK))
   (draw-wire g
              {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
               :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
