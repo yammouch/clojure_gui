@@ -38,7 +38,7 @@
           })))
 
 (def cursor-pos (ref {:x 5 :y 5}))
-(def mode (ref 'cursor))
+(def mode (ref {:mode 'cursor}))
 (def wire-p0 (ref {:x 0 :y 0}))
 (def catalog-pos (ref {:x 0 :y 0}))
 
@@ -296,7 +296,7 @@
       (proxy-super paintComponent g)
       (draw-status g [@cursor-pos @mode @lels @selected-lels
                       @wires @selected-wires @catalog-pos])
-      (case @mode
+      (case (@mode :mode)
         cursor  (draw-mode-cursor  g)
         move    (draw-mode-cursor  g)
         dff     (draw-mode-dff     g)
@@ -422,19 +422,19 @@
    KeyEvent/VK_K      (fn [_] (move-cursor 'up))
    KeyEvent/VK_J      (fn [_] (move-cursor 'down))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-   KeyEvent/VK_C      (fn [_] (dosync (ref-set mode 'catalog)))
+   KeyEvent/VK_C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
    KeyEvent/VK_A      (fn [_] (dosync
                                 (release-selection)
-                                (ref-set mode 'dff)))
+                                (ref-set mode {:mode 'dff})))
    KeyEvent/VK_B      (fn [_] (dosync
                                 (release-selection)
-                                (ref-set mode 'mux21)))
+                                (ref-set mode {:mode 'mux21})))
    KeyEvent/VK_M      (fn [_] (dosync
-                                (ref-set mode 'move)))
+                                (ref-set mode {:mode 'move})))
    KeyEvent/VK_W      (fn [_] (dosync
                                 (release-selection)
                                 (ref-set wire-p0 @cursor-pos)
-                                (ref-set mode 'wire)))
+                                (ref-set mode {:mode 'wire})))
    KeyEvent/VK_ENTER
    (fn [_]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)
@@ -469,8 +469,8 @@
        (alter lels conj
               {(gensym) (conj @cursor-pos {:type 'dff})}
               )))
-   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode 'cursor)))
-   KeyEvent/VK_B      (fn [_] (dosync (ref-set mode 'mux21)))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
+   KeyEvent/VK_B      (fn [_] (dosync (ref-set mode {:mode 'mux21})))
    })
 
 (def key-command-mux21-mode
@@ -489,8 +489,8 @@
        (alter lels conj
               {(gensym) (conj @cursor-pos {:type 'mux21})}
               )))
-   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode 'cursor)))
-   KeyEvent/VK_A      (fn [_] (dosync (ref-set mode 'dff)))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
+   KeyEvent/VK_A      (fn [_] (dosync (ref-set mode {:mode 'dff})))
    })
 
 (def key-command-move-mode
@@ -513,7 +513,7 @@
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyEvent/VK_ESCAPE (fn [_] (dosync
                                 (release-selection)
-                                (ref-set mode 'cursor)))
+                                (ref-set mode {:mode 'cursor})))
                                 })
 
 (def key-command-wire-mode  
@@ -527,14 +527,14 @@
    KeyEvent/VK_J      (fn [_] (move-cursor 'down))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyEvent/VK_ESCAPE (fn [_] (dosync
-                                (ref-set mode 'cursor)))
+                                (ref-set mode {:mode 'cursor})))
    KeyEvent/VK_ENTER  (fn [_] (dosync
                                 (alter wires conj
                                       {(gensym) {:x0 (@wire-p0 :x)
                                                  :y0 (@wire-p0 :y)
                                                  :x1 (@cursor-pos :x)
                                                  :y1 (@cursor-pos :y)}})
-                                (ref-set mode 'cursor)))
+                                (ref-set mode {:mode 'cursor})))
                                 })
 
 (def key-command-catalog-mode
@@ -547,7 +547,7 @@
    KeyEvent/VK_K      (fn [_] (move-catalog 'up))
    KeyEvent/VK_J      (fn [_] (move-catalog 'down))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode 'cursor)))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
 (def key-command
@@ -566,7 +566,7 @@
 (defn make-key-lis [frame panel]
   (proxy [KeyListener] []
     (keyPressed [e]
-      (let [f ((key-command @mode) (.getKeyCode e))]
+      (let [f ((key-command (:mode @mode)) (.getKeyCode e))]
         (when f (f {:frame frame})))
       (.repaint panel))
     (keyReleased [e])
