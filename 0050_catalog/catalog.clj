@@ -204,6 +204,9 @@
     out   (draw-out   g lel color)
     inout (draw-inout g lel color)
     dot   (draw-dot   g lel 7 color)
+    name  (draw-text  g lel "blah" Color/BLACK
+                      (Font. Font/MONOSPACED Font/PLAIN 12)
+                      't 'l)
     not   (draw-not   g lel color)
     and   (draw-and   g lel color)
     or    (draw-or    g lel color)
@@ -228,24 +231,6 @@
     (draw-lel g v Color/BLACK))
   (draw-lel g
             (conj {:type (:type @mode)} @cursor-pos)
-            Color/RED))
-
-(defn draw-mode-dff [g]
-  (doseq [[k v] @wires]
-    (draw-wire g v Color/BLACK))
-  (doseq [[k v] @lels]
-    (draw-lel g v Color/BLACK))
-  (draw-lel g
-            (conj {:type 'dff} @cursor-pos)
-            Color/RED))
-
-(defn draw-mode-mux21 [g]
-  (doseq [[k v] @wires]
-    (draw-wire g v Color/BLACK))
-  (doseq [[k v] @lels]
-    (draw-lel g v Color/BLACK))
-  (draw-lel g
-            (conj {:type 'mux21} @cursor-pos)
             Color/RED))
 
 (defn draw-mode-wire [g]
@@ -315,8 +300,6 @@
         cursor  (draw-mode-cursor  g)
         move    (draw-mode-cursor  g)
         add     (draw-mode-add     g)
-        dff     (draw-mode-dff     g)
-        mux21   (draw-mode-mux21   g)
         wire    (draw-mode-wire    g)
         catalog (draw-mode-catalog g)))
     (getPreferredSize []
@@ -488,46 +471,6 @@
    KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
-(def key-command-dff-mode
-  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
-   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
-   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
-   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
-   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
-   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
-   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-   KeyEvent/VK_ENTER
-   (fn [_]
-     (dosync
-       (alter lels conj
-              {(gensym) (conj @cursor-pos {:type 'dff})}
-              )))
-   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
-   KeyEvent/VK_B      (fn [_] (dosync (ref-set mode {:mode 'mux21})))
-   })
-
-(def key-command-mux21-mode
-  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
-   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
-   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
-   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
-   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
-   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
-   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-   KeyEvent/VK_ENTER
-   (fn [_]
-     (dosync
-       (alter lels conj
-              {(gensym) (conj @cursor-pos {:type 'mux21})}
-              )))
-   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
-   KeyEvent/VK_A      (fn [_] (dosync (ref-set mode {:mode 'dff})))
-   })
-
 (def key-command-move-mode
   {KeyEvent/VK_LEFT   (fn [_] (move-cursor   'left)
                               (move-selected 'left))
@@ -600,8 +543,6 @@
 (def key-command
   {'cursor  key-command-cursor-mode
    'add     key-command-add-mode
-   'dff     key-command-dff-mode
-   'mux21   key-command-mux21-mode
    'move    key-command-move-mode
    'wire    key-command-wire-mode
    'catalog key-command-catalog-mode
