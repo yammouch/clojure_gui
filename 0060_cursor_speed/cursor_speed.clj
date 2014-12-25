@@ -1,4 +1,4 @@
-(ns catalog
+(ns cursor-speed
   (:gen-class
    :init init
    :state state))
