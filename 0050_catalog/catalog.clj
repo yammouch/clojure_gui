@@ -221,6 +221,15 @@
   (doseq [[k v] @lels]
     (draw-lel g v (if (@selected-lels k) Color/RED Color/BLACK))))
 
+(defn draw-mode-add [g]
+  (doseq [[k v] @wires]
+    (draw-wire g v Color/BLACK))
+  (doseq [[k v] @lels]
+    (draw-lel g v Color/BLACK))
+  (draw-lel g
+            (conj {:type (:type @mode)} @cursor-pos)
+            Color/RED))
+
 (defn draw-mode-dff [g]
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
@@ -305,6 +314,7 @@
       (case (@mode :mode)
         cursor  (draw-mode-cursor  g)
         move    (draw-mode-cursor  g)
+        add     (draw-mode-add     g)
         dff     (draw-mode-dff     g)
         mux21   (draw-mode-mux21   g)
         wire    (draw-mode-wire    g)
@@ -459,6 +469,25 @@
                                 (ref-set selected-lels #{})
                                 ))})
 
+(def key-command-add-mode
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_ENTER
+   (fn [_]
+     (dosync
+       (alter lels conj
+              {(gensym) (conj @cursor-pos {:type (:type @mode)})}
+              )))
+   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
+   })
+
 (def key-command-dff-mode
   {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
    KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
@@ -553,11 +582,24 @@
    KeyEvent/VK_K      (fn [_] (move-catalog 'up))
    KeyEvent/VK_J      (fn [_] (move-catalog 'down))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+
+   KeyEvent/VK_ENTER
+   (fn [_]
+     (dosync
+       (ref-set mode
+                {:mode 'add
+                 :type (:name (try
+                                (nth (nth catalog-table
+                                          (:y @catalog-pos))
+                                     (:x @catalog-pos))
+                                (catch IndexOutOfBoundsException e nil)))})))
+
    KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
 (def key-command
   {'cursor  key-command-cursor-mode
+   'add     key-command-add-mode
    'dff     key-command-dff-mode
    'mux21   key-command-mux21-mode
    'move    key-command-move-mode
