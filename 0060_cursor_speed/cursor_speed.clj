@@ -38,6 +38,7 @@
           })))
 
 (def cursor-pos (ref {:x 5 :y 5}))
+(def cursor-speed (ref 1))
 (def mode (ref {:mode 'cursor}))
 (def wire-p0 (ref {:x 0 :y 0}))
 (def catalog-pos (ref {:x 0 :y 0}))
@@ -294,7 +295,8 @@
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (draw-status g [@cursor-pos @mode @lels @selected-lels
+      (draw-status g [@cursor-pos @cursor-speed @mode
+                      @lels @selected-lels
                       @wires @selected-wires @catalog-pos])
       (case (@mode :mode)
         cursor  (draw-mode-cursor  g)
@@ -420,6 +422,16 @@
    KeyEvent/VK_L      (fn [_] (move-cursor 'right))
    KeyEvent/VK_K      (fn [_] (move-cursor 'up))
    KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+   KeyEvent/VK_U      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< @cursor-speed 64)
+                                    (* 2 @cursor-speed)
+                                    64))))
+   KeyEvent/VK_I      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< 1 @cursor-speed)
+                                    (/ @cursor-speed 2)
+                                    1))))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyEvent/VK_C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
    KeyEvent/VK_A      (fn [_] (dosync
