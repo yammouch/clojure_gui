@@ -17,25 +17,46 @@
 ; states
 ;--------------------------------------------------
 
-(def lels (ref (let [g0 (gensym)
-                     g1 (gensym)]
-                 {g0 {:type 'dff :x 2 :y 2}
-                  g1 {:type 'mux21 :x 10 :y 10}
-                  })))
-; Clojure 1.6.0 does not accept {(gensym) x (gensym) y}
-; by saying (gensym)s are duplicated. Bug?
-; It is the same for #{(gensym) (gensym)}.
+(def lels
+  (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
+               '[{:y 28, :type in   , :x 25}
+                 {:y 22, :type in   , :x 25}
+                 {:y 28, :type and  , :x 32}
+                 {:y 23, :type or   , :x 40}
+                 {:y 30, :type in   , :x 25}
+                 {:y 36, :type in   , :x 25}
+                 {:y 26, :type out  , :x 62}
+                 {:y 34, :type in   , :x 25}
+                 {:y 22, :type and  , :x 32}
+                 {:y 29, :type dot  , :x 30}
+                 {:y 26, :type dff  , :x 55}
+                 {:y 24, :type mux21, :x 48}
+                 ])))
+
 (def selected-lels (ref #{}))
 (def selected-wires (ref #{}))
 
 (def wires
-  (let [g0 (gensym)
-        g1 (gensym)
-        g2 (gensym)]
-    (ref {g0 {:x0 10 :y0 10 :x1 20 :y1 10}
-          g1 {:x0 20 :y0 10 :x1 20 :y1 20}
-          g2 {:x0 20 :y0 10 :x1 30 :y1  5}
-          })))
+  (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
+               [{:x0 36, :y0 24, :x1 41, :y1 24}
+                {:x0 46, :y0 29, :x1 48, :y1 29}
+                {:x0 28, :y0 29, :x1 32, :y1 29}
+                {:x0 46, :y0 35, :x1 46, :y1 29}
+                {:x0 30, :y0 29, :x1 30, :y1 25}
+                {:x0 28, :y0 37, :x1 49, :y1 37}
+                {:x0 36, :y0 30, :x1 38, :y1 30}
+                {:x0 49, :y0 37, :x1 49, :y1 29}
+                {:x0 50, :y0 27, :x1 55, :y1 27}
+                {:x0 28, :y0 23, :x1 32, :y1 23}
+                {:x0 28, :y0 31, :x1 32, :y1 31}
+                {:x0 28, :y0 35, :x1 46, :y1 35}
+                {:x0 44, :y0 25, :x1 48, :y1 25}
+                {:x0 44, :y0 25, :x1 44, :y1 25}
+                {:x0 38, :y0 30, :x1 38, :y1 26}
+                {:x0 59, :y0 27, :x1 62, :y1 27}
+                {:x0 30, :y0 25, :x1 32, :y1 25}
+                {:x0 38, :y0 26, :x1 41, :y1 26}
+                ])))
 
 (def cursor-pos (ref {:x 5 :y 5}))
 (def cursor-speed (ref 1))
@@ -311,17 +332,17 @@
 ; move-*
 ;--------------------------------------------------
 
-(defn move-cursor [dir]
+(defn move-cursor [dir speed]
   (dosync
     (ref-set cursor-pos
              (case dir
-               left  (assoc @cursor-pos :x (dec (@cursor-pos :x)))
-               right (assoc @cursor-pos :x (inc (@cursor-pos :x)))
-               up    (assoc @cursor-pos :y (dec (@cursor-pos :y)))
-               down  (assoc @cursor-pos :y (inc (@cursor-pos :y)))
+               left  (assoc @cursor-pos :x (- (@cursor-pos :x) speed))
+               right (assoc @cursor-pos :x (+ (@cursor-pos :x) speed))
+               up    (assoc @cursor-pos :y (- (@cursor-pos :y) speed))
+               down  (assoc @cursor-pos :y (+ (@cursor-pos :y) speed))
                ))))
 
-(defn move-selected-lels [dir]
+(defn move-selected-lels [dir speed]
   (dosync
     (ref-set lels
              (reduce (fn [lels sel]
@@ -330,36 +351,36 @@
                                      (cond (#{'left 'right} dir) :x
                                            (#{'up 'down} dir)    :y)
                                      (case dir
-                                       left  (dec ((lels sel) :x))
-                                       right (inc ((lels sel) :x))
-                                       up    (dec ((lels sel) :y))
-                                       down  (inc ((lels sel) :y))
+                                       left  (- ((lels sel) :x) speed)
+                                       right (+ ((lels sel) :x) speed)
+                                       up    (- ((lels sel) :y) speed)
+                                       down  (+ ((lels sel) :y) speed)
                                        ))))
                      @lels
                      @selected-lels))))
 
-(defn move-wire [wire dir]
+(defn move-wire [wire dir speed]
   (let [[f & keys] (case dir
-                     left  [dec :x0 :x1]
-                     right [inc :x0 :x1]
-                     up    [dec :y0 :y1]
-                     down  [inc :y0 :y1])]
+                     left  [#(- % speed) :x0 :x1]
+                     right [#(+ % speed) :x0 :x1]
+                     up    [#(- % speed) :y0 :y1]
+                     down  [#(+ % speed) :y0 :y1])]
     (reduce (fn [wire k] (assoc wire k (f (wire k))))
             wire keys)))
 
-(defn move-selected-wires [dir]
+(defn move-selected-wires [dir speed]
   (let [moved (reduce (fn [wires sel]
                         (assoc wires sel
-                               (move-wire (wires sel) dir)))
+                               (move-wire (wires sel) dir speed)))
                       @wires
                       @selected-wires)]
     (dosync
       (ref-set wires moved)
       )))
 
-(defn move-selected [dir]
-  (move-selected-lels dir)
-  (move-selected-wires dir))
+(defn move-selected [dir speed]
+  (move-selected-lels dir speed)
+  (move-selected-wires dir speed))
 
 (defn move-catalog [dir]
   (dosync
@@ -414,20 +435,20 @@
 ;--------------------------------------------------
 
 (def key-command-cursor-mode
-  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
-   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
-   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
-   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
-   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
-   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
-   KeyEvent/VK_U      (fn [_] (dosync
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right @cursor-speed))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyEvent/VK_I      (fn [_] (dosync
                                 (ref-set cursor-speed
                                   (if (< @cursor-speed 64)
                                     (* 2 @cursor-speed)
                                     64))))
-   KeyEvent/VK_I      (fn [_] (dosync
+   KeyEvent/VK_U      (fn [_] (dosync
                                 (ref-set cursor-speed
                                   (if (< 1 @cursor-speed)
                                     (/ @cursor-speed 2)
@@ -465,15 +486,26 @@
                                 ))})
 
 (def key-command-add-mode
-  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
-   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
-   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
-   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
-   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
-   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right @cursor-speed))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyEvent/VK_I      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< @cursor-speed 64)
+                                    (* 2 @cursor-speed)
+                                    64))))
+   KeyEvent/VK_U      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< 1 @cursor-speed)
+                                    (/ @cursor-speed 2)
+                                    1))))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
+   KeyEvent/VK_C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
    KeyEvent/VK_ENTER
    (fn [_]
      (dosync
@@ -484,22 +516,32 @@
    })
 
 (def key-command-move-mode
-  {KeyEvent/VK_LEFT   (fn [_] (move-cursor   'left)
-                              (move-selected 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-cursor   'right)
-                              (move-selected 'right))
-   KeyEvent/VK_UP     (fn [_] (move-cursor   'up)
-                              (move-selected 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-cursor   'down)
-                              (move-selected 'down))
-   KeyEvent/VK_H      (fn [_] (move-cursor   'left)
-                              (move-selected 'left))
-   KeyEvent/VK_L      (fn [_] (move-cursor   'right)
-                              (move-selected 'right))
-   KeyEvent/VK_K      (fn [_] (move-cursor   'up)
-                              (move-selected 'up))
-   KeyEvent/VK_J      (fn [_] (move-cursor   'down)
-                              (move-selected 'down))
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor   'left  @cursor-speed)
+                              (move-selected 'left  @cursor-speed))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor   'right @cursor-speed)
+                              (move-selected 'right @cursor-speed))
+   KeyEvent/VK_UP     (fn [_] (move-cursor   'up    @cursor-speed)
+                              (move-selected 'up    @cursor-speed))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor   'down  @cursor-speed)
+                              (move-selected 'down  @cursor-speed))
+   KeyEvent/VK_H      (fn [_] (move-cursor   'left  @cursor-speed)
+                              (move-selected 'left  @cursor-speed))
+   KeyEvent/VK_L      (fn [_] (move-cursor   'right @cursor-speed)
+                              (move-selected 'right @cursor-speed))
+   KeyEvent/VK_K      (fn [_] (move-cursor   'up    @cursor-speed)
+                              (move-selected 'up    @cursor-speed))
+   KeyEvent/VK_J      (fn [_] (move-cursor   'down  @cursor-speed)
+                              (move-selected 'down  @cursor-speed))
+   KeyEvent/VK_I      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< @cursor-speed 64)
+                                    (* 2 @cursor-speed)
+                                    64))))
+   KeyEvent/VK_U      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< 1 @cursor-speed)
+                                    (/ @cursor-speed 2)
+                                    1))))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyEvent/VK_ESCAPE (fn [_] (dosync
                                 (release-selection)
@@ -507,14 +549,24 @@
                                 })
 
 (def key-command-wire-mode  
-  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left))
-   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right))
-   KeyEvent/VK_UP     (fn [_] (move-cursor 'up))
-   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down))
-   KeyEvent/VK_H      (fn [_] (move-cursor 'left))
-   KeyEvent/VK_L      (fn [_] (move-cursor 'right))
-   KeyEvent/VK_K      (fn [_] (move-cursor 'up))
-   KeyEvent/VK_J      (fn [_] (move-cursor 'down))
+  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
+   KeyEvent/VK_UP     (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyEvent/VK_H      (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyEvent/VK_L      (fn [_] (move-cursor 'right @cursor-speed))
+   KeyEvent/VK_K      (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyEvent/VK_J      (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyEvent/VK_I      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< @cursor-speed 64)
+                                    (* 2 @cursor-speed)
+                                    64))))
+   KeyEvent/VK_U      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< 1 @cursor-speed)
+                                    (/ @cursor-speed 2)
+                                    1))))
    KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyEvent/VK_ESCAPE (fn [_] (dosync
                                 (ref-set mode {:mode 'cursor})))
