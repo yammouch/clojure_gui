@@ -213,6 +213,28 @@
                                  [5 4 5]))
                  3))
 
+(defn draw-plus [g pos color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                [0 4 4 0]))
+                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                [0 0 4 4]))
+                4)
+  (draw-text g {:x (+ (pos :x) 2) :y (+ (pos :y) 2)}
+             "+" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+
+(defn draw-minus [g pos color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                                [0 4 4 0]))
+                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                                [0 0 4 4]))
+                4)
+  (draw-text g {:x (+ (pos :x) 2) :y (+ (pos :y) 2)}
+             "-" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+
 (defn draw-wire [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
   (.setColor g color)
   (.drawPolyline g
@@ -233,7 +255,9 @@
     and   (draw-and   g lel color)
     or    (draw-or    g lel color)
     dff   (draw-dff   g lel color)
-    mux21 (draw-mux21 g lel color)))
+    mux21 (draw-mux21 g lel color)
+    plus  (draw-plus  g lel color)
+    minus (draw-minus g lel color)))
 
 ;--------------------------------------------------
 ; draw-mode-*
@@ -290,7 +314,12 @@
      :fdraw (fn [g pos] (draw-dff g pos Color/BLACK))}
     {:name 'mux21 :w 2 :h 6
      :fdraw (fn [g pos] (draw-mux21 g pos Color/BLACK))}
-    ]])
+     ]
+   [{:name 'plus  :w 4 :h 4
+     :fdraw (fn [g pos] (draw-plus g pos Color/BLACK))}
+    {:name 'minus :w 4 :h 4
+     :fdraw (fn [g pos] (draw-minus g pos Color/BLACK))}
+     ]])
 
 (defn draw-mode-catalog [g]
   (doseq [[idx0 parts] (map #(list %1 %2) (range) catalog-table)]
