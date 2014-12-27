@@ -1,4 +1,4 @@
-(ns cursor-speed
+(ns text-edit
   (:gen-class
    :init init
    :state state))
