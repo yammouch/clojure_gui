@@ -19,7 +19,9 @@
 
 (def lels
   (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
-               '[{:y 28, :type in   , :x 25}
+               '[{:y 20, :type name , :x 5 ,
+                  :str "hoge", :v-align b, :h-align l}
+                 {:y 28, :type in   , :x 25}
                  {:y 22, :type in   , :x 25}
                  {:y 28, :type and  , :x 32}
                  {:y 23, :type or   , :x 40}
@@ -129,6 +131,22 @@
              (int (* 0.5 size)))]
     (.setColor g color)
     (.fillOval g x y size size)))
+
+(defn draw-name [g lel color]
+  (draw-text g lel (:str lel) color
+             (Font. Font/MONOSPACED Font/PLAIN 12)
+             (:v-align lel) (:h-align lel))
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)]
+    (.setColor g color)
+    (.drawPolyline g
+                   (int-array [(dec x) (inc x)])
+                   (int-array [y y])
+                   2)
+    (.drawPolyline g
+                   (int-array [x x])
+                   (int-array [(dec y) (inc y)])
+                   2)))
 
 (defn draw-not [g pos color]
   (.setColor g color)
@@ -248,9 +266,7 @@
     out   (draw-out   g lel color)
     inout (draw-inout g lel color)
     dot   (draw-dot   g lel 7 color)
-    name  (draw-text  g lel "blah" Color/BLACK
-                      (Font. Font/MONOSPACED Font/PLAIN 12)
-                      't 'l)
+    name  (draw-name  g lel color)
     not   (draw-not   g lel color)
     and   (draw-and   g lel color)
     or    (draw-or    g lel color)
@@ -663,7 +679,7 @@
         content-pane (.getContentPane frame)
         panel (make-panel)
         key-lis (make-key-lis frame panel)
-        text-area (JTextArea. 3 40)]
+        text-area (JTextArea. 1 40)]
     (.setFont text-area (Font. Font/MONOSPACED Font/PLAIN 12))
     (.setFocusable panel true)
     (.addKeyListener panel key-lis)
