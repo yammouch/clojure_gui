@@ -523,6 +523,13 @@
          (when wire-key
            (alter selected-wires conj wire-key)
            ))))
+   KeyEvent/VK_T
+   (fn [{text-area :text-area}]
+     (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
+       (when (= (:type (@lels lel-key)) 'name)
+         (.setText text-area
+                   (:str (@lels lel-key))
+                   ))))
    KeyEvent/VK_ESCAPE (fn [_] (release-selection))
    KeyEvent/VK_X      (fn [_] (dosync
                                 (alter lels remove-lel-by-key @selected-lels)
@@ -661,11 +668,11 @@
 ; key listener
 ;--------------------------------------------------
 
-(defn make-key-lis [frame panel]
+(defn make-key-lis [frame panel text-area]
   (proxy [KeyListener] []
     (keyPressed [e]
       (let [f ((key-command (:mode @mode)) (.getKeyCode e))]
-        (when f (f {:frame frame})))
+        (when f (f {:frame frame :text-area text-area})))
       (.repaint panel))
     (keyReleased [e])
     (keyTyped [e])))
@@ -678,8 +685,8 @@
   (let [frame (JFrame. "catalog")
         content-pane (.getContentPane frame)
         panel (make-panel)
-        key-lis (make-key-lis frame panel)
-        text-area (JTextArea. 1 40)]
+        text-area (JTextArea. 1 40)
+        key-lis (make-key-lis frame panel text-area)]
     (.setFont text-area (Font. Font/MONOSPACED Font/PLAIN 12))
     (.setFocusable panel true)
     (.addKeyListener panel key-lis)
