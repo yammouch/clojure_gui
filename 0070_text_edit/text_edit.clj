@@ -5,7 +5,8 @@
 
 (import '[java.awt Color Dimension Font BasicStroke BorderLayout])
 (import '[java.awt.font TextLayout])
-(import '[javax.swing JFrame JPanel JOptionPane JTextArea])
+(import '[javax.swing JFrame JPanel JOptionPane JTextArea KeyStroke
+                      AbstractAction])
 (import '[java.awt.event KeyListener KeyEvent])
 
 (def pix-per-grid 8)
@@ -37,6 +38,7 @@
 
 (def selected-lels (ref #{}))
 (def selected-wires (ref #{}))
+(def selected-name (ref nil))
 
 (def wires
   (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
@@ -199,7 +201,9 @@
   (defn draw-status [g objs]
     (.setColor g Color/BLUE)
     (.setFont g font)
-    (doseq [[obj ypos] (map #(list %1 (+ 12 (* 12 %2))) objs (range))]
+    (doseq [[obj ypos] (map #(list (if (nil? %1) "nil" %1)
+                                   (+ 12 (* 12 %2)))
+                            objs (range))]
       (.drawString g (.toString obj) 2 ypos))))
 
 (defn draw-mux21 [g pos color]
@@ -363,7 +367,8 @@
       (proxy-super paintComponent g)
       (draw-status g [@cursor-pos @cursor-speed @mode
                       @lels @selected-lels
-                      @wires @selected-wires @catalog-pos])
+                      @wires @selected-wires @catalog-pos
+                      @selected-name])
       (case (@mode :mode)
         cursor  (draw-mode-cursor  g)
         move    (draw-mode-cursor  g)
@@ -476,7 +481,7 @@
       (.dispose frame))))
 
 ;--------------------------------------------------
-; key commands for each mode
+; key commands for each mode on schematic panel
 ;--------------------------------------------------
 
 (def key-command-cursor-mode
@@ -527,9 +532,10 @@
    (fn [{text-area :text-area}]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
        (when (= (:type (@lels lel-key)) 'name)
-         (.setText text-area
-                   (:str (@lels lel-key))
-                   ))))
+         (dosync (ref-set selected-name lel-key))
+         (.setText text-area (:str (@lels lel-key)))
+         (.requestFocus text-area)
+         )))
    KeyEvent/VK_ESCAPE (fn [_] (release-selection))
    KeyEvent/VK_X      (fn [_] (dosync
                                 (alter lels remove-lel-by-key @selected-lels)
@@ -665,7 +671,7 @@
    })
 
 ;--------------------------------------------------
-; key listener
+; key listener for schematic panel
 ;--------------------------------------------------
 
 (defn make-key-lis [frame panel text-area]
@@ -678,6 +684,30 @@
     (keyTyped [e])))
 
 ;--------------------------------------------------
+; key bindings for JTextArea
+;--------------------------------------------------
+
+(defn make-key-bindings [panel text-area]
+  (let [action (proxy [AbstractAction] []
+                 (actionPerformed [ae]
+                   (dosync
+                     (ref-set lels
+                              (assoc @lels @selected-name
+                                     (assoc (@lels @selected-name)
+                                            :str
+                                            (.getText text-area))))
+                     (ref-set selected-name nil))
+                   (.setText text-area "")
+                   (.repaint panel)
+                   (.requestFocus panel)))]
+    (.put (.getInputMap text-area)
+          (KeyStroke/getKeyStroke "ENTER")
+          "update")
+    (.put (.getActionMap text-area)
+          "update"
+          action)))
+
+;--------------------------------------------------
 ; main
 ;--------------------------------------------------
 
@@ -687,6 +717,7 @@
         panel (make-panel)
         text-area (JTextArea. 1 40)
         key-lis (make-key-lis frame panel text-area)]
+    (make-key-bindings panel text-area)
     (.setFont text-area (Font. Font/MONOSPACED Font/PLAIN 12))
     (.setFocusable panel true)
     (.addKeyListener panel key-lis)
