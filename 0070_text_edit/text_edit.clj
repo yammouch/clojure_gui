@@ -3,9 +3,9 @@
    :init init
    :state state))
 
-(import '[java.awt Color Dimension Font BasicStroke])
+(import '[java.awt Color Dimension Font BasicStroke BorderLayout])
 (import '[java.awt.font TextLayout])
-(import '[javax.swing JFrame JPanel JOptionPane])
+(import '[javax.swing JFrame JPanel JOptionPane JTextArea])
 (import '[java.awt.event KeyListener KeyEvent])
 
 (def pix-per-grid 8)
@@ -660,14 +660,15 @@
 
 (defn -main []
   (let [frame (JFrame. "catalog")
+        content-pane (.getContentPane frame)
         panel (make-panel)
-        key-lis (make-key-lis frame panel)]
-    (doto panel
-      (.setFocusable true)
-      (.addKeyListener key-lis))
-    (doto frame
-      (.add panel)
-      (.pack)
+        key-lis (make-key-lis frame panel)
+        text-area (JTextArea. 3 40)]
+    (.setFocusable panel true)
+    (.addKeyListener panel key-lis)
+    (.add content-pane panel BorderLayout/CENTER)
+    (.add content-pane text-area BorderLayout/SOUTH)
+    (.pack frame)
       ;(.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.setVisible true))
+    (.setVisible frame true)
     'done))
