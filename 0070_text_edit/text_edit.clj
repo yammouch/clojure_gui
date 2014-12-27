@@ -664,6 +664,7 @@
         panel (make-panel)
         key-lis (make-key-lis frame panel)
         text-area (JTextArea. 3 40)]
+    (.setFont text-area (Font. Font/MONOSPACED Font/PLAIN 12))
     (.setFocusable panel true)
     (.addKeyListener panel key-lis)
     (.add content-pane panel BorderLayout/CENTER)
