@@ -1,4 +1,4 @@
-(ns text-edit
+(ns rectangular-select
   (:gen-class
    :init init
    :state state))
@@ -724,6 +724,6 @@
     (.add content-pane panel BorderLayout/CENTER)
     (.add content-pane text-area BorderLayout/SOUTH)
     (.pack frame)
-      ;(.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+    ;(.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
     (.setVisible frame true)
     'done))
