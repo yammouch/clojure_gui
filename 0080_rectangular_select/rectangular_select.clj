@@ -483,6 +483,78 @@
             k))
         wires))
 
+(defn rectangular-select [lels wires x0 y0 x1 y1]
+  (let [xmin (Math/min x0 x1)
+        xmax (Math/max x0 x1)
+        ymin (Math/min y0 y1)
+        ymax (Math/max y0 y1)
+        lels (filter (fn [[k v]] (<= xmin (:x v)))
+                     lels)
+        lels (filter (fn [[k v]] (<= ymin (:y v)))
+                     lels)
+        lels (filter (fn [[k v]]
+                       (<= (+ (:x v)
+                              (case (:type v)
+                                in 3, out 3, inout 3, dot 0, name 0,
+                                and 4, or 4, dff 4, mux21 2,
+                                plus 4, minus 4))
+                           xmax)) ; symbol size should be returned
+                     lels)        ; from a function like 'symbol-size'
+        lels (filter (fn [[k v]]
+                       (<= (+ (:y v)
+                              (case (:type v)
+                                in 2, out 2, inout 2, dot 0, name 0,
+                                and 4, or 4, dff 5, mux21 6,
+                                plus 4, minus 4))
+                           ymax))
+                     lels)
+        wires (filter (fn [[k v]]
+                        (<= xmin (Math/min (:x0 v) (:x1 v))))
+                      wires)
+        wires (filter (fn [[k v]]
+                        (<= ymin (Math/min (:y0 v) (:y1 v))))
+                      wires)
+        wires (filter (fn [[k v]]
+                        (<= xmax (Math/max (:x0 v) (:x1 v))))
+                      wires)
+        wires (filter (fn [[k v]]
+                        (<= ymax (Math/max (:y0 v) (:y1 v))))
+                      wires)]
+    {:lels (set (keys lels)) :wires (set (keys wires))}
+    ))
+
+(def catalog-table
+  [[{:name 'in    :w 3 :h 2
+     :fdraw (fn [g pos] (draw-in g pos Color/BLACK))}
+    {:name 'out   :w 3 :h 2
+     :fdraw (fn [g pos] (draw-out g pos Color/BLACK))}
+    {:name 'inout :w 3 :h 2
+     :fdraw (fn [g pos] (draw-inout g pos Color/BLACK))}
+    {:name 'dot   :w 2 :h 2
+     :fdraw (fn [g pos] (draw-dot g pos 7 Color/BLACK))}
+    {:name 'name  :w 2 :h 4
+     ;:fdraw (fn [g pos] (draw-name g pos Color/BLACK))}
+     :fdraw (fn [g pos] (draw-text g pos "blah" Color/BLACK
+                                   (Font. Font/MONOSPACED Font/PLAIN 12)
+                                   't 'l))}]
+   [{:name 'not   :w 4 :h 4
+     :fdraw (fn [g pos] (draw-not g pos Color/BLACK))}
+    {:name 'and   :w 4 :h 4
+     :fdraw (fn [g pos] (draw-and g pos Color/BLACK))}
+    {:name 'or    :w 4 :h 4
+     :fdraw (fn [g pos] (draw-or g pos Color/BLACK))}
+    {:name 'dff   :w 4 :h 5
+     :fdraw (fn [g pos] (draw-dff g pos Color/BLACK))}
+    {:name 'mux21 :w 2 :h 6
+     :fdraw (fn [g pos] (draw-mux21 g pos Color/BLACK))}
+     ]
+   [{:name 'plus  :w 4 :h 4
+     :fdraw (fn [g pos] (draw-plus g pos Color/BLACK))}
+    {:name 'minus :w 4 :h 4
+     :fdraw (fn [g pos] (draw-minus g pos Color/BLACK))}
+     ]])
+
+
 ; Function name should be generalized? Wires also can be removed by it.
 (defn remove-lel-by-key [lels keys]
   (apply hash-map
