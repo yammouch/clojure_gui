@@ -8,6 +8,7 @@
 (import '[javax.swing JFrame JPanel JOptionPane JTextArea KeyStroke
                       AbstractAction])
 (import '[java.awt.event KeyListener KeyEvent])
+(require 'clojure.set)
 
 (def pix-per-grid 8)
 
@@ -515,10 +516,10 @@
                         (<= ymin (Math/min (:y0 v) (:y1 v))))
                       wires)
         wires (filter (fn [[k v]]
-                        (<= xmax (Math/max (:x0 v) (:x1 v))))
+                        (<= (Math/max (:x0 v) (:x1 v)) xmax))
                       wires)
         wires (filter (fn [[k v]]
-                        (<= ymax (Math/max (:y0 v) (:y1 v))))
+                        (<= (Math/max (:y0 v) (:y1 v)) ymax))
                       wires)]
     {:lels (set (keys lels)) :wires (set (keys wires))}
     ))
@@ -615,13 +616,23 @@
    (fn [_]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)
            wire-key (when (not lel-key)
-                      (find-wire-by-pos @wires @cursor-pos))]
+                      (find-wire-by-pos @wires @cursor-pos))
+           rect-keys (if (@mode :rect-x0)
+                       (rectangular-select @lels @wires
+                         (@mode :rect-x0) (@mode :rect-y0)
+                         (@cursor-pos :x) (@cursor-pos :y))
+                       {})]
        (dosync
          (when lel-key
            (alter selected-lels conj lel-key))
+         (when (:lels rect-keys)
+           (alter selected-lels clojure.set/union (:lels rect-keys)))
          (when wire-key
-           (alter selected-wires conj wire-key)
-           ))))
+           (alter selected-wires conj wire-key))
+         (when (:wires rect-keys)
+           (alter selected-wires clojure.set/union (:wires rect-keys)))
+         (alter mode dissoc :rect-x0 :rect-y0)
+         )))
    KeyEvent/VK_T
    (fn [{text-area :text-area}]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
