@@ -288,7 +288,23 @@
   (doseq [[k v] @wires]
     (draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
   (doseq [[k v] @lels]
-    (draw-lel g v (if (@selected-lels k) Color/RED Color/BLACK))))
+    (draw-lel g v (if (@selected-lels k) Color/RED Color/BLACK)))
+  (when (@mode :rect-x0)
+    (.setStroke g
+                (BasicStroke. 1.0
+                              BasicStroke/CAP_BUTT
+                              BasicStroke/JOIN_BEVEL
+                              1.0 (float-array [2.0]) 0.0))
+    (let [x (Math/min (@cursor-pos :x) (@mode :rect-x0))
+          y (Math/min (@cursor-pos :y) (@mode :rect-y0))
+          width  (Math/abs (- (@cursor-pos :x) (@mode :rect-x0)))
+          height (Math/abs (- (@cursor-pos :y) (@mode :rect-y0)))]
+      (when (and (< 0 width) (< 0 height))
+        (.drawRect g (int (* x pix-per-grid))
+                     (int (* y pix-per-grid))
+                     (int (* width  pix-per-grid))
+                     (int (* height pix-per-grid))
+                     )))))
 
 (defn draw-mode-add [g]
   (doseq [[k v] @wires]
@@ -517,6 +533,12 @@
                                 (release-selection)
                                 (ref-set wire-p0 @cursor-pos)
                                 (ref-set mode {:mode 'wire})))
+   KeyEvent/VK_R
+   (fn [_]
+     (if (:rect-x0 @mode)
+       (dosync (alter mode dissoc :rect-x0 :rect-y0))
+       (dosync (alter mode conj {:rect-x0 (@cursor-pos :x)
+                                 :rect-y0 (@cursor-pos :y)}))))
    KeyEvent/VK_ENTER
    (fn [_]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)
@@ -536,7 +558,9 @@
          (.setText text-area (:str (@lels lel-key)))
          (.requestFocus text-area)
          )))
-   KeyEvent/VK_ESCAPE (fn [_] (release-selection))
+   KeyEvent/VK_ESCAPE (fn [_]
+                        (dosync (alter mode dissoc :rect-x0 :rect-y0))
+                        (release-selection))
    KeyEvent/VK_X      (fn [_] (dosync
                                 (alter lels remove-lel-by-key @selected-lels)
                                 (alter wires remove-lel-by-key @selected-wires)
