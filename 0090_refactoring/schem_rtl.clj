@@ -91,7 +91,130 @@
     (.drawString g str x y)))
 
 ;--------------------------------------------------
+; generic functions for lel (Logic ELement)
+;--------------------------------------------------
+
+(defn lel-init [type]
+  (case type
+    in    {:type 'in    :x 0 :y 0}
+    out   {:type 'out   :x 0 :y 0}
+    inout {:type 'inout :x 0 :y 0}
+    dot   {:type 'dot   :x 0 :y 0}
+    name  {:type 'name  :x 0 :y 0 :str "blah" :v-align 'b :h-align 'l}
+    not   {:type 'not   :x 0 :y 0}
+    and   {:type 'and   :x 0 :y 0}
+    or    {:type 'or    :x 0 :y 0}
+    dff   {:type 'dff   :x 0 :y 0}
+    mux21 {:type 'mux21 :x 0 :y 0}
+    plus  {:type 'plus  :x 0 :y 0}
+    minus {:type 'minus :x 0 :y 0}
+    ))
+
+(defmulti lel-width  (fn [lel] (:type lel)))
+(defmulti lel-height (fn [lel] (:type lel)))
+(defmulti lel-x-min  (fn [lel] (:type lel)))
+(defmulti lel-x-max  (fn [lel] (:type lel)))
+(defmulti lel-y-min  (fn [lel] (:type lel)))
+(defmulti lel-y-max  (fn [lel] (:type lel)))
+
+; Following declarations look redundant at this commit.
+; But width and height will be variables after adding some size change
+; features.
+
+; for "in"
+(defmethod lel-width  'in [lel] 3)
+(defmethod lel-height 'in [lel] 2)
+(defmethod lel-x-min  'in [lel] (:x lel))
+(defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'in [lel] (:y lel))
+(defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
+
+; for "out"
+(defmethod lel-width  'out [lel] 3)
+(defmethod lel-height 'out [lel] 2)
+(defmethod lel-x-min  'out [lel] (:x lel))
+(defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'out [lel] (:y lel))
+(defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
+
+; for "inout"
+(defmethod lel-width  'inout [lel] 3)
+(defmethod lel-height 'inout [lel] 2)
+(defmethod lel-x-min  'inout [lel] (:x lel))
+(defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'inout [lel] (:y lel))
+(defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
+
+; for "dot"
+(defmethod lel-width  'dot [lel] 0)
+(defmethod lel-height 'dot [lel] 0)
+(defmethod lel-x-min  'dot [lel] (:x lel))
+(defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'dot [lel] (:y lel))
+(defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
+
+; for "name"
+; 0 of size is feasible?
+(defmethod lel-width  'name [lel] 0)
+(defmethod lel-height 'name [lel] 0)
+(defmethod lel-x-min  'name [lel] (:x lel))
+(defmethod lel-x-max  'name [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'name [lel] (:y lel))
+(defmethod lel-y-max  'name [lel] (+ (:y lel) (lel-height lel)))
+
+; for "and"
+; "and" should be extended according to needed inputs.
+(defmethod lel-width  'and [lel] 4)
+(defmethod lel-height 'and [lel] 4)
+(defmethod lel-x-min  'and [lel] (:x lel))
+(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'and [lel] (:y lel))
+(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
+
+; for "or"
+; "or" should be extended according to needed inputs.
+(defmethod lel-width  'or [lel] 4)
+(defmethod lel-height 'or [lel] 4)
+(defmethod lel-x-min  'or [lel] (:x lel))
+(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'or [lel] (:y lel))
+(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
+
+; for "dff"
+(defmethod lel-width  'dff [lel] 4)
+(defmethod lel-height 'dff [lel] 5)
+(defmethod lel-x-min  'dff [lel] (:x lel))
+(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'dff [lel] (:y lel))
+(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
+
+; for "mux21"
+(defmethod lel-width  'mux21 [lel] 4)
+(defmethod lel-height 'mux21 [lel] 5)
+(defmethod lel-x-min  'mux21 [lel] (:x lel))
+(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'mux21 [lel] (:y lel))
+(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
+
+; for "plus"
+(defmethod lel-width  'plus [lel] 4)
+(defmethod lel-height 'plus [lel] 4)
+(defmethod lel-x-min  'plus [lel] (:x lel))
+(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'plus [lel] (:y lel))
+(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
+
+; for "minus"
+(defmethod lel-width  'minus [lel] 4)
+(defmethod lel-height 'minus [lel] 4)
+(defmethod lel-x-min  'minus [lel] (:x lel))
+(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'minus [lel] (:y lel))
+(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
+
+;--------------------------------------------------
 ; draw-* functions to draw parts
+; Those should be refactored as "defmethod"
 ;--------------------------------------------------
 
 (defn draw-in [g pos color]
@@ -490,30 +613,12 @@
         wires))
 
 (defn rectangular-select [lels wires x0 y0 x1 y1]
-  (let [xmin (Math/min x0 x1)
-        xmax (Math/max x0 x1)
-        ymin (Math/min y0 y1)
-        ymax (Math/max y0 y1)
-        lels (filter (fn [[k v]] (<= xmin (:x v)))
-                     lels)
-        lels (filter (fn [[k v]] (<= ymin (:y v)))
-                     lels)
-        lels (filter (fn [[k v]]
-                       (<= (+ (:x v)
-                              (case (:type v)
-                                in 3, out 3, inout 3, dot 0, name 0,
-                                and 4, or 4, dff 4, mux21 2,
-                                plus 4, minus 4))
-                           xmax)) ; symbol size should be returned
-                     lels)        ; from a function like 'symbol-size'
-        lels (filter (fn [[k v]]
-                       (<= (+ (:y v)
-                              (case (:type v)
-                                in 2, out 2, inout 2, dot 0, name 0,
-                                and 4, or 4, dff 5, mux21 6,
-                                plus 4, minus 4))
-                           ymax))
-                     lels)
+  (let [xmin (Math/min x0 x1) xmax (Math/max x0 x1)
+        ymin (Math/min y0 y1) ymax (Math/max y0 y1)
+        lels (filter (fn [[k v]] (<= xmin (lel-x-min v))) lels)
+        lels (filter (fn [[k v]] (<= ymin (lel-y-min v))) lels)
+        lels (filter (fn [[k v]] (<= (lel-x-max v) xmax)) lels)
+        lels (filter (fn [[k v]] (<= (lel-y-max v) ymax)) lels)
         wires (filter (fn [[k v]]
                         (<= xmin (Math/min (:x0 v) (:x1 v))))
                       wires)
@@ -683,11 +788,8 @@
      (dosync
        (alter lels conj
               {(gensym)
-               (conj @cursor-pos
-                     {:type (:type @mode)}
-                     (when (= (:type @mode) 'name) ; to be refactored
-                       {:str "blah" :v-align 'b :h-align 'l}
-                       ))})))
+               (conj (lel-init (:type @mode))
+                     @cursor-pos)})))
    KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
