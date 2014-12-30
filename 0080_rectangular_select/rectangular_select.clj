@@ -798,11 +798,12 @@
   (let [action (proxy [AbstractAction] []
                  (actionPerformed [ae]
                    (dosync
-                     (ref-set lels
-                              (assoc @lels @selected-name
-                                     (assoc (@lels @selected-name)
-                                            :str
-                                            (.getText text-area))))
+                     (when @selected-name
+                       (ref-set lels
+                                (assoc @lels @selected-name
+                                       (assoc (@lels @selected-name)
+                                              :str
+                                              (.getText text-area)))))
                      (ref-set selected-name nil))
                    (.setText text-area "")
                    (.repaint panel)
