@@ -278,7 +278,8 @@
     dff   (draw-dff   g lel color)
     mux21 (draw-mux21 g lel color)
     plus  (draw-plus  g lel color)
-    minus (draw-minus g lel color)))
+    minus (draw-minus g lel color)
+    'do-nothing))
 
 ;--------------------------------------------------
 ; draw-mode-*
@@ -313,7 +314,11 @@
   (doseq [[k v] @lels]
     (draw-lel g v Color/BLACK))
   (draw-lel g
-            (conj {:type (:type @mode)} @cursor-pos)
+            (conj {:type (:type @mode)}
+                  @cursor-pos
+                  (when (= (:type @mode) 'name) ; to be refactored
+                    {:str "blah" :v-align 'b :h-align 'l}
+                    ))
             Color/RED))
 
 (defn draw-mode-wire [g]
@@ -650,6 +655,8 @@
                                 (ref-set selected-lels #{})
                                 ))})
 
+; add mode can be merged into move mode
+; if continuous addition is not necessary.
 (def key-command-add-mode
   {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
    KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
@@ -675,8 +682,12 @@
    (fn [_]
      (dosync
        (alter lels conj
-              {(gensym) (conj @cursor-pos {:type (:type @mode)})}
-              )))
+              {(gensym)
+               (conj @cursor-pos
+                     {:type (:type @mode)}
+                     (when (= (:type @mode) 'name) ; to be refactored
+                       {:str "blah" :v-align 'b :h-align 'l}
+                       ))})))
    KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
