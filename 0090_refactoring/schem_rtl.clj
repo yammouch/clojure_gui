@@ -1,4 +1,4 @@
-(ns rectangular-select
+(ns schem-rtl
   (:gen-class
    :init init
    :state state))
