@@ -70,7 +70,7 @@
 (def catalog-pos (ref {:x 0 :y 0}))
 
 ;--------------------------------------------------
-; subfunctions for draw-*
+; draw-*
 ;--------------------------------------------------
 
 (defn draw-text [g pos str color font v-align h-align]
@@ -89,6 +89,30 @@
     (.setColor g color)
     (.setFont g font)
     (.drawString g str x y)))
+
+(defn draw-dot [g pos size color]
+  (let [x (- (* (pos :x) pix-per-grid)
+             (int (* 0.5 size)))
+        y (- (* (pos :y) pix-per-grid)
+             (int (* 0.5 size)))]
+    (.setColor g color)
+    (.fillOval g x y size size)))
+
+(let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
+  (defn draw-status [g objs]
+    (.setColor g Color/BLUE)
+    (.setFont g font)
+    (doseq [[obj ypos] (map #(list (if (nil? %1) "nil" %1)
+                                   (+ 12 (* 12 %2)))
+                            objs (range))]
+      (.drawString g (.toString obj) 2 ypos))))
+
+(defn draw-wire [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
+  (.setColor g color)
+  (.drawPolyline g
+                 (int-array (map #(* pix-per-grid %) [x0 x1]))
+                 (int-array (map #(* pix-per-grid %) [y0 y1]))
+                 2))
 
 ;--------------------------------------------------
 ; generic functions for lel (Logic ELement)
@@ -116,6 +140,7 @@
 (defmulti lel-x-max  (fn [lel] (:type lel)))
 (defmulti lel-y-min  (fn [lel] (:type lel)))
 (defmulti lel-y-max  (fn [lel] (:type lel)))
+(defmulti lel-draw   (fn [lel g color & xs] (:type lel)))
 
 ; Following declarations look redundant at this commit.
 ; But width and height will be variables after adding some size change
@@ -128,6 +153,16 @@
 (defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'in [lel] (:y lel))
 (defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'in [lel g color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+                                [0 2 3 2 0]))
+                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+                                [0 0 1 2 2]))
+                5)
+  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
+             "I" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
 
 ; for "out"
 (defmethod lel-width  'out [lel] 3)
@@ -136,6 +171,16 @@
 (defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'out [lel] (:y lel))
 (defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'out [lel g color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+                                [0 2 3 2 0]))
+                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+                                [0 0 1 2 2]))
+                5)
+  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
+             "O" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
 
 ; for "inout"
 (defmethod lel-width  'inout [lel] 3)
@@ -144,6 +189,16 @@
 (defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'inout [lel] (:y lel))
 (defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'inout [lel g color]
+  (.setColor g color)
+  (.drawPolygon g
+                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+                                [0 1 2 3 2 1]))
+                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+                                [1 0 0 1 2 2]))
+                6)
+  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
+             "IO" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
 
 ; for "dot"
 (defmethod lel-width  'dot [lel] 0)
@@ -152,6 +207,8 @@
 (defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'dot [lel] (:y lel))
 (defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'dot [lel g color]
+  (draw-dot g lel 7 color))
 
 ; for "name"
 ; 0 of size is feasible?
@@ -161,104 +218,7 @@
 (defmethod lel-x-max  'name [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'name [lel] (:y lel))
 (defmethod lel-y-max  'name [lel] (+ (:y lel) (lel-height lel)))
-
-; for "and"
-; "and" should be extended according to needed inputs.
-(defmethod lel-width  'and [lel] 4)
-(defmethod lel-height 'and [lel] 4)
-(defmethod lel-x-min  'and [lel] (:x lel))
-(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'and [lel] (:y lel))
-(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
-
-; for "or"
-; "or" should be extended according to needed inputs.
-(defmethod lel-width  'or [lel] 4)
-(defmethod lel-height 'or [lel] 4)
-(defmethod lel-x-min  'or [lel] (:x lel))
-(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'or [lel] (:y lel))
-(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
-
-; for "dff"
-(defmethod lel-width  'dff [lel] 4)
-(defmethod lel-height 'dff [lel] 5)
-(defmethod lel-x-min  'dff [lel] (:x lel))
-(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'dff [lel] (:y lel))
-(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
-
-; for "mux21"
-(defmethod lel-width  'mux21 [lel] 4)
-(defmethod lel-height 'mux21 [lel] 5)
-(defmethod lel-x-min  'mux21 [lel] (:x lel))
-(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'mux21 [lel] (:y lel))
-(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
-
-; for "plus"
-(defmethod lel-width  'plus [lel] 4)
-(defmethod lel-height 'plus [lel] 4)
-(defmethod lel-x-min  'plus [lel] (:x lel))
-(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'plus [lel] (:y lel))
-(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
-
-; for "minus"
-(defmethod lel-width  'minus [lel] 4)
-(defmethod lel-height 'minus [lel] 4)
-(defmethod lel-x-min  'minus [lel] (:x lel))
-(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'minus [lel] (:y lel))
-(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
-
-;--------------------------------------------------
-; draw-* functions to draw parts
-; Those should be refactored as "defmethod"
-;--------------------------------------------------
-
-(defn draw-in [g pos color]
-  (.setColor g color)
-  (.drawPolygon g
-                (int-array (map #(* pix-per-grid (+ (pos :x) %))
-                                [0 2 3 2 0]))
-                (int-array (map #(* pix-per-grid (+ (pos :y) %))
-                                [0 0 1 2 2]))
-                5)
-  (draw-text g {:x (+ (pos :x) 1.5) :y (+ (pos :y) 1)}
-             "I" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-
-(defn draw-out [g pos color]
-  (.setColor g color)
-  (.drawPolygon g
-                (int-array (map #(* pix-per-grid (+ (pos :x) %))
-                                [0 2 3 2 0]))
-                (int-array (map #(* pix-per-grid (+ (pos :y) %))
-                                [0 0 1 2 2]))
-                5)
-  (draw-text g {:x (+ (pos :x) 1.5) :y (+ (pos :y) 1)}
-             "O" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-
-(defn draw-inout [g pos color]
-  (.setColor g color)
-  (.drawPolygon g
-                (int-array (map #(* pix-per-grid (+ (pos :x) %))
-                                [0 1 2 3 2 1]))
-                (int-array (map #(* pix-per-grid (+ (pos :y) %))
-                                [1 0 0 1 2 2]))
-                6)
-  (draw-text g {:x (+ (pos :x) 1.5) :y (+ (pos :y) 1)}
-             "IO" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-
-(defn draw-dot [g pos size color]
-  (let [x (- (* (pos :x) pix-per-grid)
-             (int (* 0.5 size)))
-        y (- (* (pos :y) pix-per-grid)
-             (int (* 0.5 size)))]
-    (.setColor g color)
-    (.fillOval g x y size size)))
-
-(defn draw-name [g lel color]
+(defmethod lel-draw   'name [lel g color]
   (draw-text g lel (:str lel) color
              (Font. Font/MONOSPACED Font/PLAIN 12)
              (:v-align lel) (:h-align lel))
@@ -274,135 +234,154 @@
                    (int-array [(dec y) (inc y)])
                    2)))
 
-(defn draw-not [g pos color]
+; for "not"
+(defmethod lel-width  'not [lel] 3)
+(defmethod lel-height 'not [lel] 4)
+(defmethod lel-x-min  'not [lel] (:x lel))
+(defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'not [lel] (:y lel))
+(defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'not [lel g color]
   (.setColor g color)
   (.drawPolygon g
-                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                (int-array (map #(* pix-per-grid (+ (lel :x) %))
                                 [0 2 0]))
-                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                (int-array (map #(* pix-per-grid (+ (lel :y) %))
                                 [0 2 4]))
                 3)
   (.drawOval g
-             (int (* (+ (pos :x) 2  ) pix-per-grid))
-             (int (* (+ (pos :y) 1.5) pix-per-grid))
+             (int (* (+ (lel :x) 2  ) pix-per-grid))
+             (int (* (+ (lel :y) 1.5) pix-per-grid))
              pix-per-grid
              pix-per-grid))
 
-(defn draw-and [g pos color]
+; for "and"
+; "and" should be extended according to needed inputs.
+(defmethod lel-width  'and [lel] 4)
+(defmethod lel-height 'and [lel] 4)
+(defmethod lel-x-min  'and [lel] (:x lel))
+(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'and [lel] (:y lel))
+(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'and [lel g color]
   (.setColor g color)
   (.drawPolyline g
-                 (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
                                  [2 0 0 2]))
-                 (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
                                  [0 0 4 4]))
                  4)
   (.drawArc g
-            (int (* (pos :x) pix-per-grid))
-            (int (* (pos :y) pix-per-grid))
+            (int (* (lel :x) pix-per-grid))
+            (int (* (lel :y) pix-per-grid))
             (* 4 pix-per-grid)
             (* 4 pix-per-grid)
             -90
             180))
 
-(defn draw-or [g pos color]
+; for "or"
+; "or" should be extended according to needed inputs.
+(defmethod lel-width  'or [lel] 4)
+(defmethod lel-height 'or [lel] 4)
+(defmethod lel-x-min  'or [lel] (:x lel))
+(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'or [lel] (:y lel))
+(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'or [lel g color]
   (.setColor g color)
   (.drawArc g
-            (int (* (- (pos :x) 1) pix-per-grid))
-            (int (* (pos :y) pix-per-grid))
+            (int (* (- (lel :x) 1) pix-per-grid))
+            (int (* (lel :y) pix-per-grid))
             (* 2 pix-per-grid)
             (* 4 pix-per-grid)
             -90
             180)
   (.drawArc g
-            (int (* (- (pos :x) 4) pix-per-grid))
-            (int (* (pos :y) pix-per-grid))
+            (int (* (- (lel :x) 4) pix-per-grid))
+            (int (* (lel :y) pix-per-grid))
             (* 8 pix-per-grid)
             (* 4 pix-per-grid)
             -90
             180))
 
-(let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
-  (defn draw-status [g objs]
-    (.setColor g Color/BLUE)
-    (.setFont g font)
-    (doseq [[obj ypos] (map #(list (if (nil? %1) "nil" %1)
-                                   (+ 12 (* 12 %2)))
-                            objs (range))]
-      (.drawString g (.toString obj) 2 ypos))))
-
-(defn draw-mux21 [g pos color]
-  (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
-    (draw-text g {:x (+ (pos :x) 1) :y (+ (pos :y) 2)}
-               "0" color font 'm 'c)
-    (draw-text g {:x (+ (pos :x) 1) :y (+ (pos :y) 4)}
-               "1" color font 'm 'c)
-    (.setColor g color)
-    (.drawPolygon g
-                  (int-array (map #(* pix-per-grid (+ (pos :x) %))
-                                  [0 2 2 0]))
-                  (int-array (map #(* pix-per-grid (+ (pos :y) %))
-                                  [0 2 4 6]))
-                  4)))
-
-(defn draw-dff [g pos color]
+; for "dff"
+(defmethod lel-width  'dff [lel] 4)
+(defmethod lel-height 'dff [lel] 5)
+(defmethod lel-x-min  'dff [lel] (:x lel))
+(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'dff [lel] (:y lel))
+(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'dff [lel g color]
   (.setColor g color)
   (.drawPolygon g
-                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                (int-array (map #(* pix-per-grid (+ (lel :x) %))
                                 [0 0 4 4]))
-                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                (int-array (map #(* pix-per-grid (+ (lel :y) %))
                                 [0 5 5 0]))
                 4)
   (.drawPolyline g
-                 (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
                                  [1 2 3]))
-                 (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
                                  [5 4 5]))
                  3))
 
-(defn draw-plus [g pos color]
+; for "mux21"
+(defmethod lel-width  'mux21 [lel] 2)
+(defmethod lel-height 'mux21 [lel] 6)
+(defmethod lel-x-min  'mux21 [lel] (:x lel))
+(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'mux21 [lel] (:y lel))
+(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'mux21 [lel g color]
+  (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
+    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 2)}
+               "0" color font 'm 'c)
+    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 4)}
+               "1" color font 'm 'c)
+    (.setColor g color)
+    (.drawPolygon g
+                  (int-array (map #(* pix-per-grid (+ (lel :x) %))
+                                  [0 2 2 0]))
+                  (int-array (map #(* pix-per-grid (+ (lel :y) %))
+                                  [0 2 4 6]))
+                  4)))
+
+; for "plus"
+(defmethod lel-width  'plus [lel] 4)
+(defmethod lel-height 'plus [lel] 4)
+(defmethod lel-x-min  'plus [lel] (:x lel))
+(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'plus [lel] (:y lel))
+(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'plus [lel g color]
   (.setColor g color)
   (.drawPolygon g
-                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                (int-array (map #(* pix-per-grid (+ (lel :x) %))
                                 [0 4 4 0]))
-                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                (int-array (map #(* pix-per-grid (+ (lel :y) %))
                                 [0 0 4 4]))
                 4)
-  (draw-text g {:x (+ (pos :x) 2) :y (+ (pos :y) 2)}
+  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
              "+" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
 
-(defn draw-minus [g pos color]
+; for "minus"
+(defmethod lel-width  'minus [lel] 4)
+(defmethod lel-height 'minus [lel] 4)
+(defmethod lel-x-min  'minus [lel] (:x lel))
+(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'minus [lel] (:y lel))
+(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'minus [lel g color]
   (.setColor g color)
   (.drawPolygon g
-                (int-array (map #(* pix-per-grid (+ (pos :x) %))
+                (int-array (map #(* pix-per-grid (+ (lel :x) %))
                                 [0 4 4 0]))
-                (int-array (map #(* pix-per-grid (+ (pos :y) %))
+                (int-array (map #(* pix-per-grid (+ (lel :y) %))
                                 [0 0 4 4]))
                 4)
-  (draw-text g {:x (+ (pos :x) 2) :y (+ (pos :y) 2)}
+  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
              "-" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-
-(defn draw-wire [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
-  (.setColor g color)
-  (.drawPolyline g
-                 (int-array (map #(* pix-per-grid %) [x0 x1]))
-                 (int-array (map #(* pix-per-grid %) [y0 y1]))
-                 2))
-
-(defn draw-lel [g lel color]
-  (case (lel :type)
-    in    (draw-in    g lel color)
-    out   (draw-out   g lel color)
-    inout (draw-inout g lel color)
-    dot   (draw-dot   g lel 7 color)
-    name  (draw-name  g lel color)
-    not   (draw-not   g lel color)
-    and   (draw-and   g lel color)
-    or    (draw-or    g lel color)
-    dff   (draw-dff   g lel color)
-    mux21 (draw-mux21 g lel color)
-    plus  (draw-plus  g lel color)
-    minus (draw-minus g lel color)
-    'do-nothing))
 
 ;--------------------------------------------------
 ; draw-mode-*
@@ -413,7 +392,7 @@
   (doseq [[k v] @wires]
     (draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
   (doseq [[k v] @lels]
-    (draw-lel g v (if (@selected-lels k) Color/RED Color/BLACK)))
+    (lel-draw v g (if (@selected-lels k) Color/RED Color/BLACK)))
   (when (@mode :rect-x0)
     (.setStroke g
                 (BasicStroke. 1.0
@@ -435,66 +414,41 @@
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
-    (draw-lel g v Color/BLACK))
-  (draw-lel g
-            (conj {:type (:type @mode)}
+    (lel-draw v g Color/BLACK))
+  (lel-draw (conj {:type (:type @mode)}
                   @cursor-pos
                   (when (= (:type @mode) 'name) ; to be refactored
                     {:str "blah" :v-align 'b :h-align 'l}
                     ))
-            Color/RED))
+            g Color/RED))
 
 (defn draw-mode-wire [g]
   (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
     (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
-    (draw-lel g v Color/BLACK))
+    (lel-draw v g Color/BLACK))
   (draw-wire g
              {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
               :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
              Color/RED))
 
 (def catalog-table
-  [[{:name 'in    :w 3 :h 2
-     :fdraw (fn [g pos] (draw-in g pos Color/BLACK))}
-    {:name 'out   :w 3 :h 2
-     :fdraw (fn [g pos] (draw-out g pos Color/BLACK))}
-    {:name 'inout :w 3 :h 2
-     :fdraw (fn [g pos] (draw-inout g pos Color/BLACK))}
-    {:name 'dot   :w 2 :h 2
-     :fdraw (fn [g pos] (draw-dot g pos 7 Color/BLACK))}
-    {:name 'name  :w 2 :h 4
-     ;:fdraw (fn [g pos] (draw-name g pos Color/BLACK))}
-     :fdraw (fn [g pos] (draw-text g pos "blah" Color/BLACK
-                                   (Font. Font/MONOSPACED Font/PLAIN 12)
-                                   't 'l))}]
-   [{:name 'not   :w 4 :h 4
-     :fdraw (fn [g pos] (draw-not g pos Color/BLACK))}
-    {:name 'and   :w 4 :h 4
-     :fdraw (fn [g pos] (draw-and g pos Color/BLACK))}
-    {:name 'or    :w 4 :h 4
-     :fdraw (fn [g pos] (draw-or g pos Color/BLACK))}
-    {:name 'dff   :w 4 :h 5
-     :fdraw (fn [g pos] (draw-dff g pos Color/BLACK))}
-    {:name 'mux21 :w 2 :h 6
-     :fdraw (fn [g pos] (draw-mux21 g pos Color/BLACK))}
-     ]
-   [{:name 'plus  :w 4 :h 4
-     :fdraw (fn [g pos] (draw-plus g pos Color/BLACK))}
-    {:name 'minus :w 4 :h 4
-     :fdraw (fn [g pos] (draw-minus g pos Color/BLACK))}
-     ]])
+  '[[in   out inout dot name ]
+    [not  and or    dff mux21]
+    [plus minus]])
 
 (defn draw-mode-catalog [g]
   (doseq [[idx0 parts] (map #(list %1 %2) (range) catalog-table)]
     (doseq [[idx1 part] (map #(list %1 %2) (range) parts)]
-      ((part :fdraw) g
-                     {:x (- (+ (* 10 idx1) 6)
-                            (int (/ (part :w) 2)))
-                      :y (- (+ (* 10 idx0) 6)
-                            (int (/ (part :h) 2))
-                            )})))
+      (let [lel (lel-init part)]
+        (lel-draw (conj lel
+                        {:x (- (+ (* 10 idx1) 6)
+                               (int (/ (lel-width lel) 2)))
+                         :y (- (+ (* 10 idx0) 6)
+                               (int (/ (lel-height lel) 2))
+                               )})
+                  g Color/BLACK))))
   (.setStroke g (BasicStroke. 2.0))
   (.setColor g Color/RED)
   (.drawRect g (* pix-per-grid (+ (* 10 (@catalog-pos :x)) 1))
@@ -633,38 +587,6 @@
                       wires)]
     {:lels (set (keys lels)) :wires (set (keys wires))}
     ))
-
-(def catalog-table
-  [[{:name 'in    :w 3 :h 2
-     :fdraw (fn [g pos] (draw-in g pos Color/BLACK))}
-    {:name 'out   :w 3 :h 2
-     :fdraw (fn [g pos] (draw-out g pos Color/BLACK))}
-    {:name 'inout :w 3 :h 2
-     :fdraw (fn [g pos] (draw-inout g pos Color/BLACK))}
-    {:name 'dot   :w 2 :h 2
-     :fdraw (fn [g pos] (draw-dot g pos 7 Color/BLACK))}
-    {:name 'name  :w 2 :h 4
-     ;:fdraw (fn [g pos] (draw-name g pos Color/BLACK))}
-     :fdraw (fn [g pos] (draw-text g pos "blah" Color/BLACK
-                                   (Font. Font/MONOSPACED Font/PLAIN 12)
-                                   't 'l))}]
-   [{:name 'not   :w 4 :h 4
-     :fdraw (fn [g pos] (draw-not g pos Color/BLACK))}
-    {:name 'and   :w 4 :h 4
-     :fdraw (fn [g pos] (draw-and g pos Color/BLACK))}
-    {:name 'or    :w 4 :h 4
-     :fdraw (fn [g pos] (draw-or g pos Color/BLACK))}
-    {:name 'dff   :w 4 :h 5
-     :fdraw (fn [g pos] (draw-dff g pos Color/BLACK))}
-    {:name 'mux21 :w 2 :h 6
-     :fdraw (fn [g pos] (draw-mux21 g pos Color/BLACK))}
-     ]
-   [{:name 'plus  :w 4 :h 4
-     :fdraw (fn [g pos] (draw-plus g pos Color/BLACK))}
-    {:name 'minus :w 4 :h 4
-     :fdraw (fn [g pos] (draw-minus g pos Color/BLACK))}
-     ]])
-
 
 ; Function name should be generalized? Wires also can be removed by it.
 (defn remove-lel-by-key [lels keys]
@@ -870,14 +792,16 @@
 
    KeyEvent/VK_ENTER
    (fn [_]
-     (dosync
-       (ref-set mode
-                {:mode 'add
-                 :type (:name (try
-                                (nth (nth catalog-table
-                                          (:y @catalog-pos))
-                                     (:x @catalog-pos))
-                                (catch IndexOutOfBoundsException e nil)))})))
+     (let [type (try
+                  (nth (nth catalog-table
+                            (:y @catalog-pos))
+                       (:x @catalog-pos))
+                  (catch IndexOutOfBoundsException e nil))]
+       (dosync
+         (ref-set mode
+                  (if type
+                    {:mode 'add :type type}
+                    {:mode 'cursor})))))
 
    KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
