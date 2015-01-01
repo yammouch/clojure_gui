@@ -566,6 +566,51 @@
             k))
         wires))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; draft
+
+(defn wire-vs-cursor [wire cur]
+  (let [fcomp (fn [qc q0 q1]
+                (let [[q0 q1 inv] (if (< q0 q1)
+                                    [q0 q1 false]
+                                    [q1 q0 true ])]
+                  (cond (< qc q0) nil
+                        (< q1 qc) nil
+
+                        (< (- q1 q0) 4)
+                        (cond (= qc q0) (if inv 'p1 'p0)
+                              (= qc q1) (if inv 'p0 'p1)
+                              :else     'p0p1)
+
+                        (<= qc (+ q0 1)) (if inv 'p1 'p0)
+                        (<= (- q1 1) qc) (if inv 'p0 'p1)
+                        :else 'p0p1
+                        )))]
+    (cond (and (= (:x cur) (:x0 wire))
+               (= (:y cur) (:y0 wire))) 'p0
+          (and (= (:x cur) (:x1 wire))
+               (= (:y cur) (:y1 wire))) 'p1
+
+          (= (:x cur) (:x0 wire) (:x1 wire))
+          (fcomp (:y cur) (:y0 wire) (:y1 wire))
+
+          (= (:y cur) (:y0 wire) (:y1 wire))
+          (fcomp (:x cur) (:x0 wire) (:x1 wire))
+
+          :else nil)))
+
+(defn find-wires-by-pos [wires pos]
+  (let [rec (fn [ws acc]
+              (let [[k v] (first ws)
+                    p (wire-vs-cursor v pos)]
+                (recur (rest ws)
+                       (if p (conj acc {k p}) acc)
+                       )))]
+    (rec wires {})))
+
+;; draft end
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn rectangular-select [lels wires x0 y0 x1 y1]
   (let [xmin (Math/min x0 x1) xmax (Math/max x0 x1)
         ymin (Math/min y0 y1) ymax (Math/max y0 y1)
