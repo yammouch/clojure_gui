@@ -601,11 +601,13 @@
 
 (defn find-wires-by-pos [wires pos]
   (let [rec (fn [ws acc]
-              (let [[k v] (first ws)
-                    p (wire-vs-cursor v pos)]
-                (recur (rest ws)
-                       (if p (conj acc {k p}) acc)
-                       )))]
+              (if (empty? ws)
+                acc
+                (let [[k v] (first ws)
+                      p (wire-vs-cursor v pos)]
+                  (recur (rest ws)
+                         (if p (conj acc {k p}) acc)
+                         ))))]
     (rec wires {})))
 
 ;; draft end
