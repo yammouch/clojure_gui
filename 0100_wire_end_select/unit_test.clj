@@ -13,24 +13,24 @@
              g-101 {:x0 10 :y0 20 :x1 10 :y1 30}})
 
 (def test-patts [[(dut/rectangular-select lels wires 10 10 14 15)
-                  {:lels #{'g-000} :wires #{}}]
+                  {:lels #{'g-000} :wires {}}]
                  [(dut/rectangular-select lels wires 10 10 13 15)
-                  {:lels #{} :wires #{}}]
+                  {:lels #{} :wires {}}]
                  [(dut/rectangular-select lels wires 10 10 14 14)
-                  {:lels #{} :wires #{}}]
+                  {:lels #{} :wires {}}]
                  [(dut/rectangular-select lels wires 20 10 24 14)
-                  {:lels #{'g-001} :wires #{}}]
+                  {:lels #{'g-001} :wires {}}]
                  [(dut/rectangular-select lels wires 10 10 24 15)
-                  {:lels #{'g-000 'g-001} :wires #{}}]
+                  {:lels #{'g-000 'g-001} :wires {}}]
                  [(dut/rectangular-select lels wires 10 20 20 30)
-                  {:lels #{} :wires #{'g-100 'g-101}}
+                  {:lels #{} :wires {'g-100 'p0p1 'g-101 'p0p1}}
                   ]])
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
-    (print "[ok]")
+    (print "[OK]")
     (do
-      (print "[er] expected: ")
+      (print "[ER] expected: ")
       (print expected)))
   (print " result: ")
   (println result))
@@ -58,9 +58,9 @@
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
-    (print "[ok]")
+    (print "[OK]")
     (do
-      (print "[er] expected: ")
+      (print "[ER] expected: ")
       (print expected)))
   (print " result: ")
   (println result))
@@ -77,9 +77,9 @@
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
-    (print "[ok]")
+    (print "[OK]")
     (do
-      (print "[er] expected: ")
+      (print "[ER] expected: ")
       (print expected)))
   (print " result: ")
   (println result))
