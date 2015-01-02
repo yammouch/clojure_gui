@@ -38,7 +38,7 @@
                  ])))
 
 (def selected-lels (ref #{}))
-(def selected-wires (ref #{}))
+(def selected-wires (ref {}))
 (def selected-name (ref nil))
 
 (def wires
@@ -390,7 +390,8 @@
 (defn draw-mode-cursor [g]
   (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
-    (draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
+    ;(draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
+    (draw-wire g v Color/BLACK))
   (doseq [[k v] @lels]
     (lel-draw v g (if (@selected-lels k) Color/RED Color/BLACK)))
   (when (@mode :rect-x0)
@@ -518,7 +519,7 @@
             wire keys)))
 
 (defn move-selected-wires [dir speed]
-  (let [moved (reduce (fn [wires sel]
+  (let [moved (reduce (fn [wires [sel _]]
                         (assoc wires sel
                                (move-wire (wires sel) dir speed)))
                       @wires
@@ -548,7 +549,7 @@
 (defn release-selection []
   (dosync
     (ref-set selected-lels #{})
-    (ref-set selected-wires #{})))
+    (ref-set selected-wires {})))
 
 (defn find-lel-by-pos [lels pos]
   (some (fn [[k v]]
@@ -556,18 +557,6 @@
                      (= (pos :y) (v :y)))
             k))
         lels))
-
-(defn find-wire-by-pos [wires pos]
-  (some (fn [[k {x0 :x0 y0 :y0 x1 :x1 y1 :y1}]]
-          (when (or (and (= (pos :x) x0)
-                         (= (pos :y) y0))
-                    (and (= (pos :x) x1)
-                         (= (pos :y) y1)))
-            k))
-        wires))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; draft
 
 (defn wire-vs-cursor [wire cur]
   (let [fcomp (fn [qc q0 q1]
@@ -635,9 +624,6 @@
                          )))))]
     (rec add base)))
 
-;; draft end
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defn rectangular-select [lels wires x0 y0 x1 y1]
   (let [xmin (Math/min x0 x1) xmax (Math/max x0 x1)
         ymin (Math/min y0 y1) ymax (Math/max y0 y1)
@@ -657,8 +643,9 @@
         wires (filter (fn [[k v]]
                         (<= (Math/max (:y0 v) (:y1 v)) ymax))
                       wires)]
-    {:lels (set (keys lels)) :wires (set (keys wires))}
-    ))
+    {:lels (set (keys lels))
+     :wires (zipmap (keys wires) (repeat 'p0p1))
+     }))
 
 ; Function name should be generalized? Wires also can be removed by it.
 (defn remove-lel-by-key [lels keys]
@@ -719,8 +706,7 @@
    KeyEvent/VK_ENTER
    (fn [_]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)
-           wire-key (when (not lel-key)
-                      (find-wire-by-pos @wires @cursor-pos))
+           wire-key (find-wires-by-pos @wires @cursor-pos)
            rect-keys (if (@mode :rect-x0)
                        (rectangular-select @lels @wires
                          (@mode :rect-x0) (@mode :rect-y0)
@@ -732,9 +718,9 @@
          (when (:lels rect-keys)
            (alter selected-lels clojure.set/union (:lels rect-keys)))
          (when wire-key
-           (alter selected-wires conj wire-key))
+           (alter selected-wires merge-selected-wire wire-key))
          (when (:wires rect-keys)
-           (alter selected-wires clojure.set/union (:wires rect-keys)))
+           (alter selected-wires merge-selected-wire (:wires rect-keys)))
          (alter mode dissoc :rect-x0 :rect-y0)
          )))
    KeyEvent/VK_T
