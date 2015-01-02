@@ -3,6 +3,10 @@
 (require 'schem-rtl)
 (alias 'dut 'schem-rtl)
 
+;--------------------------------------------------
+; test for rectangular-select
+;--------------------------------------------------
+
 (def lels '{g-000 {:type dff :x 10 :y 10}
             g-001 {:type and :x 20 :y 10}})
 (def wires '{g-100 {:x0 10 :y0 20 :x1 20 :y1 20}
@@ -24,9 +28,39 @@
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
-    (print "[OK]")
+    (print "[ok]")
     (do
-      (print "[ER] expected: ")
+      (print "[er] expected: ")
+      (print expected)))
+  (print " result: ")
+  (println result))
+
+;--------------------------------------------------
+; test for find-wires-by-pos
+;--------------------------------------------------
+
+(def wires '{g-100 {:x0 10 :y0 20 :x1 20 :y1 20}
+             g-101 {:x0 10 :y0 20 :x1 10 :y1 30}})
+
+(def test-patts [[(dut/find-wires-by-pos wires {:x 10 :y 20})
+                  {'g-100 'p0 'g-101 'p0}]
+                 [(dut/find-wires-by-pos wires {:x 11 :y 20})
+                  {'g-100 'p0}]
+                 [(dut/find-wires-by-pos wires {:x 12 :y 20})
+                  {'g-100 'p0p1}]
+                 [(dut/find-wires-by-pos wires {:x 19 :y 20})
+                  {'g-100 'p1}]
+                 [(dut/find-wires-by-pos wires {:x 20 :y 20})
+                  {'g-100 'p1}]
+                 [(dut/find-wires-by-pos wires {:x 21 :y 20})
+                  {}
+                  ]])
+
+(doseq [[result expected] test-patts]
+  (if (= result expected)
+    (print "[ok]")
+    (do
+      (print "[er] expected: ")
       (print expected)))
   (print " result: ")
   (println result))
