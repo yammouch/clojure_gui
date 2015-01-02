@@ -610,6 +610,31 @@
                          ))))]
     (rec wires {})))
 
+(defn merge-selected-wire [base add]
+  (letfn [(rec [xs acc]
+            (if (empty? xs)
+              acc
+              (let [picked (base (ffirst xs))]
+                (if picked
+                  (recur (rest xs)
+                         (conj acc
+                               {(ffirst xs)
+                                (case [picked (second (first xs))]
+                                  [p0   p0  ] 'p0
+                                  [p0   p1  ] 'p0p1
+                                  [p0   p0p1] 'p0p1
+                                  [p1   p0  ] 'p0p1
+                                  [p1   p1  ] 'p1
+                                  [p1   p0p1] 'p0p1
+                                  [p0p1 p0  ] 'p0p1
+                                  [p0p1 p1  ] 'p0p1
+                                  [p0p1 p0p1] 'p0p1
+                                  )}))
+                  (recur (rest xs)
+                         (conj acc (first xs))
+                         )))))]
+    (rec add base)))
+
 ;; draft end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
