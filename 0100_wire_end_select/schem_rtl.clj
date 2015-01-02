@@ -114,6 +114,33 @@
                  (int-array (map #(* pix-per-grid %) [y0 y1]))
                  2))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; draft
+
+(defn draw-wire-selected [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} selected]
+  (.setColor g (if (= selected 'p0p1) Color/RED Color/BLACK))
+  (.drawPolyline g
+                 (int-array (map #(* pix-per-grid %) [x0 x1]))
+                 (int-array (map #(* pix-per-grid %) [y0 y1]))
+                 2)
+  (if (not= selected 'p0p1)
+    (let [x- (- x1 x0) y- (- y1 y0)
+          len (Math/sqrt (+ (* x- x-) (* y- y-)))
+
+          [xorg xhl yorg yhl] ; hl: highlight
+          (if (= selected 'p0)
+            [x0 (+ x0 (/ x- len)) y0 (+ y0 (/ y- len))]
+            [x1 (- x1 (/ x- len)) y1 (- y1 (/ y- len))]
+            )]
+      (.setColor g Color/RED)
+      (.drawPolyline g
+                     (int-array (map #(* pix-per-grid %) [xorg xhl]))
+                     (int-array (map #(* pix-per-grid %) [yorg yhl]))
+                     2))))
+
+;; draft end
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;--------------------------------------------------
 ; generic functions for lel (Logic ELement)
 ;--------------------------------------------------
@@ -390,8 +417,11 @@
 (defn draw-mode-cursor [g]
   (draw-dot g @cursor-pos 9 Color/BLUE)
   (doseq [[k v] @wires]
-    ;(draw-wire g v (if (@selected-wires k) Color/RED Color/BLACK)))
-    (draw-wire g v Color/BLACK))
+    (let [selected (@selected-wires k)]
+      (if selected
+        (draw-wire-selected g v selected)
+        (draw-wire g v Color/BLACK)
+        )))
   (doseq [[k v] @lels]
     (lel-draw v g (if (@selected-lels k) Color/RED Color/BLACK)))
   (when (@mode :rect-x0)
