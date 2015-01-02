@@ -4,7 +4,7 @@
 (alias 'dut 'schem-rtl)
 
 ;--------------------------------------------------
-; test for rectangular-select
+; tests for rectangular-select
 ;--------------------------------------------------
 
 (def lels '{g-000 {:type dff :x 10 :y 10}
@@ -36,7 +36,7 @@
   (println result))
 
 ;--------------------------------------------------
-; test for find-wires-by-pos
+; tests for find-wires-by-pos
 ;--------------------------------------------------
 
 (def wires '{g-100 {:x0 10 :y0 20 :x1 20 :y1 20}
@@ -65,3 +65,21 @@
   (print " result: ")
   (println result))
 
+;--------------------------------------------------
+; tests for merge-selected-wire
+;--------------------------------------------------
+
+(def test-patts [[(dut/merge-selected-wire '{g0 p0 g1 p1} '{g0 p1})
+                  '{g0 p0p1 g1 p1}]
+                 [(dut/merge-selected-wire '{g0 p0 g1 p1} '{g2 p1})
+                  '{g0 p0 g1 p1 g2 p1}
+                   ]])
+
+(doseq [[result expected] test-patts]
+  (if (= result expected)
+    (print "[ok]")
+    (do
+      (print "[er] expected: ")
+      (print expected)))
+  (print " result: ")
+  (println result))
