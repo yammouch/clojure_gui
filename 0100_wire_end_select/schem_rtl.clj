@@ -539,19 +539,27 @@
                      @lels
                      @selected-lels))))
 
-(defn move-wire [wire dir speed]
-  (let [[f & keys] (case dir
-                     left  [#(- % speed) :x0 :x1]
-                     right [#(+ % speed) :x0 :x1]
-                     up    [#(- % speed) :y0 :y1]
-                     down  [#(+ % speed) :y0 :y1])]
+(defn move-wire [wire dir speed points]
+  (let [[f & keys] (case [points dir]
+                     [p0   left ] [#(- % speed) :x0]
+                     [p0   right] [#(+ % speed) :x0]
+                     [p0   up   ] [#(- % speed) :y0]
+                     [p0   down ] [#(+ % speed) :y0]
+                     [p1   left ] [#(- % speed) :x1]
+                     [p1   right] [#(+ % speed) :x1]
+                     [p1   up   ] [#(- % speed) :y1]
+                     [p1   down ] [#(+ % speed) :y1]
+                     [p0p1 left ] [#(- % speed) :x0 :x1]
+                     [p0p1 right] [#(+ % speed) :x0 :x1]
+                     [p0p1 up   ] [#(- % speed) :y0 :y1]
+                     [p0p1 down ] [#(+ % speed) :y0 :y1])]
     (reduce (fn [wire k] (assoc wire k (f (wire k))))
             wire keys)))
 
 (defn move-selected-wires [dir speed]
-  (let [moved (reduce (fn [wires [sel _]]
+  (let [moved (reduce (fn [wires [sel points]]
                         (assoc wires sel
-                               (move-wire (wires sel) dir speed)))
+                               (move-wire (wires sel) dir speed points)))
                       @wires
                       @selected-wires)]
     (dosync
@@ -677,11 +685,18 @@
      :wires (zipmap (keys wires) (repeat 'p0p1))
      }))
 
-; Function name should be generalized? Wires also can be removed by it.
 (defn remove-lel-by-key [lels keys]
   (apply hash-map
          (apply concat
                 (remove (fn [[k v]] (keys k))
+                        lels))))
+
+(defn remove-wire-by-key [wires keys]
+  (apply hash-map
+         (apply concat
+                (remove (fn [[k v]]
+                          (let [points (keys k)]
+                            (= points 'p0p1)))
                         lels))))
 
 (defn close-window [frame]
@@ -766,7 +781,7 @@
                         (release-selection))
    KeyEvent/VK_X      (fn [_] (dosync
                                 (alter lels remove-lel-by-key @selected-lels)
-                                (alter wires remove-lel-by-key @selected-wires)
+                                (alter wires remove-wire-by-key @selected-wires)
                                 (ref-set selected-lels #{})
                                 ))})
 
