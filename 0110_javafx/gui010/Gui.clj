@@ -1,3 +1,6 @@
+; referred:
+; https://coderwall.com/p/4yjy1a/getting-started-with-javafx-in-clojure
+
 (ns Gui)
 
 (import '[javafx.scene SceneBuilder])
