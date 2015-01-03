@@ -1,4 +1,4 @@
-(ns gui00)
+(ns Gui)
 
 (import '[javafx.application Application])
 ;(import '[javafx.scene Scene])
@@ -7,7 +7,7 @@
 (import '[javafx.stage Stage])
 
 (gen-class
-  :name gui00
+  :name "Gui"
   :main true
   :extends javafx.application.Application)
 
@@ -23,6 +23,6 @@
   (.show stage))
 
 (defn -main [& args]
-  (Application/launch (Class/forName "gui00") (into-array String [])))
+  (Application/launch (Class/forName "Gui") (into-array String [])))
 
 
