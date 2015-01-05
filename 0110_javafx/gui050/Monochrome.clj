@@ -2,6 +2,7 @@
 
 (gen-class
   :name "Monochrome"
+  :main true
   :extends javafx.application.Application)
 
 (import '[javafx.application Application])
@@ -10,17 +11,27 @@
 (import '[javafx.scene.shape Circle StrokeType])
 (import '[javafx.stage Stage])
 
+(def circle (atom []))
+
 (defn -main [& args]
-  (Application/launch (into-array String args)))
+  (.start (Thread. (fn []
+  (Application/launch (Class/forName "Monochrome")
+                      (into-array String args))
+  )))
+    (read-line)
+    (.setCenterX @circle 100.0)
+    (read-line)
+    (.setCenterX @circle 0.0)
+)
 
 (defn -start [self primary-stage]
   (let [root (Group.)
-        scene (Scene. root 800.0 600.0 Color/BLACK)
-        circle (Circle. 150 (Color/web "white" 0.0))]
-    (.setStrokeType circle StrokeType/OUTSIDE)
-    (.setStroke circle (Color/web "white" 1.0))
-    (.setStrokeWidth circle 4)
+        scene (Scene. root 800.0 600.0 Color/BLACK)]
+    (reset! circle (Circle. 150))
+    (.setStrokeType @circle StrokeType/OUTSIDE)
+    (.setStroke @circle (Color/web "white" 1.0))
+    (.setStrokeWidth @circle 4)
     (.setScene primary-stage scene)
-    (.. root getChildren (add circle))
+    (.. root getChildren (add @circle))
     (.show primary-stage)
     ))
