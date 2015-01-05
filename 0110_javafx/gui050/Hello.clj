@@ -2,7 +2,7 @@
 
 (gen-class
   :name "Hello"
-  ;:main true
+  :main true
   :extends javafx.application.Application)
 
 (import '[javafx.application Application])
@@ -10,6 +10,6 @@
 (defn -start [self stage]
   (println "hoge"))
 
-(defn -main []
+(defn -main [& args]
   (println (read-line)) ; This does not work.
-  (Application/launch (into-array String [])))
+  (Application/launch (Class/forName "Hello") (into-array String [])))
