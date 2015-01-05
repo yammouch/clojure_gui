@@ -5,5 +5,5 @@
 ; > java -cp classes;\path\to\clojure-1.6.0.jar parent
 
 (def force-toolkit-init (javafx.embed.swing.JFXPanel.))
-(compile 'ColorfulCircles)
+(compile 'Monochrome)
 (System/exit 0)
