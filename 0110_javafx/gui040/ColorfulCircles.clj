@@ -18,7 +18,7 @@
 
 (defn -start [self primary-stage]
   (let [root (Group.)
-        scene (Scene. root 800 600 Color/BLACK)
+        scene (Scene. root 800.0 600.0 Color/BLACK)
         circles (Group.)
         colors ( Rectangle.
                  (.getWidth  scene)
@@ -59,22 +59,23 @@
     (doseq [circle (.getChildren circles)]
       (.. timeline getKeyFrames
           ( addAll
-            ( KeyFrame.
-              Duration/ZERO
-              ( into-array KeyValue
-                [ (KeyValue. (.translateXProperty circle)
-                             (* (Math/random) 800))
-                  (KeyValue. (.translateYProperty circle)
-                             (* (Math/random) 600)
-                             )]))
-            ( KeyFrame.
-              (Duration. 40000)
-              ( into-array KeyValue
-                [ ( KeyValue. (.translateXProperty circle)
-                              (* (Math/random) 800))
-                  ( KeyValue. (.translateYProperty circle)
-                              (* (Math/random) 600)
-                              )])))))
+            ( into-array KeyFrame
+              [ ( KeyFrame.
+                  Duration/ZERO
+                  ( into-array KeyValue
+                    [ (KeyValue. (.translateXProperty circle)
+                                 (* (Math/random) 800))
+                      (KeyValue. (.translateYProperty circle)
+                                 (* (Math/random) 600)
+                                 )]))
+                ( KeyFrame.
+                  (Duration. 40000)
+                  ( into-array KeyValue
+                    [ (KeyValue. (.translateXProperty circle)
+                                 (* (Math/random) 800))
+                      (KeyValue. (.translateYProperty circle)
+                                 (* (Math/random) 600)
+                                 )]))]))))
     (.play timeline)
     (.show primary-stage)
     ))
