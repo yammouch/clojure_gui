@@ -1,7 +1,7 @@
-(ns ColorfulCircles)
+(ns Monochrome)
 
 (gen-class
-  :name "ColorfulCircles"
+  :name "Monochrome"
   :extends javafx.application.Application)
 
 (import '[javafx.animation KeyFrame KeyValue Timeline])
