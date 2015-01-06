@@ -4,7 +4,7 @@
 (ns KeyboardExample)
 
 (gen-class
-  :name "KeyboardExample
+  :name "KeyboardExample"
   :main true
   :extends javafx.application.Application)
 
@@ -31,7 +31,7 @@
                                     (= (.getEventType keyEvent)
                                        KeyEvent/KEY_PRESSED))
                               (.consume keyEvent))))
-        keyBackgroung (Rectangle. 50 50)
+        keyBackground (Rectangle. 50 50)
         keyLabel (Text. (.getName keyCode))
         keyNode (StackPane.)]
     (.. keyBackground fillProperty
@@ -65,7 +65,7 @@
 (defn get-previous-node [parent node]
   (loop [childIterator (.. parent getChildrenUnmodifiable iterator)
          lastNode nil]
-    (if (.hasNext chileIterator)
+    (if (.hasNext childIterator)
       (let [currentNode (.next childIterator)]
         (if (= currentNode node)
           lastNode
@@ -77,7 +77,7 @@
 (defn keyboard-new [& keys]
   (let [pressedProperties (map (fn [_] (SimpleBooleanProperty.)) keys)
         keys-lookup (zipmap keys pressedProperties)
-        keyboardNode (Hbox. 6)
+        keyboardNode (HBox. 6)
         keyEventHandler
          (proxy [EventHandler] []
            (handle [keyEvent]
@@ -88,7 +88,7 @@
                  (.consume keyEvent)))))]
     (doseq [[key pressedProperty] (map list keys pressedProperties)]
       (.. keyboardNode getChildren
-          (add (key-new key pressedProperty)))
+          (add (key-new key pressedProperty))))
     (doto keyboardNode
       (.setPadding (Insets. 6))
       (.setOnKeyPressed  keyEventHandler)
