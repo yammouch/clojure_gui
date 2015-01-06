@@ -46,14 +46,14 @@
       (.setStrokeWidth 2)
       (.setArcWidth    12)
       (.setArcHeight   12))
-    (.setFont keyLabel (Font/font "Arial" FontWeight/BOLD 20))
+    (.setFont keyLabel (Font/font "Arial" FontWeight/BOLD 20.0))
     (doto keyNode
       (.setFocusTraversable true)
       (.setOnKeyPressed     keyEventHandler)
       (.setOnKeyReleased    keyEventHandler))
     (doseq [x [keyBackground keyLabel]]
-      (.. keyNode getChildren (add x))
-      )))
+      (.. keyNode getChildren (add x)))
+    keyNode))
 
 (defn get-next-node [parent node]
   (loop [childIterator (.. parent getChildrenUnmodifiable iterator)]
@@ -72,12 +72,10 @@
           (recur childIterator currentNode)))
       nil)))
 
-;keys [[KeyCode/A (SimpleBooleanProperty.)]
-
 (defn keyboard-new [& keys]
   (let [pressedProperties (map (fn [_] (SimpleBooleanProperty.)) keys)
         keys-lookup (zipmap keys pressedProperties)
-        keyboardNode (HBox. 6)
+        keyboardNode (HBox. 6.0)
         keyEventHandler
          (proxy [EventHandler] []
            (handle [keyEvent]
@@ -90,7 +88,7 @@
       (.. keyboardNode getChildren
           (add (key-new key pressedProperty))))
     (doto keyboardNode
-      (.setPadding (Insets. 6))
+      (.setPadding (Insets. 6.0))
       (.setOnKeyPressed  keyEventHandler)
       (.setOnKeyReleased keyEventHandler)
       ( .addEventHandler KeyEvent/KEY_PRESSED
@@ -118,4 +116,4 @@
 
 (defn -main [& args]
   (Application/launch (Class/forName "KeyboardExample")
-                      (into-array ^String [])))
+                      (into-array String [])))
