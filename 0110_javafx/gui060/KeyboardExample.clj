@@ -1,0 +1,59 @@
+(ns KeyboardExample)
+
+(gen-class
+  :name "KeyboardExample
+  :main true
+  :extends javafx.application.Application)
+
+(import
+  '(javafx.application    Application)
+  '(javafx.beans.binding  Bindings)
+  '(javafx.beans.property BooleanProperty)
+  '(javafx.beans.property SimpleBooleanProperty)
+  '(javafx.event          EventHandler)
+  '(javafx.geometry       Insets)
+  '(javafx.scene          Group Node Parent Scene)
+  '(javafx.scene.input    KeyCode KeyEvent)
+  '(javafx.scene.layout   HBox StackPane)
+  '(javafx.scene.paint    Color)
+  '(javafx.scene.shape    Rectangle)
+  '(javafx.scene.text     Font FontWeight Text)
+  '(javafx.stage          Stage))
+
+;(defn -start [self stage] ...)
+
+(defn key-new [key-name pressedProperty]
+  (let [keyEventHandler (proxy [EventHandler] []
+                          (handle [keyEvent]
+                            (if (= (.getCode keyEvent) KeyCode/ENTER)
+                              (.set pressedProperty
+                                    (= (.getEventType keyEvent)
+                                       KeyEvent/KEY_PRESSED))
+                              (.consume keyEvent))))
+        keyBackgroung (Rectangle. 50 50)
+        keyLabel (Text. key-name)
+        keyNode (StackPane.)]
+    (.. keyBackground fillProperty
+        (bind (.. (Bindings/when pressedProperty)
+                  (then Color/RED)
+                  (otherwise (.. (Bindings/when (.focusedProperty keyNode))
+                                 (then Color/LIGHTGRAY)
+                                 (otherwise Color/WHITE)
+                                 )))))
+    (doto keyBackground
+      (.setStroke      Color/BLACK)
+      (.setStrokeWidth 2)
+      (.setArcWidth    12)
+      (.setArcHeight   12))
+    (.setFont keyLabel (Font/font "Arial" FontWeight/BOLD 20))
+    (doto keyNode
+      (.setFocusTraversable true)
+      (.setOnKeyPressed     keyEventHandler)
+      (.setOffKeyPressed    keyEventHandler)
+      )))
+
+(defn -main [& args]
+  (Application/launch (Class/forName "KeyboardExample")
+                      (into-array ^String [])))
+
+
