@@ -110,7 +110,12 @@
   (doto stage
     ( .setScene
       ( Scene.
-        ( Group. (keyboard-new KeyCode/A KeyCode/S KeyCode/D KeyCode/F))))
+        ( Group.
+          (into-array Node
+                      [(keyboard-new KeyCode/A
+                                     KeyCode/S
+                                     KeyCode/D
+                                     KeyCode/F)]))))
     (.setTitle "Keyboard Example")
     (.show)))
 
