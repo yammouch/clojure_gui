@@ -25,7 +25,7 @@
 (defn key-new [key-name pressedProperty]
   (let [keyEventHandler (proxy [EventHandler] []
                           (handle [keyEvent]
-                            (if (= (.getCode keyEvent) KeyCode/ENTER)
+                            (when (= (.getCode keyEvent) KeyCode/ENTER)
                               (.set pressedProperty
                                     (= (.getEventType keyEvent)
                                        KeyEvent/KEY_PRESSED))
@@ -49,8 +49,51 @@
     (doto keyNode
       (.setFocusTraversable true)
       (.setOnKeyPressed     keyEventHandler)
-      (.setOffKeyPressed    keyEventHandler)
+      (.setOnKeyReleased    keyEventHandler)
       )))
+
+(defn getNextNode [parent node]
+  (loop [childIterator (.. parent getChildrenUnmodifiable iterator)]
+    (cond (not (.hasNext childIterator)) nil
+          (= (.next childIterator) node)
+            (if (.hasNext childIterator) (.next childIterator) nil)
+          :else (recur childIterator)
+          )))
+
+(defn getPreviousNode [parent node]
+  (loop [childIterator (.. parent getChildrenUnmodifiable iterator)
+         lastNode nil]
+    (if (.hasNext chileIterator)
+      (let [currentNode (.next childIterator)]
+        (if (= currentNode node)
+          lastNode
+          (recur childIterator currentNode)
+          )))))
+
+(let [keys {KeyCode/A (SimpleBooleanProperty.)
+            KeyCode/S (SimpleBooleanProperty.)
+            KeyCode/D (SimpleBooleanProperty.)
+            KeyCode/F (SimpleBooleanProperty.)}
+      keyboardNode nil ; to be updated
+      keyEventHandler
+       (proxy [EventHandler] []
+         (handle [keyEvent]
+           (let [pressedProperty (keys (.getCode keyEvent))]
+             (when key
+               (.set pressedProperty (= (.getEventType keyEvent)
+                                        KeyEvent/KEY_PRESSED))
+               (.consume keyEvent)))))]
+  (doto keyboardNode
+    (.setOnKeyPressed  keyEventHandler)
+    (.setOnKeyReleased keyEventHandler)
+    ( .addEventHandler KeyEvent/KEY_PRESSED
+      (proxy [EventHandler] []
+        (handle [keyEvent]
+          (let [
+                nextFocusedNode
+                  (case (.getCode keyEvent)
+                    KeyEvent/LEFT 
+
 
 (defn -main [& args]
   (Application/launch (Class/forName "KeyboardExample")
