@@ -1,3 +1,6 @@
+; reference:
+; http://docs.oracle.com/javafx/2/events/KeyboardExample.java.htm
+
 (ns KeyboardExample)
 
 (gen-class
@@ -19,8 +22,6 @@
   '(javafx.scene.shape    Rectangle)
   '(javafx.scene.text     Font FontWeight Text)
   '(javafx.stage          Stage))
-
-;(defn -start [self stage] ...)
 
 (defn key-new [keyCode pressedProperty]
   (let [keyEventHandler (proxy [EventHandler] []
