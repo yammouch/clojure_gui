@@ -7,101 +7,151 @@
 
 (import
   '(javafx.application    Application)
-  '(javafx.beans.binding  Bindings)
-  '(javafx.beans.property BooleanProperty)
-  '(javafx.beans.property SimpleBooleanProperty)
-  '(javafx.event          EventHandler)
-  '(javafx.geometry       Insets)
+;  '(javafx.beans.binding  Bindings)
+;  '(javafx.beans.property BooleanProperty)
+;  '(javafx.beans.property SimpleBooleanProperty)
+;  '(javafx.event          EventHandler)
+;  '(javafx.geometry       Insets)
   '(javafx.scene          Group Node Parent Scene)
-  '(javafx.scene.input    KeyCode KeyEvent)
-  '(javafx.scene.layout   HBox StackPane)
+;  '(javafx.scene.input    KeyCode KeyEvent)
+;  '(javafx.scene.layout   HBox StackPane)
   '(javafx.scene.paint    Color)
-  '(javafx.scene.shape    Rectangle)
-  '(javafx.scene.text     Font FontWeight Text)
+  '(javafx.scene.shape    Rectangle Polygon Ellipse)
+;  '(javafx.scene.text     Font FontWeight Text)
   '(javafx.stage          Stage))
 
-(defn key-new [keyCode pressedProperty]
-  (let [keyEventHandler (proxy [EventHandler] []
-                          (handle [keyEvent]
-                            (when (= (.getCode keyEvent) KeyCode/ENTER)
-                              (.set pressedProperty
-                                    (= (.getEventType keyEvent)
-                                       KeyEvent/KEY_PRESSED))
-                              (.consume keyEvent))))
-        keyBackground (Rectangle. 50 50)
-        keyLabel (Text. (.getName keyCode))
-        keyNode (StackPane.)]
-    (.. keyBackground fillProperty
-        (bind (.. (Bindings/when pressedProperty)
-                  (then Color/RED)
-                  (otherwise (.. (Bindings/when (.focusedProperty keyNode))
-                                 (then Color/LIGHTGRAY)
-                                 (otherwise Color/WHITE)
-                                 )))))
-    (doto keyBackground
-      (.setStroke      Color/BLACK)
-      (.setStrokeWidth 2)
-      (.setArcWidth    12)
-      (.setArcHeight   12))
-    (.setFont keyLabel (Font/font "Arial" FontWeight/BOLD 20.0))
-    (doto keyNode
-      (.setFocusTraversable true)
-      (.setOnKeyPressed     keyEventHandler)
-      (.setOnKeyReleased    keyEventHandler))
-    (doseq [x [keyBackground keyLabel]]
-      (.. keyNode getChildren (add x)))
-    keyNode))
+(def pix-per-grid 8.0)
 
-(defn get-next-node [parent node]
-  (loop [childIterator (.. parent getChildrenUnmodifiable iterator)]
-    (cond (not (.hasNext childIterator)) nil
-          (= (.next childIterator) node)
-            (if (.hasNext childIterator) (.next childIterator) nil)
-          :else (recur childIterator))))
+;;(defmulti lel-width  (fn [lel] (:type lel)))
+;;(defmulti lel-height (fn [lel] (:type lel)))
+;;(defmulti lel-x-min  (fn [lel] (:type lel)))
+;;(defmulti lel-x-max  (fn [lel] (:type lel)))
+;;(defmulti lel-y-min  (fn [lel] (:type lel)))
+;;(defmulti lel-y-max  (fn [lel] (:type lel)))
+(defmulti lel-draw   (fn [lel color & xs] (:type lel)))
 
-(defn get-previous-node [parent node]
-  (loop [childIterator (.. parent getChildrenUnmodifiable iterator)
-         lastNode nil]
-    (if (.hasNext childIterator)
-      (let [currentNode (.next childIterator)]
-        (if (= currentNode node)
-          lastNode
-          (recur childIterator currentNode)))
-      nil)))
 
-(defn keyboard-new [& keys]
-  (let [pressedProperties (map (fn [_] (SimpleBooleanProperty.)) keys)
-        keys-lookup (zipmap keys pressedProperties)
-        keyboardNode (HBox. 6.0)
-        keyEventHandler
-         (proxy [EventHandler] []
-           (handle [keyEvent]
-             (let [pressedProperty (keys-lookup (.getCode keyEvent))]
-               (when pressedProperty
-                 (.set pressedProperty (= (.getEventType keyEvent)
-                                          KeyEvent/KEY_PRESSED))
-                 (.consume keyEvent)))))]
-    (doseq [[key pressedProperty] (map list keys pressedProperties)]
-      (.. keyboardNode getChildren
-          (add (key-new key pressedProperty))))
-    (doto keyboardNode
-      (.setPadding (Insets. 6.0))
-      (.setOnKeyPressed  keyEventHandler)
-      (.setOnKeyReleased keyEventHandler)
-      ( .addEventHandler KeyEvent/KEY_PRESSED
-        (proxy [EventHandler] []
-          (handle [keyEvent]
-            (let [nextFocusedNode
-                    (case (.getCode keyEvent)
-                      KeyEvent/LEFT  ( get-previous-node
-                                       keyboardNode (.getTarget keyEvent))
-                      KeyEvent/RIGHT ( get-next-node
-                                       keyboardNode (.getTarget keyEvent))
-                      nil)]
-              (when nextFocusedNode
-                (.requestFocus nextFocusedNode)
-                ))))))
-  keyboardNode))
+;;; for "not"
+;;(defmethod lel-width  'not [lel] 3)
+;;(defmethod lel-height 'not [lel] 4)
+;;(defmethod lel-x-min  'not [lel] (:x lel))
+;;(defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'not [lel] (:y lel))
+;;(defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'not [lel g color]
+;;  (.setColor g color)
+;;  (.drawPolygon g
+;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                [0 2 0]))
+;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                [0 2 4]))
+;;                3)
+;;  (.drawOval g
+;;             (int (* (+ (lel :x) 2  ) pix-per-grid))
+;;             (int (* (+ (lel :y) 1.5) pix-per-grid))
+;;             pix-per-grid
+;;             pix-per-grid))
+;;
+(defmethod lel-draw 'not [lel color]
+  (let [triangle
+          ( Polygon.
+            ( double-array
+              (apply concat
+                     (map #(list (* pix-per-grid (+ (lel :x) %1))
+                                 (* pix-per-grid (+ (lel :y) %2)))
+                          [0 2 0]
+                          [0 2 4]))))
+        circle
+          (Ellipse. (* pix-per-grid (+ (lel :x) 2.5))
+                    (* pix-per-grid (+ (lel :y) 2  ))
+                    (* 0.5 pix-per-grid)
+                    (* 0.5 pix-per-grid))]
+    (doto triangle (.setStroke color) (.setFill Color/TRANSPARENT))
+    (doto circle   (.setStroke color) (.setFill Color/TRANSPARENT))
+    [triangle circle]))
+
+;(defn key-new [keyCode pressedProperty]
+;  (let [keyEventHandler (proxy [EventHandler] []
+;                          (handle [keyEvent]
+;                            (when (= (.getCode keyEvent) KeyCode/ENTER)
+;                              (.set pressedProperty
+;                                    (= (.getEventType keyEvent)
+;                                       KeyEvent/KEY_PRESSED))
+;                              (.consume keyEvent))))
+;        keyBackground (Rectangle. 50 50)
+;        keyLabel (Text. (.getName keyCode))
+;        keyNode (StackPane.)]
+;    (.. keyBackground fillProperty
+;        (bind (.. (Bindings/when pressedProperty)
+;                  (then Color/RED)
+;                  (otherwise (.. (Bindings/when (.focusedProperty keyNode))
+;                                 (then Color/LIGHTGRAY)
+;                                 (otherwise Color/WHITE)
+;                                 )))))
+;    (doto keyBackground
+;      (.setStroke      Color/BLACK)
+;      (.setStrokeWidth 2)
+;      (.setArcWidth    12)
+;      (.setArcHeight   12))
+;    (.setFont keyLabel (Font/font "Arial" FontWeight/BOLD 20.0))
+;    (doto keyNode
+;      (.setFocusTraversable true)
+;      (.setOnKeyPressed     keyEventHandler)
+;      (.setOnKeyReleased    keyEventHandler))
+;    (doseq [x [keyBackground keyLabel]]
+;      (.. keyNode getChildren (add x)))
+;    keyNode))
+;
+;(defn get-next-node [parent node]
+;  (loop [childIterator (.. parent getChildrenUnmodifiable iterator)]
+;    (cond (not (.hasNext childIterator)) nil
+;          (= (.next childIterator) node)
+;            (if (.hasNext childIterator) (.next childIterator) nil)
+;          :else (recur childIterator))))
+;
+;(defn get-previous-node [parent node]
+;  (loop [childIterator (.. parent getChildrenUnmodifiable iterator)
+;         lastNode nil]
+;    (if (.hasNext childIterator)
+;      (let [currentNode (.next childIterator)]
+;        (if (= currentNode node)
+;          lastNode
+;          (recur childIterator currentNode)))
+;      nil)))
+;
+;(defn keyboard-new [& keys]
+;  (let [pressedProperties (map (fn [_] (SimpleBooleanProperty.)) keys)
+;        keys-lookup (zipmap keys pressedProperties)
+;        keyboardNode (HBox. 6.0)
+;        keyEventHandler
+;         (proxy [EventHandler] []
+;           (handle [keyEvent]
+;             (let [pressedProperty (keys-lookup (.getCode keyEvent))]
+;               (when pressedProperty
+;                 (.set pressedProperty (= (.getEventType keyEvent)
+;                                          KeyEvent/KEY_PRESSED))
+;                 (.consume keyEvent)))))]
+;    (doseq [[key pressedProperty] (map list keys pressedProperties)]
+;      (.. keyboardNode getChildren
+;          (add (key-new key pressedProperty))))
+;    (doto keyboardNode
+;      (.setPadding (Insets. 6.0))
+;      (.setOnKeyPressed  keyEventHandler)
+;      (.setOnKeyReleased keyEventHandler)
+;      ( .addEventHandler KeyEvent/KEY_PRESSED
+;        (proxy [EventHandler] []
+;          (handle [keyEvent]
+;            (let [nextFocusedNode
+;                    (case (.getCode keyEvent)
+;                      KeyEvent/LEFT  ( get-previous-node
+;                                       keyboardNode (.getTarget keyEvent))
+;                      KeyEvent/RIGHT ( get-next-node
+;                                       keyboardNode (.getTarget keyEvent))
+;                      nil)]
+;              (when nextFocusedNode
+;                (.requestFocus nextFocusedNode)
+;                ))))))
+;  keyboardNode))
 
 (defn -start [self stage]
   (doto stage
@@ -109,11 +159,9 @@
       ( Scene.
         ( Group.
           (into-array Node
-                      [(keyboard-new KeyCode/A
-                                     KeyCode/S
-                                     KeyCode/D
-                                     KeyCode/F)]))))
-    (.setTitle "Keyboard Example")
+                      (lel-draw {:type 'not :x 10 :y 10} Color/RED)
+                      ))))
+    (.setTitle "Shows a Not Gate")
     (.show)))
 
 (defn -main [& args]
@@ -131,8 +179,6 @@
 ;;                      AbstractAction])
 ;;(import '[java.awt.event KeyListener KeyEvent])
 ;;(require 'clojure.set)
-;;
-;;(def pix-per-grid 8)
 ;;
 ;;(defn -init []
 ;;  [[] (atom [])])
@@ -283,14 +329,6 @@
 ;;    minus {:type 'minus :x 0 :y 0}
 ;;    ))
 ;;
-;;(defmulti lel-width  (fn [lel] (:type lel)))
-;;(defmulti lel-height (fn [lel] (:type lel)))
-;;(defmulti lel-x-min  (fn [lel] (:type lel)))
-;;(defmulti lel-x-max  (fn [lel] (:type lel)))
-;;(defmulti lel-y-min  (fn [lel] (:type lel)))
-;;(defmulti lel-y-max  (fn [lel] (:type lel)))
-;;(defmulti lel-draw   (fn [lel g color & xs] (:type lel)))
-;;
 ;;; Following declarations look redundant at this commit.
 ;;; But width and height will be variables after adding some size change
 ;;; features.
@@ -382,27 +420,6 @@
 ;;                   (int-array [x x])
 ;;                   (int-array [(dec y) (inc y)])
 ;;                   2)))
-;;
-;;; for "not"
-;;(defmethod lel-width  'not [lel] 3)
-;;(defmethod lel-height 'not [lel] 4)
-;;(defmethod lel-x-min  'not [lel] (:x lel))
-;;(defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'not [lel] (:y lel))
-;;(defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'not [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 2 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 2 4]))
-;;                3)
-;;  (.drawOval g
-;;             (int (* (+ (lel :x) 2  ) pix-per-grid))
-;;             (int (* (+ (lel :y) 1.5) pix-per-grid))
-;;             pix-per-grid
-;;             pix-per-grid))
 ;;
 ;;; for "and"
 ;;; "and" should be extended according to needed inputs.
