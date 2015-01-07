@@ -1,10 +1,7 @@
-; reference:
-; http://docs.oracle.com/javafx/2/events/KeyboardExample.java.htm
-
-(ns KeyboardExample)
+(ns SchemRtl)
 
 (gen-class
-  :name "KeyboardExample"
+  :name "SchemRtl"
   :main true
   :extends javafx.application.Application)
 
@@ -120,5 +117,5 @@
     (.show)))
 
 (defn -main [& args]
-  (Application/launch (Class/forName "KeyboardExample")
+  (Application/launch (Class/forName "SchemRtl")
                       (into-array String [])))
