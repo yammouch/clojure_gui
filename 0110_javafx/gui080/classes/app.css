@@ -1,0 +1,7 @@
+/* reference:
+   http://libro.tuyano.com/index3?id=12496003&page=6 */
+@CHARSET "utf-8"
+Label#label1 {
+  -fx-font-family:Serif;
+  -fx-font-size:24pt;
+}
