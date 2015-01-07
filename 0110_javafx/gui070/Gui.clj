@@ -1,3 +1,6 @@
+; reference:
+; http://libro.tuyano.com/index3?id=12496003&page=4
+
 (ns Gui)
 
 (import
