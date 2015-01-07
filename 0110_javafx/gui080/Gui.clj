@@ -7,6 +7,7 @@
   '(java.io IOException)
   '(javafx.application Application)
   '(javafx.fxml FXMLLoader)
+  '(javafx.event EventHandler)
   '(javafx.scene Scene)
   '(javafx.stage Stage))
 
@@ -19,8 +20,15 @@
   (try
     (let [root (FXMLLoader/load (. (. this getClass)
                                    getResource "gui.fxml"))
-          scene (Scene. root 200 100)]
-      (println (.toString root))
+          scene (Scene. root 200 100)
+          label1 (.getTop root)
+          field1 (.getCenter root)
+          button (.getBottom root)
+          button-action (proxy [EventHandler] []
+                          (handle [event]
+                            (.setText label1
+                                      (.getText field1))))]
+      (.setOnAction button button-action)
       (.setScene stage scene)
       (.show stage))
     (catch IOException e (.printStackTrace e))
