@@ -3,7 +3,7 @@
 <!-- reference:
      http://libro.tuyano.com/index3?id=7346003&page=2 -->
 
-<?language javascript?>
+<!-- <?language javascript?> -->
 <?import java.lang.*?>
 <?import java.net.URL ?>
 <?import javafx.scene.text.*?>
@@ -13,6 +13,7 @@
 <BorderPane
   xmlns="http://javafx.com/javafx/8"
   xmlns:fx="http://javafx.com/fxml/1">
+  <!--
   <fx:script>
     function doAction(event) {
       var str = field1.getText();
@@ -20,9 +21,10 @@
       label1.setText(str);
     }
   </fx:script>
-    <stylesheets>
-      <URL value="@app.css" />
-    </stylesheets>
+  -->
+  <stylesheets>
+    <URL value="@app.css" />
+  </stylesheets>
   <top>
     <Label fx:id="label1" text="This is FXML!" />
   </top>
@@ -30,6 +32,7 @@
     <TextField fx:id="field1" />
   </center>
   <bottom>
-    <Button onAction="doAction(event);" text="Click" />
+    <!-- <Button onAction="doAction(event);" text="Click" /> -->
+    <Button text="Click" />
   </bottom>
 </BorderPane>
