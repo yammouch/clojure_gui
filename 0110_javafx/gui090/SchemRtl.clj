@@ -16,7 +16,7 @@
 ;  '(javafx.scene.input    KeyCode KeyEvent)
 ;  '(javafx.scene.layout   HBox StackPane)
   '(javafx.scene.paint    Color)
-  '(javafx.scene.shape    Rectangle Polygon Ellipse Line Circle
+  '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
                           Path PathElement MoveTo ArcTo ClosePath
                           HLineTo VLineTo)
   '(javafx.scene.text     Font Text TextAlignment)
@@ -50,18 +50,18 @@
            (* (:y pos) pix-per-grid)
            (* 0.5 size) color)))
 
-;;(defmulti lel-width  (fn [lel] (:type lel)))
-;;(defmulti lel-height (fn [lel] (:type lel)))
-;;(defmulti lel-x-min  (fn [lel] (:type lel)))
-;;(defmulti lel-x-max  (fn [lel] (:type lel)))
-;;(defmulti lel-y-min  (fn [lel] (:type lel)))
-;;(defmulti lel-y-max  (fn [lel] (:type lel)))
+(defmulti lel-width  (fn [lel] (:type lel)))
+(defmulti lel-height (fn [lel] (:type lel)))
+(defmulti lel-x-min  (fn [lel] (:type lel)))
+(defmulti lel-x-max  (fn [lel] (:type lel)))
+(defmulti lel-y-min  (fn [lel] (:type lel)))
+(defmulti lel-y-max  (fn [lel] (:type lel)))
 (defmulti lel-draw   (fn [lel color & xs] (:type lel)))
 
 
-;;; Following declarations look redundant at this commit.
-;;; But width and height will be variables after adding some size change
-;;; features.
+; Following declarations look redundant at this commit.
+; But width and height will be variables after adding some size change
+; features.
 
 ; for "in"
 (defmethod lel-width  'in [lel] 3)
@@ -188,71 +188,70 @@
 (defmethod lel-y-min  'and [lel] (:y lel))
 (defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'and [lel color]
-  (let [symbol ( Path.
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)
+        symbol ( Path.
                  ( into-array PathElement
-                   [ (MoveTo. 
-  (.setColor g color)
-  (.drawPolyline g
-                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
-                                 [2 0 0 2]))
-                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
-                                 [0 0 4 4]))
-                 4)
-  (.drawArc g
-            (int (* (lel :x) pix-per-grid))
-            (int (* (lel :y) pix-per-grid))
-            (* 4 pix-per-grid)
-            (* 4 pix-per-grid)
-            -90
-            180))
+                   [ (MoveTo. x y)
+                     (HLineTo. (+ x (* 2 pix-per-grid)))
+                     (ArcTo. (* 2 pix-per-grid) ; radiusX
+                             (* 2 pix-per-grid) ; radiusY
+                             0.0 ; AxisRotation
+                             (+ x (* 2 pix-per-grid)) ; x
+                             (+ y (* 4 pix-per-grid)) ; y
+                             false ; largeArcFlag
+                             true ; sweepFlag (true -> counter clockwise)
+                             )
+                     (HLineTo. x)
+                     (ClosePath.)]))]
+    (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
+    [symbol]))
 
-;;; for "or"
-;;; "or" should be extended according to needed inputs.
-;;(defmethod lel-width  'or [lel] 4)
-;;(defmethod lel-height 'or [lel] 4)
-;;(defmethod lel-x-min  'or [lel] (:x lel))
-;;(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'or [lel] (:y lel))
-;;(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'or [lel g color]
-;;  (.setColor g color)
-;;  (.drawArc g
-;;            (int (* (- (lel :x) 1) pix-per-grid))
-;;            (int (* (lel :y) pix-per-grid))
-;;            (* 2 pix-per-grid)
-;;            (* 4 pix-per-grid)
-;;            -90
-;;            180)
-;;  (.drawArc g
-;;            (int (* (- (lel :x) 4) pix-per-grid))
-;;            (int (* (lel :y) pix-per-grid))
-;;            (* 8 pix-per-grid)
-;;            (* 4 pix-per-grid)
-;;            -90
-;;            180))
-;;
-;;; for "dff"
-;;(defmethod lel-width  'dff [lel] 4)
-;;(defmethod lel-height 'dff [lel] 5)
-;;(defmethod lel-x-min  'dff [lel] (:x lel))
-;;(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'dff [lel] (:y lel))
-;;(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'dff [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 0 4 4]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 5 5 0]))
-;;                4)
-;;  (.drawPolyline g
-;;                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                 [1 2 3]))
-;;                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                 [5 4 5]))
-;;                 3))
-;;
+; for "or"
+; "or" should be extended according to needed inputs.
+(defmethod lel-width  'or [lel] 4)
+(defmethod lel-height 'or [lel] 4)
+(defmethod lel-x-min  'or [lel] (:x lel))
+(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'or [lel] (:y lel))
+(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'or [lel color]
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)
+        symbol ( Path.
+                 ( into-array PathElement
+                   [ (MoveTo. x y)
+                     (ArcTo. (* 4 pix-per-grid) (* 2 pix-per-grid)
+                             0.0 x (+ y (* 4 pix-per-grid))
+                             false true)
+                     (ArcTo. pix-per-grid (* 2 pix-per-grid)
+                             0.0 x y
+                             false false)]))]
+    (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
+    [symbol]))
+
+; for "dff"
+(defmethod lel-width  'dff [lel] 4)
+(defmethod lel-height 'dff [lel] 5)
+(defmethod lel-x-min  'dff [lel] (:x lel))
+(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'dff [lel] (:y lel))
+(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'dff [lel color]
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)
+        rect ( Rectangle. x y (* 4 pix-per-grid) (* 5 pix-per-grid))
+        line ( Polyline. 
+               ( double-array
+                 (apply concat
+                        (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                    (* pix-per-grid (+ (:y lel) %2)))
+                             [1 2 3]
+                             [5 4 5]))))]
+    (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
+    (doto line (.setStroke color))
+    [rect line]))
+
 ;;; for "mux21"
 ;;(defmethod lel-width  'mux21 [lel] 2)
 ;;(defmethod lel-height 'mux21 [lel] 6)
