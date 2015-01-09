@@ -16,11 +16,37 @@
 ;  '(javafx.scene.input    KeyCode KeyEvent)
 ;  '(javafx.scene.layout   HBox StackPane)
   '(javafx.scene.paint    Color)
-  '(javafx.scene.shape    Rectangle Polygon Ellipse)
-;  '(javafx.scene.text     Font FontWeight Text)
+  '(javafx.scene.shape    Rectangle Polygon Ellipse Line Circle)
+  '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.stage          Stage))
 
 (def pix-per-grid 8.0)
+
+;--------------------------------------------------
+; draw-*
+;--------------------------------------------------
+
+(defn draw-text [pos str color v-align h-align]
+  (let [text (Text. (* (:x pos) pix-per-grid)
+                    (* (:y pos) pix-per-grid)
+                    str)
+    (doto text
+      (.setFont (Font. "Monospaced Regular" 10.0))
+      (.setTextAlignment (case h-aligh
+                           l TextAlignment/LEFT
+                           c TextAlignment/CENTER
+                           r TextAlignment/RIGHT))
+      (.setTextOrigin (case v-align
+                        b VPos/BOTTOM
+                        c VPos/CENTER
+                        t VPos/TOP))
+      (.setStroke color)
+    text))
+
+(defn draw-dot [pos size color]
+  (Circle. (* (:x pos) pix-per-grid)
+           (* (:y pos) pix-per-grid)
+           (* 0.5 size) color)))
 
 ;;(defmulti lel-width  (fn [lel] (:type lel)))
 ;;(defmulti lel-height (fn [lel] (:type lel)))
@@ -31,6 +57,95 @@
 (defmulti lel-draw   (fn [lel color & xs] (:type lel)))
 
 
+;;; Following declarations look redundant at this commit.
+;;; But width and height will be variables after adding some size change
+;;; features.
+;;
+;;; for "in"
+;;(defmethod lel-width  'in [lel] 3)
+;;(defmethod lel-height 'in [lel] 2)
+;;(defmethod lel-x-min  'in [lel] (:x lel))
+;;(defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'in [lel] (:y lel))
+;;(defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'in [lel g color]
+;;  (.setColor g color)
+;;  (.drawPolygon g
+;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                [0 2 3 2 0]))
+;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                [0 0 1 2 2]))
+;;                5)
+;;  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
+;;             "I" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+;;
+;;; for "out"
+;;(defmethod lel-width  'out [lel] 3)
+;;(defmethod lel-height 'out [lel] 2)
+;;(defmethod lel-x-min  'out [lel] (:x lel))
+;;(defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'out [lel] (:y lel))
+;;(defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'out [lel g color]
+;;  (.setColor g color)
+;;  (.drawPolygon g
+;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                [0 2 3 2 0]))
+;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                [0 0 1 2 2]))
+;;                5)
+;;  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
+;;             "O" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+;;
+;;; for "inout"
+(defmethod lel-width  'inout [lel] 3.0)
+(defmethod lel-height 'inout [lel] 2.0)
+;;(defmethod lel-x-min  'inout [lel] (:x lel))
+;;(defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'inout [lel] (:y lel))
+;;(defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'inout [lel g color]
+  (let [inout ( Polygone.
+                ( double-array
+                  (apply concat
+                         (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                     (* pix-per-grid (+ (:y lel) %2)))
+                              [0 1 2 3 2 1]
+                              [1 0 0 1 2 2]))))]
+    (doto inout (.setStroke color) (.setFill Color/TRANSPARENT))
+    [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
+                 :y (+ (:y lel) (* 0.5 (lel-height lel)))}
+                "IO" color 'c 'c)
+     inout]))
+
+;;; for "dot"
+;;(defmethod lel-width  'dot [lel] 0)
+;;(defmethod lel-height 'dot [lel] 0)
+;;(defmethod lel-x-min  'dot [lel] (:x lel))
+;;(defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'dot [lel] (:y lel))
+;;(defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'dot [lel g color]
+  (draw-dot lel 7 color))
+;;
+;;; for "name"
+;;; 0 of size is feasible?
+;;(defmethod lel-width  'name [lel] 0)
+;;(defmethod lel-height 'name [lel] 0)
+;;(defmethod lel-x-min  'name [lel] (:x lel))
+;;(defmethod lel-x-max  'name [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'name [lel] (:y lel))
+;;(defmethod lel-y-max  'name [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'name [lel color]
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)
+        line-h (Line. (- 1.0 x) y (+ 1.0 x) y)
+        line-v (Line. x (- 1.0 y) x (+ 1.0 y))]
+    (.setStroke line-h color) (.setStroke line-v color)
+    [(draw-text g lel (:str lel) color
+                (:v-align lel) (:h-align lel))
+     line-h line-v]))
+
 ;;; for "not"
 ;;(defmethod lel-width  'not [lel] 3)
 ;;(defmethod lel-height 'not [lel] 4)
@@ -38,20 +153,6 @@
 ;;(defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
 ;;(defmethod lel-y-min  'not [lel] (:y lel))
 ;;(defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'not [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 2 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 2 4]))
-;;                3)
-;;  (.drawOval g
-;;             (int (* (+ (lel :x) 2  ) pix-per-grid))
-;;             (int (* (+ (lel :y) 1.5) pix-per-grid))
-;;             pix-per-grid
-;;             pix-per-grid))
-;;
 (defmethod lel-draw 'not [lel color]
   (let [triangle
           ( Polygon.
@@ -69,6 +170,135 @@
     (doto triangle (.setStroke color) (.setFill Color/TRANSPARENT))
     (doto circle   (.setStroke color) (.setFill Color/TRANSPARENT))
     [triangle circle]))
+
+;;; for "and"
+;;; "and" should be extended according to needed inputs.
+;;(defmethod lel-width  'and [lel] 4)
+;;(defmethod lel-height 'and [lel] 4)
+;;(defmethod lel-x-min  'and [lel] (:x lel))
+;;(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'and [lel] (:y lel))
+;;(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'and [lel g color]
+;;  (.setColor g color)
+;;  (.drawPolyline g
+;;                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                 [2 0 0 2]))
+;;                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                 [0 0 4 4]))
+;;                 4)
+;;  (.drawArc g
+;;            (int (* (lel :x) pix-per-grid))
+;;            (int (* (lel :y) pix-per-grid))
+;;            (* 4 pix-per-grid)
+;;            (* 4 pix-per-grid)
+;;            -90
+;;            180))
+;;
+;;; for "or"
+;;; "or" should be extended according to needed inputs.
+;;(defmethod lel-width  'or [lel] 4)
+;;(defmethod lel-height 'or [lel] 4)
+;;(defmethod lel-x-min  'or [lel] (:x lel))
+;;(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'or [lel] (:y lel))
+;;(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'or [lel g color]
+;;  (.setColor g color)
+;;  (.drawArc g
+;;            (int (* (- (lel :x) 1) pix-per-grid))
+;;            (int (* (lel :y) pix-per-grid))
+;;            (* 2 pix-per-grid)
+;;            (* 4 pix-per-grid)
+;;            -90
+;;            180)
+;;  (.drawArc g
+;;            (int (* (- (lel :x) 4) pix-per-grid))
+;;            (int (* (lel :y) pix-per-grid))
+;;            (* 8 pix-per-grid)
+;;            (* 4 pix-per-grid)
+;;            -90
+;;            180))
+;;
+;;; for "dff"
+;;(defmethod lel-width  'dff [lel] 4)
+;;(defmethod lel-height 'dff [lel] 5)
+;;(defmethod lel-x-min  'dff [lel] (:x lel))
+;;(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'dff [lel] (:y lel))
+;;(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'dff [lel g color]
+;;  (.setColor g color)
+;;  (.drawPolygon g
+;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                [0 0 4 4]))
+;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                [0 5 5 0]))
+;;                4)
+;;  (.drawPolyline g
+;;                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                 [1 2 3]))
+;;                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                 [5 4 5]))
+;;                 3))
+;;
+;;; for "mux21"
+;;(defmethod lel-width  'mux21 [lel] 2)
+;;(defmethod lel-height 'mux21 [lel] 6)
+;;(defmethod lel-x-min  'mux21 [lel] (:x lel))
+;;(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'mux21 [lel] (:y lel))
+;;(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'mux21 [lel g color]
+;;  (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
+;;    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 2)}
+;;               "0" color font 'm 'c)
+;;    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 4)}
+;;               "1" color font 'm 'c)
+;;    (.setColor g color)
+;;    (.drawPolygon g
+;;                  (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                  [0 2 2 0]))
+;;                  (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                  [0 2 4 6]))
+;;                  4)))
+;;
+;;; for "plus"
+;;(defmethod lel-width  'plus [lel] 4)
+;;(defmethod lel-height 'plus [lel] 4)
+;;(defmethod lel-x-min  'plus [lel] (:x lel))
+;;(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'plus [lel] (:y lel))
+;;(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'plus [lel g color]
+;;  (.setColor g color)
+;;  (.drawPolygon g
+;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                [0 4 4 0]))
+;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                [0 0 4 4]))
+;;                4)
+;;  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
+;;             "+" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+;;
+;;; for "minus"
+;;(defmethod lel-width  'minus [lel] 4)
+;;(defmethod lel-height 'minus [lel] 4)
+;;(defmethod lel-x-min  'minus [lel] (:x lel))
+;;(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
+;;(defmethod lel-y-min  'minus [lel] (:y lel))
+;;(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
+;;(defmethod lel-draw   'minus [lel g color]
+;;  (.setColor g color)
+;;  (.drawPolygon g
+;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
+;;                                [0 4 4 0]))
+;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
+;;                                [0 0 4 4]))
+;;                4)
+;;  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
+;;             "-" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
+;;
 
 ;(defn key-new [keyCode pressedProperty]
 ;  (let [keyEventHandler (proxy [EventHandler] []
@@ -241,31 +471,6 @@
 ;;; draw-*
 ;;;--------------------------------------------------
 ;;
-;;(defn draw-text [g pos str color font v-align h-align]
-;;  (let [frc (.getFontRenderContext g)
-;;        bound (.getBounds (TextLayout. str font frc))
-;;        x (int (- (* (pos :x) pix-per-grid)
-;;                  (case h-align
-;;                    l 0
-;;                    c (* 0.5 (.getWidth bound))
-;;                    r (.getWidth bound))))
-;;        y (int (+ (* (pos :y) pix-per-grid)
-;;                  (case v-align
-;;                    b 0
-;;                    m (* 0.5 (.getHeight bound))
-;;                    t (.getHeight bound))))]
-;;    (.setColor g color)
-;;    (.setFont g font)
-;;    (.drawString g str x y)))
-;;
-;;(defn draw-dot [g pos size color]
-;;  (let [x (- (* (pos :x) pix-per-grid)
-;;             (int (* 0.5 size)))
-;;        y (- (* (pos :y) pix-per-grid)
-;;             (int (* 0.5 size)))]
-;;    (.setColor g color)
-;;    (.fillOval g x y size size)))
-;;
 ;;(let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
 ;;  (defn draw-status [g objs]
 ;;    (.setColor g Color/BLUE)
@@ -328,226 +533,6 @@
 ;;    plus  {:type 'plus  :x 0 :y 0}
 ;;    minus {:type 'minus :x 0 :y 0}
 ;;    ))
-;;
-;;; Following declarations look redundant at this commit.
-;;; But width and height will be variables after adding some size change
-;;; features.
-;;
-;;; for "in"
-;;(defmethod lel-width  'in [lel] 3)
-;;(defmethod lel-height 'in [lel] 2)
-;;(defmethod lel-x-min  'in [lel] (:x lel))
-;;(defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'in [lel] (:y lel))
-;;(defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'in [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 2 3 2 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 1 2 2]))
-;;                5)
-;;  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
-;;             "I" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
-;;; for "out"
-;;(defmethod lel-width  'out [lel] 3)
-;;(defmethod lel-height 'out [lel] 2)
-;;(defmethod lel-x-min  'out [lel] (:x lel))
-;;(defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'out [lel] (:y lel))
-;;(defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'out [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 2 3 2 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 1 2 2]))
-;;                5)
-;;  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
-;;             "O" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
-;;; for "inout"
-;;(defmethod lel-width  'inout [lel] 3)
-;;(defmethod lel-height 'inout [lel] 2)
-;;(defmethod lel-x-min  'inout [lel] (:x lel))
-;;(defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'inout [lel] (:y lel))
-;;(defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'inout [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 1 2 3 2 1]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [1 0 0 1 2 2]))
-;;                6)
-;;  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
-;;             "IO" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
-;;; for "dot"
-;;(defmethod lel-width  'dot [lel] 0)
-;;(defmethod lel-height 'dot [lel] 0)
-;;(defmethod lel-x-min  'dot [lel] (:x lel))
-;;(defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'dot [lel] (:y lel))
-;;(defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'dot [lel g color]
-;;  (draw-dot g lel 7 color))
-;;
-;;; for "name"
-;;; 0 of size is feasible?
-;;(defmethod lel-width  'name [lel] 0)
-;;(defmethod lel-height 'name [lel] 0)
-;;(defmethod lel-x-min  'name [lel] (:x lel))
-;;(defmethod lel-x-max  'name [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'name [lel] (:y lel))
-;;(defmethod lel-y-max  'name [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'name [lel g color]
-;;  (draw-text g lel (:str lel) color
-;;             (Font. Font/MONOSPACED Font/PLAIN 12)
-;;             (:v-align lel) (:h-align lel))
-;;  (let [x (* (:x lel) pix-per-grid)
-;;        y (* (:y lel) pix-per-grid)]
-;;    (.setColor g color)
-;;    (.drawPolyline g
-;;                   (int-array [(dec x) (inc x)])
-;;                   (int-array [y y])
-;;                   2)
-;;    (.drawPolyline g
-;;                   (int-array [x x])
-;;                   (int-array [(dec y) (inc y)])
-;;                   2)))
-;;
-;;; for "and"
-;;; "and" should be extended according to needed inputs.
-;;(defmethod lel-width  'and [lel] 4)
-;;(defmethod lel-height 'and [lel] 4)
-;;(defmethod lel-x-min  'and [lel] (:x lel))
-;;(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'and [lel] (:y lel))
-;;(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'and [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolyline g
-;;                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                 [2 0 0 2]))
-;;                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                 [0 0 4 4]))
-;;                 4)
-;;  (.drawArc g
-;;            (int (* (lel :x) pix-per-grid))
-;;            (int (* (lel :y) pix-per-grid))
-;;            (* 4 pix-per-grid)
-;;            (* 4 pix-per-grid)
-;;            -90
-;;            180))
-;;
-;;; for "or"
-;;; "or" should be extended according to needed inputs.
-;;(defmethod lel-width  'or [lel] 4)
-;;(defmethod lel-height 'or [lel] 4)
-;;(defmethod lel-x-min  'or [lel] (:x lel))
-;;(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'or [lel] (:y lel))
-;;(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'or [lel g color]
-;;  (.setColor g color)
-;;  (.drawArc g
-;;            (int (* (- (lel :x) 1) pix-per-grid))
-;;            (int (* (lel :y) pix-per-grid))
-;;            (* 2 pix-per-grid)
-;;            (* 4 pix-per-grid)
-;;            -90
-;;            180)
-;;  (.drawArc g
-;;            (int (* (- (lel :x) 4) pix-per-grid))
-;;            (int (* (lel :y) pix-per-grid))
-;;            (* 8 pix-per-grid)
-;;            (* 4 pix-per-grid)
-;;            -90
-;;            180))
-;;
-;;; for "dff"
-;;(defmethod lel-width  'dff [lel] 4)
-;;(defmethod lel-height 'dff [lel] 5)
-;;(defmethod lel-x-min  'dff [lel] (:x lel))
-;;(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'dff [lel] (:y lel))
-;;(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'dff [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 0 4 4]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 5 5 0]))
-;;                4)
-;;  (.drawPolyline g
-;;                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                 [1 2 3]))
-;;                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                 [5 4 5]))
-;;                 3))
-;;
-;;; for "mux21"
-;;(defmethod lel-width  'mux21 [lel] 2)
-;;(defmethod lel-height 'mux21 [lel] 6)
-;;(defmethod lel-x-min  'mux21 [lel] (:x lel))
-;;(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'mux21 [lel] (:y lel))
-;;(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'mux21 [lel g color]
-;;  (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
-;;    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 2)}
-;;               "0" color font 'm 'c)
-;;    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 4)}
-;;               "1" color font 'm 'c)
-;;    (.setColor g color)
-;;    (.drawPolygon g
-;;                  (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                  [0 2 2 0]))
-;;                  (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                  [0 2 4 6]))
-;;                  4)))
-;;
-;;; for "plus"
-;;(defmethod lel-width  'plus [lel] 4)
-;;(defmethod lel-height 'plus [lel] 4)
-;;(defmethod lel-x-min  'plus [lel] (:x lel))
-;;(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'plus [lel] (:y lel))
-;;(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'plus [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 4 4 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 4 4]))
-;;                4)
-;;  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
-;;             "+" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
-;;; for "minus"
-;;(defmethod lel-width  'minus [lel] 4)
-;;(defmethod lel-height 'minus [lel] 4)
-;;(defmethod lel-x-min  'minus [lel] (:x lel))
-;;(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'minus [lel] (:y lel))
-;;(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'minus [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 4 4 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 4 4]))
-;;                4)
-;;  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
-;;             "-" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
 ;;
 ;;;--------------------------------------------------
 ;;; draw-mode-*
