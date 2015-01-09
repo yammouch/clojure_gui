@@ -16,7 +16,9 @@
 ;  '(javafx.scene.input    KeyCode KeyEvent)
 ;  '(javafx.scene.layout   HBox StackPane)
   '(javafx.scene.paint    Color)
-  '(javafx.scene.shape    Rectangle Polygon Ellipse Line Circle)
+  '(javafx.scene.shape    Rectangle Polygon Ellipse Line Circle
+                          Path PathElement MoveTo ArcTo ClosePath
+                          HLineTo VLineTo)
   '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.stage          Stage))
 
@@ -60,82 +62,88 @@
 ;;; Following declarations look redundant at this commit.
 ;;; But width and height will be variables after adding some size change
 ;;; features.
-;;
-;;; for "in"
-;;(defmethod lel-width  'in [lel] 3)
-;;(defmethod lel-height 'in [lel] 2)
-;;(defmethod lel-x-min  'in [lel] (:x lel))
-;;(defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'in [lel] (:y lel))
-;;(defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'in [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 2 3 2 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 1 2 2]))
-;;                5)
-;;  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
-;;             "I" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
-;;; for "out"
-;;(defmethod lel-width  'out [lel] 3)
-;;(defmethod lel-height 'out [lel] 2)
-;;(defmethod lel-x-min  'out [lel] (:x lel))
-;;(defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'out [lel] (:y lel))
-;;(defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'out [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 2 3 2 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 1 2 2]))
-;;                5)
-;;  (draw-text g {:x (+ (lel :x) 1.5) :y (+ (lel :y) 1)}
-;;             "O" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
-;;; for "inout"
+
+; for "in"
+(defmethod lel-width  'in [lel] 3)
+(defmethod lel-height 'in [lel] 2)
+(defmethod lel-x-min  'in [lel] (:x lel))
+(defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'in [lel] (:y lel))
+(defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'in [lel color]
+  (let [symbol ( Polygone.
+                 ( double-array
+                   (apply concat
+                          (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                      (* pix-per-grid (+ (:y lel) %2)))
+                               [0 2 3 2 0]
+                               [0 0 1 2 2]))))]
+    (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
+    [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
+                 :y (+ (:y lel) (* 0.5 (lel-height lel)))}
+                "I" color 'c 'c)
+     symbol]))
+
+; for "out"
+(defmethod lel-width  'out [lel] 3)
+(defmethod lel-height 'out [lel] 2)
+(defmethod lel-x-min  'out [lel] (:x lel))
+(defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'out [lel] (:y lel))
+(defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'out [lel color]
+  (let [symbol ( Polygone.
+                 ( double-array
+                   (apply concat
+                          (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                      (* pix-per-grid (+ (:y lel) %2)))
+                               [0 2 3 2 0]
+                               [0 0 1 2 2]))))]
+    (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
+    [(draw-test {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
+                 :y (+ (:y lel) (* 0.5 (lel-height lel)))}
+                "O" color 'c 'c)
+     symbol]))
+
+; for "inout"
 (defmethod lel-width  'inout [lel] 3.0)
 (defmethod lel-height 'inout [lel] 2.0)
-;;(defmethod lel-x-min  'inout [lel] (:x lel))
-;;(defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'inout [lel] (:y lel))
-;;(defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
-(defmethod lel-draw   'inout [lel g color]
-  (let [inout ( Polygone.
-                ( double-array
-                  (apply concat
-                         (map #(list (* pix-per-grid (+ (:x lel) %1))
-                                     (* pix-per-grid (+ (:y lel) %2)))
-                              [0 1 2 3 2 1]
-                              [1 0 0 1 2 2]))))]
-    (doto inout (.setStroke color) (.setFill Color/TRANSPARENT))
+(defmethod lel-x-min  'inout [lel] (:x lel))
+(defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'inout [lel] (:y lel))
+(defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'inout [lel color]
+  (let [symbol ( Polygone.
+                 ( double-array
+                   (apply concat
+                          (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                      (* pix-per-grid (+ (:y lel) %2)))
+                               [0 1 2 3 2 1]
+                               [1 0 0 1 2 2]))))]
+    (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
                 "IO" color 'c 'c)
-     inout]))
+     symbol]))
 
-;;; for "dot"
-;;(defmethod lel-width  'dot [lel] 0)
-;;(defmethod lel-height 'dot [lel] 0)
-;;(defmethod lel-x-min  'dot [lel] (:x lel))
-;;(defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'dot [lel] (:y lel))
-;;(defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
+; for "dot"
+(defmethod lel-width  'dot [lel] 0)
+(defmethod lel-height 'dot [lel] 0)
+(defmethod lel-x-min  'dot [lel] (:x lel))
+(defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'dot [lel] (:y lel))
+(defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'dot [lel g color]
   (draw-dot lel 7 color))
-;;
-;;; for "name"
-;;; 0 of size is feasible?
-;;(defmethod lel-width  'name [lel] 0)
-;;(defmethod lel-height 'name [lel] 0)
-;;(defmethod lel-x-min  'name [lel] (:x lel))
-;;(defmethod lel-x-max  'name [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'name [lel] (:y lel))
-;;(defmethod lel-y-max  'name [lel] (+ (:y lel) (lel-height lel)))
+
+; for "name"
+; 0 of size is feasible?
+(defmethod lel-width  'name [lel] 0)
+(defmethod lel-height 'name [lel] 0)
+(defmethod lel-x-min  'name [lel] (:x lel))
+(defmethod lel-x-max  'name [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'name [lel] (:y lel))
+(defmethod lel-y-max  'name [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'name [lel color]
   (let [x (* (:x lel) pix-per-grid)
         y (* (:y lel) pix-per-grid)
@@ -146,14 +154,14 @@
                 (:v-align lel) (:h-align lel))
      line-h line-v]))
 
-;;; for "not"
-;;(defmethod lel-width  'not [lel] 3)
-;;(defmethod lel-height 'not [lel] 4)
-;;(defmethod lel-x-min  'not [lel] (:x lel))
-;;(defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'not [lel] (:y lel))
-;;(defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
-(defmethod lel-draw 'not [lel color]
+; for "not"
+(defmethod lel-width  'not [lel] 3)
+(defmethod lel-height 'not [lel] 4)
+(defmethod lel-x-min  'not [lel] (:x lel))
+(defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'not [lel] (:y lel))
+(defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'not [lel color]
   (let [triangle
           ( Polygon.
             ( double-array
@@ -171,30 +179,33 @@
     (doto circle   (.setStroke color) (.setFill Color/TRANSPARENT))
     [triangle circle]))
 
-;;; for "and"
-;;; "and" should be extended according to needed inputs.
-;;(defmethod lel-width  'and [lel] 4)
-;;(defmethod lel-height 'and [lel] 4)
-;;(defmethod lel-x-min  'and [lel] (:x lel))
-;;(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'and [lel] (:y lel))
-;;(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'and [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolyline g
-;;                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                 [2 0 0 2]))
-;;                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                 [0 0 4 4]))
-;;                 4)
-;;  (.drawArc g
-;;            (int (* (lel :x) pix-per-grid))
-;;            (int (* (lel :y) pix-per-grid))
-;;            (* 4 pix-per-grid)
-;;            (* 4 pix-per-grid)
-;;            -90
-;;            180))
-;;
+; for "and"
+; "and" should be extended according to needed inputs.
+(defmethod lel-width  'and [lel] 4)
+(defmethod lel-height 'and [lel] 4)
+(defmethod lel-x-min  'and [lel] (:x lel))
+(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'and [lel] (:y lel))
+(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'and [lel color]
+  (let [symbol ( Path.
+                 ( into-array PathElement
+                   [ (MoveTo. 
+  (.setColor g color)
+  (.drawPolyline g
+                 (int-array (map #(* pix-per-grid (+ (lel :x) %))
+                                 [2 0 0 2]))
+                 (int-array (map #(* pix-per-grid (+ (lel :y) %))
+                                 [0 0 4 4]))
+                 4)
+  (.drawArc g
+            (int (* (lel :x) pix-per-grid))
+            (int (* (lel :y) pix-per-grid))
+            (* 4 pix-per-grid)
+            (* 4 pix-per-grid)
+            -90
+            180))
+
 ;;; for "or"
 ;;; "or" should be extended according to needed inputs.
 ;;(defmethod lel-width  'or [lel] 4)
