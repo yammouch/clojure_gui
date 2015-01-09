@@ -252,63 +252,58 @@
     (doto line (.setStroke color))
     [rect line]))
 
-;;; for "mux21"
-;;(defmethod lel-width  'mux21 [lel] 2)
-;;(defmethod lel-height 'mux21 [lel] 6)
-;;(defmethod lel-x-min  'mux21 [lel] (:x lel))
-;;(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'mux21 [lel] (:y lel))
-;;(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'mux21 [lel g color]
-;;  (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
-;;    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 2)}
-;;               "0" color font 'm 'c)
-;;    (draw-text g {:x (+ (lel :x) 1) :y (+ (lel :y) 4)}
-;;               "1" color font 'm 'c)
-;;    (.setColor g color)
-;;    (.drawPolygon g
-;;                  (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                  [0 2 2 0]))
-;;                  (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                  [0 2 4 6]))
-;;                  4)))
-;;
-;;; for "plus"
-;;(defmethod lel-width  'plus [lel] 4)
-;;(defmethod lel-height 'plus [lel] 4)
-;;(defmethod lel-x-min  'plus [lel] (:x lel))
-;;(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'plus [lel] (:y lel))
-;;(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'plus [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 4 4 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 4 4]))
-;;                4)
-;;  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
-;;             "+" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
-;;; for "minus"
-;;(defmethod lel-width  'minus [lel] 4)
-;;(defmethod lel-height 'minus [lel] 4)
-;;(defmethod lel-x-min  'minus [lel] (:x lel))
-;;(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
-;;(defmethod lel-y-min  'minus [lel] (:y lel))
-;;(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
-;;(defmethod lel-draw   'minus [lel g color]
-;;  (.setColor g color)
-;;  (.drawPolygon g
-;;                (int-array (map #(* pix-per-grid (+ (lel :x) %))
-;;                                [0 4 4 0]))
-;;                (int-array (map #(* pix-per-grid (+ (lel :y) %))
-;;                                [0 0 4 4]))
-;;                4)
-;;  (draw-text g {:x (+ (lel :x) 2) :y (+ (lel :y) 2)}
-;;             "-" color (Font. Font/MONOSPACED Font/PLAIN 12) 'm 'c))
-;;
+; for "mux21"
+(defmethod lel-width  'mux21 [lel] 2)
+(defmethod lel-height 'mux21 [lel] 6)
+(defmethod lel-x-min  'mux21 [lel] (:x lel))
+(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'mux21 [lel] (:y lel))
+(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'mux21 [lel g color]
+  (let [trapezoid ( Polygone.
+                    ( double-array
+                      (apply concat
+                        (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                    (* pix-per-grid (+ (:y lel) %2)))
+                             [0 2 2 0]
+                             [0 2 4 6]))))]
+    (doto trapezoid (.setStroke color) (.setFill Color/TRANSPARENT))
+    [ (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 2)}
+                 "0" color 'c 'c)
+      (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 4)}
+                 "1" color 'c 'c)
+      trapezoid]))
+
+; for "plus"
+(defmethod lel-width  'plus [lel] 4)
+(defmethod lel-height 'plus [lel] 4)
+(defmethod lel-x-min  'plus [lel] (:x lel))
+(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'plus [lel] (:y lel))
+(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'plus [lel color]
+  (let [rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
+    (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
+    [ (draw-text {:x (+ (lel :x) (* 0.5 lel-width  lel))
+                  :y (+ (lel :y) (* 0.5 lel-height lel))}
+                 "+" color 'c 'c)
+      rect]))
+
+; for "minus"
+(defmethod lel-width  'minus [lel] 4)
+(defmethod lel-height 'minus [lel] 4)
+(defmethod lel-x-min  'minus [lel] (:x lel))
+(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'minus [lel] (:y lel))
+(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'minus [lel color]
+(defmethod lel-draw   'plus [lel color]
+  (let [rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
+    (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
+    [ (draw-text {:x (+ (lel :x) (* 0.5 lel-width  lel))
+                  :y (+ (lel :y) (* 0.5 lel-height lel))}
+                 "-" color 'c 'c)
+      rect]))
 
 ;(defn key-new [keyCode pressedProperty]
 ;  (let [keyEventHandler (proxy [EventHandler] []
