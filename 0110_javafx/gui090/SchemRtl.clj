@@ -68,9 +68,9 @@
     text))
 
 (defn draw-dot [pos size color]
-  (Circle. (* (:x pos) pix-per-grid)
-           (* (:y pos) pix-per-grid)
-           (* 0.5 size) color))
+  [(Circle. (* (:x pos) pix-per-grid)
+            (* (:y pos) pix-per-grid)
+            (* 0.5 size) color)])
 
 (defmulti lel-width  (fn [lel] (:type lel)))
 (defmulti lel-height (fn [lel] (:type lel)))
@@ -155,7 +155,7 @@
 (defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'dot [lel] (:y lel))
 (defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
-(defmethod lel-draw   'dot [lel g color]
+(defmethod lel-draw   'dot [lel color]
   (draw-dot lel 7 color))
 
 ; for "name"
@@ -169,8 +169,8 @@
 (defmethod lel-draw   'name [lel color]
   (let [x (* (:x lel) pix-per-grid)
         y (* (:y lel) pix-per-grid)
-        line-h (Line. (- 1.0 x) y (+ 1.0 x) y)
-        line-v (Line. x (- 1.0 y) x (+ 1.0 y))]
+        line-h (Line. (- x 1.0) y (+ x 1.0) y)
+        line-v (Line. x (- y 1.0) x (+ y 1.0))]
     (.setStroke line-h color) (.setStroke line-v color)
     [(draw-text lel (:str lel) color
                 (:v-align lel) (:h-align lel))
@@ -281,7 +281,7 @@
 (defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'mux21 [lel] (:y lel))
 (defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
-(defmethod lel-draw   'mux21 [lel g color]
+(defmethod lel-draw   'mux21 [lel color]
   (let [trapezoid ( Polygon.
                     ( double-array
                       (apply concat
@@ -418,10 +418,9 @@
     ( .setScene
       ( Scene.
         ( Group.
-          (into-array Node
-                      (map (fn [[k v]] (lel-draw v Color/BLACK))
-                           lels)
-                      ))))
+          ( into-array Node
+            (apply concat (map (fn [[k v]] (lel-draw v Color/BLACK))
+                               @lels))))))
     (.setTitle "Shows a Not Gate")
     (.show)))
 
