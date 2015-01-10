@@ -10,10 +10,10 @@
 ;  '(javafx.beans.binding  Bindings)
 ;  '(javafx.beans.property BooleanProperty)
 ;  '(javafx.beans.property SimpleBooleanProperty)
-;  '(javafx.event          EventHandler)
+  '(javafx.event          EventHandler)
   '(javafx.geometry       VPos)
   '(javafx.scene          Group Node Parent Scene)
-;  '(javafx.scene.input    KeyCode KeyEvent)
+  '(javafx.scene.input    KeyCode KeyEvent)
 ;  '(javafx.scene.layout   HBox StackPane)
   '(javafx.scene.paint    Color)
   '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
@@ -27,6 +27,9 @@
 ;--------------------------------------------------
 ; state
 ;--------------------------------------------------
+
+(def cursor-pos (ref {:x 5 :y 5}))
+(def cursor-speed (ref 1))
 
 (def lels
   (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
@@ -90,9 +93,9 @@
     text))
 
 (defn draw-dot [pos size color]
-  [(Circle. (* (:x pos) pix-per-grid)
+  (Circle. (* (:x pos) pix-per-grid)
             (* (:y pos) pix-per-grid)
-            (* 0.5 size) color)])
+            (* 0.5 size) color))
 
 (defn draw-wire [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
   (let [line (Line. (* x0 pix-per-grid)
@@ -190,7 +193,7 @@
 (defmethod lel-y-min  'dot [lel] (:y lel))
 (defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'dot [lel color]
-  (draw-dot lel 7 color))
+  [(draw-dot lel 7 color)])
 
 ; for "name"
 ; 0 of size is feasible?
@@ -364,6 +367,97 @@
                  "-" color 'c 'c)
       rect]))
 
+(defn move-cursor [dir speed]
+  (dosync
+    (ref-set cursor-pos
+             (case dir
+               left  (assoc @cursor-pos :x (- (@cursor-pos :x) speed))
+               right (assoc @cursor-pos :x (+ (@cursor-pos :x) speed))
+               up    (assoc @cursor-pos :y (- (@cursor-pos :y) speed))
+               down  (assoc @cursor-pos :y (+ (@cursor-pos :y) speed))
+               ))))
+
+;--------------------------------------------------
+; key commands for each mode on schematic panel
+;--------------------------------------------------
+
+(def key-command-cursor-mode
+  {KeyCode/LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyCode/RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
+   KeyCode/UP     (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyCode/DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyCode/H      (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyCode/L      (fn [_] (move-cursor 'right @cursor-speed))
+   KeyCode/K      (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyCode/J      (fn [_] (move-cursor 'down  @cursor-speed))
+   })
+   ;KeyCode/VK_I      (fn [_] (dosync
+   ;                             (ref-set cursor-speed
+   ;                               (if (< @cursor-speed 64)
+   ;                                 (* 2 @cursor-speed)
+   ;                                 64))))
+   ;KeyCode/VK_U      (fn [_] (dosync
+   ;                             (ref-set cursor-speed
+   ;                               (if (< 1 @cursor-speed)
+   ;                                 (/ @cursor-speed 2)
+   ;                                 1))))
+   ;KeyCode/VK_Q      (fn [{frame :frame}] (close-window frame))
+   ;KeyCode/VK_C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
+   ;KeyCode/VK_A      (fn [_] (dosync
+   ;                             (release-selection)
+   ;                             (ref-set mode {:mode 'dff})))
+   ;KeyCode/VK_B      (fn [_] (dosync
+   ;                             (release-selection)
+   ;                             (ref-set mode {:mode 'mux21})))
+   ;KeyCode/VK_M      (fn [_] (dosync
+   ;                             (ref-set mode {:mode 'move})))
+   ;KeyCode/VK_W      (fn [_] (dosync
+   ;                             (release-selection)
+   ;                             (ref-set wire-p0 @cursor-pos)
+   ;                             (ref-set mode {:mode 'wire})))
+   ;KeyCode/VK_R
+   ;(fn [_]
+   ;  (if (:rect-x0 @mode)
+   ;    (dosync (alter mode dissoc :rect-x0 :rect-y0))
+   ;    (dosync (alter mode conj {:rect-x0 (@cursor-pos :x)
+   ;                              :rect-y0 (@cursor-pos :y)}))))
+   ;KeyCode/VK_ENTER
+   ;(fn [_]
+   ;  (let [lel-key (find-lel-by-pos @lels @cursor-pos)
+   ;        wire-key (find-wires-by-pos @wires @cursor-pos)
+   ;        rect-keys (if (@mode :rect-x0)
+   ;                    (rectangular-select @lels @wires
+   ;                      (@mode :rect-x0) (@mode :rect-y0)
+   ;                      (@cursor-pos :x) (@cursor-pos :y))
+   ;                    {})]
+   ;    (dosync
+   ;      (when lel-key
+   ;        (alter selected-lels conj lel-key))
+   ;      (when (:lels rect-keys)
+   ;        (alter selected-lels clojure.set/union (:lels rect-keys)))
+   ;      (when wire-key
+   ;        (alter selected-wires merge-selected-wire wire-key))
+   ;      (when (:wires rect-keys)
+   ;        (alter selected-wires merge-selected-wire (:wires rect-keys)))
+   ;      (alter mode dissoc :rect-x0 :rect-y0)
+   ;      )))
+   ;KeyCode/VK_T
+   ;(fn [{text-area :text-area}]
+   ;  (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
+   ;    (when (= (:type (@lels lel-key)) 'name)
+   ;      (dosync (ref-set selected-name lel-key))
+   ;      (.setText text-area (:str (@lels lel-key)))
+   ;      (.requestFocus text-area)
+   ;      )))
+   ;KeyCode/VK_ESCAPE (fn [_]
+   ;                     (dosync (alter mode dissoc :rect-x0 :rect-y0))
+   ;                     (release-selection))
+   ;KeyCode/VK_X      (fn [_] (dosync
+   ;                             (alter lels remove-lel-by-key @selected-lels)
+   ;                             (alter wires remove-wire-by-key @selected-wires)
+   ;                             (ref-set selected-lels #{})
+   ;                             ))})
+
 ;(defn key-new [keyCode pressedProperty]
 ;  (let [keyEventHandler (proxy [EventHandler] []
 ;                          (handle [keyEvent]
@@ -447,20 +541,64 @@
 ;                ))))))
 ;  keyboardNode))
 
+(defn schem-node-mode-cursor [cursor-pos lels wires]
+  ( into-array Node
+    (concat [(draw-dot cursor-pos 9 Color/BLUE)]
+            (map (fn [[k v]]
+                   ;(let [selected (@selected-wires k)]
+                   ;  (if selected
+                   ;    (draw-wire-selected v selected)
+                       (draw-wire v Color/BLACK)
+                       );))
+                 wires)
+            (apply concat
+                   (map (fn [[k v]]
+                          (lel-draw v ;(if (@selected-lels k)
+                                      ;  Color/RED
+                                        Color/BLACK));)
+                        lels)))))
+
+  ;(when (@mode :rect-x0)
+  ;  (.setStroke g
+  ;              (BasicStroke. 1.0
+  ;                            BasicStroke/CAP_BUTT
+  ;                            BasicStroke/JOIN_BEVEL
+  ;                            1.0 (float-array [2.0]) 0.0))
+  ;  (let [x (Math/min (@cursor-pos :x) (@mode :rect-x0))
+  ;        y (Math/min (@cursor-pos :y) (@mode :rect-y0))
+  ;        width  (Math/abs (- (@cursor-pos :x) (@mode :rect-x0)))
+  ;        height (Math/abs (- (@cursor-pos :y) (@mode :rect-y0)))]
+  ;    (when (and (< 0 width) (< 0 height))
+  ;      (.drawRect g (int (* x pix-per-grid))
+  ;                   (int (* y pix-per-grid))
+  ;                   (int (* width  pix-per-grid))
+  ;                   (int (* height pix-per-grid))
+  ;                   )))))
+
 (defn -start [self stage]
-  (doto stage
-    ( .setScene
-      ( Scene.
-        ( Group.
-          ( into-array Node
-            (concat (apply concat
-                           (map (fn [[k v]] (lel-draw v Color/BLACK))
-                                @lels))
-                    (map (fn [[k v]]
-                           (draw-wire v Color/BLACK))
-                         @wires))))))
-    (.setTitle "Shows a Not Gate")
-    (.show)))
+  (let [topnode (Group.)
+        keyEventHandler
+          (proxy [EventHandler] []
+            (handle [keyEvent]
+              (let [f (key-command-cursor-mode (.getCode keyEvent))]
+                (when f
+                  (f)
+                  (.consume keyEvent)
+                  (.setAll (.getChildren topnode)
+                           (schem-node-mode-cursor @cursor-pos
+                                                   @lels @wires
+                                                   ))))))]
+    (.setOnKeyPressed topnode keyEventHandler)
+    ;(.addEventHandler topnode
+    ;                  KeyEvent/KEY_PRESSED
+    ;                  keyEventHandler)
+    (.setAll (.getChildren topnode)
+             (schem-node-mode-cursor @cursor-pos
+                                     @lels @wires))
+    (doto stage
+      (.setScene (Scene. topnode))
+      (.setTitle "Shows a Not Gate")
+      (.show))))
 
 (defn -main [& args]
   (Application/launch (Class/forName "SchemRtl")
@@ -489,8 +627,6 @@
 ;;(def selected-wires (ref {}))
 ;;(def selected-name (ref nil))
 ;;
-;;(def cursor-pos (ref {:x 5 :y 5}))
-;;(def cursor-speed (ref 1))
 ;;(def mode (ref {:mode 'cursor}))
 ;;(def wire-p0 (ref {:x 0 :y 0}))
 ;;(def catalog-pos (ref {:x 0 :y 0}))
@@ -558,33 +694,6 @@
 ;;;--------------------------------------------------
 ;;; draw-mode-*
 ;;;--------------------------------------------------
-;;
-;;(defn draw-mode-cursor [g]
-;;  (draw-dot g @cursor-pos 9 Color/BLUE)
-;;  (doseq [[k v] @wires]
-;;    (let [selected (@selected-wires k)]
-;;      (if selected
-;;        (draw-wire-selected g v selected)
-;;        (draw-wire g v Color/BLACK)
-;;        )))
-;;  (doseq [[k v] @lels]
-;;    (lel-draw v g (if (@selected-lels k) Color/RED Color/BLACK)))
-;;  (when (@mode :rect-x0)
-;;    (.setStroke g
-;;                (BasicStroke. 1.0
-;;                              BasicStroke/CAP_BUTT
-;;                              BasicStroke/JOIN_BEVEL
-;;                              1.0 (float-array [2.0]) 0.0))
-;;    (let [x (Math/min (@cursor-pos :x) (@mode :rect-x0))
-;;          y (Math/min (@cursor-pos :y) (@mode :rect-y0))
-;;          width  (Math/abs (- (@cursor-pos :x) (@mode :rect-x0)))
-;;          height (Math/abs (- (@cursor-pos :y) (@mode :rect-y0)))]
-;;      (when (and (< 0 width) (< 0 height))
-;;        (.drawRect g (int (* x pix-per-grid))
-;;                     (int (* y pix-per-grid))
-;;                     (int (* width  pix-per-grid))
-;;                     (int (* height pix-per-grid))
-;;                     )))))
 ;;
 ;;(defn draw-mode-add [g]
 ;;  (doseq [[k v] @wires]
@@ -656,16 +765,6 @@
 ;;;--------------------------------------------------
 ;;; move-*
 ;;;--------------------------------------------------
-;;
-;;(defn move-cursor [dir speed]
-;;  (dosync
-;;    (ref-set cursor-pos
-;;             (case dir
-;;               left  (assoc @cursor-pos :x (- (@cursor-pos :x) speed))
-;;               right (assoc @cursor-pos :x (+ (@cursor-pos :x) speed))
-;;               up    (assoc @cursor-pos :y (- (@cursor-pos :y) speed))
-;;               down  (assoc @cursor-pos :y (+ (@cursor-pos :y) speed))
-;;               ))))
 ;;
 ;;(defn move-selected-lels [dir speed]
 ;;  (dosync
@@ -853,82 +952,6 @@
 ;;;--------------------------------------------------
 ;;; key commands for each mode on schematic panel
 ;;;--------------------------------------------------
-;;
-;;(def key-command-cursor-mode
-;;  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
-;;   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
-;;   KeyEvent/VK_UP     (fn [_] (move-cursor 'up    @cursor-speed))
-;;   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
-;;   KeyEvent/VK_H      (fn [_] (move-cursor 'left  @cursor-speed))
-;;   KeyEvent/VK_L      (fn [_] (move-cursor 'right @cursor-speed))
-;;   KeyEvent/VK_K      (fn [_] (move-cursor 'up    @cursor-speed))
-;;   KeyEvent/VK_J      (fn [_] (move-cursor 'down  @cursor-speed))
-;;   KeyEvent/VK_I      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< @cursor-speed 64)
-;;                                    (* 2 @cursor-speed)
-;;                                    64))))
-;;   KeyEvent/VK_U      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< 1 @cursor-speed)
-;;                                    (/ @cursor-speed 2)
-;;                                    1))))
-;;   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-;;   KeyEvent/VK_C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
-;;   KeyEvent/VK_A      (fn [_] (dosync
-;;                                (release-selection)
-;;                                (ref-set mode {:mode 'dff})))
-;;   KeyEvent/VK_B      (fn [_] (dosync
-;;                                (release-selection)
-;;                                (ref-set mode {:mode 'mux21})))
-;;   KeyEvent/VK_M      (fn [_] (dosync
-;;                                (ref-set mode {:mode 'move})))
-;;   KeyEvent/VK_W      (fn [_] (dosync
-;;                                (release-selection)
-;;                                (ref-set wire-p0 @cursor-pos)
-;;                                (ref-set mode {:mode 'wire})))
-;;   KeyEvent/VK_R
-;;   (fn [_]
-;;     (if (:rect-x0 @mode)
-;;       (dosync (alter mode dissoc :rect-x0 :rect-y0))
-;;       (dosync (alter mode conj {:rect-x0 (@cursor-pos :x)
-;;                                 :rect-y0 (@cursor-pos :y)}))))
-;;   KeyEvent/VK_ENTER
-;;   (fn [_]
-;;     (let [lel-key (find-lel-by-pos @lels @cursor-pos)
-;;           wire-key (find-wires-by-pos @wires @cursor-pos)
-;;           rect-keys (if (@mode :rect-x0)
-;;                       (rectangular-select @lels @wires
-;;                         (@mode :rect-x0) (@mode :rect-y0)
-;;                         (@cursor-pos :x) (@cursor-pos :y))
-;;                       {})]
-;;       (dosync
-;;         (when lel-key
-;;           (alter selected-lels conj lel-key))
-;;         (when (:lels rect-keys)
-;;           (alter selected-lels clojure.set/union (:lels rect-keys)))
-;;         (when wire-key
-;;           (alter selected-wires merge-selected-wire wire-key))
-;;         (when (:wires rect-keys)
-;;           (alter selected-wires merge-selected-wire (:wires rect-keys)))
-;;         (alter mode dissoc :rect-x0 :rect-y0)
-;;         )))
-;;   KeyEvent/VK_T
-;;   (fn [{text-area :text-area}]
-;;     (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
-;;       (when (= (:type (@lels lel-key)) 'name)
-;;         (dosync (ref-set selected-name lel-key))
-;;         (.setText text-area (:str (@lels lel-key)))
-;;         (.requestFocus text-area)
-;;         )))
-;;   KeyEvent/VK_ESCAPE (fn [_]
-;;                        (dosync (alter mode dissoc :rect-x0 :rect-y0))
-;;                        (release-selection))
-;;   KeyEvent/VK_X      (fn [_] (dosync
-;;                                (alter lels remove-lel-by-key @selected-lels)
-;;                                (alter wires remove-wire-by-key @selected-wires)
-;;                                (ref-set selected-lels #{})
-;;                                ))})
 ;;
 ;;; add mode can be merged into move mode
 ;;; if continuous addition is not necessary.
