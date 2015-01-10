@@ -11,7 +11,7 @@
 ;  '(javafx.beans.property BooleanProperty)
 ;  '(javafx.beans.property SimpleBooleanProperty)
 ;  '(javafx.event          EventHandler)
-;  '(javafx.geometry       Insets)
+  '(javafx.geometry       VPos)
   '(javafx.scene          Group Node Parent Scene)
 ;  '(javafx.scene.input    KeyCode KeyEvent)
 ;  '(javafx.scene.layout   HBox StackPane)
@@ -25,16 +25,38 @@
 (def pix-per-grid 8.0)
 
 ;--------------------------------------------------
+; state
+;--------------------------------------------------
+
+(def lels
+  (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
+               '[{:y 20, :type name , :x 5 ,
+                  :str "hoge", :v-align b, :h-align l}
+                 {:y 28, :type in   , :x 25}
+                 {:y 22, :type in   , :x 25}
+                 {:y 28, :type and  , :x 32}
+                 {:y 23, :type or   , :x 40}
+                 {:y 30, :type in   , :x 25}
+                 {:y 36, :type in   , :x 25}
+                 {:y 26, :type out  , :x 62}
+                 {:y 34, :type in   , :x 25}
+                 {:y 22, :type and  , :x 32}
+                 {:y 29, :type dot  , :x 30}
+                 {:y 26, :type dff  , :x 55}
+                 {:y 24, :type mux21, :x 48}
+                 ])))
+
+;--------------------------------------------------
 ; draw-*
 ;--------------------------------------------------
 
 (defn draw-text [pos str color v-align h-align]
   (let [text (Text. (* (:x pos) pix-per-grid)
                     (* (:y pos) pix-per-grid)
-                    str)
+                    str)]
     (doto text
       (.setFont (Font. "Monospaced Regular" 10.0))
-      (.setTextAlignment (case h-aligh
+      (.setTextAlignment (case h-align
                            l TextAlignment/LEFT
                            c TextAlignment/CENTER
                            r TextAlignment/RIGHT))
@@ -42,13 +64,13 @@
                         b VPos/BOTTOM
                         c VPos/CENTER
                         t VPos/TOP))
-      (.setStroke color)
+      (.setStroke color))
     text))
 
 (defn draw-dot [pos size color]
   (Circle. (* (:x pos) pix-per-grid)
            (* (:y pos) pix-per-grid)
-           (* 0.5 size) color)))
+           (* 0.5 size) color))
 
 (defmulti lel-width  (fn [lel] (:type lel)))
 (defmulti lel-height (fn [lel] (:type lel)))
@@ -71,7 +93,7 @@
 (defmethod lel-y-min  'in [lel] (:y lel))
 (defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'in [lel color]
-  (let [symbol ( Polygone.
+  (let [symbol ( Polygon.
                  ( double-array
                    (apply concat
                           (map #(list (* pix-per-grid (+ (:x lel) %1))
@@ -92,7 +114,7 @@
 (defmethod lel-y-min  'out [lel] (:y lel))
 (defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'out [lel color]
-  (let [symbol ( Polygone.
+  (let [symbol ( Polygon.
                  ( double-array
                    (apply concat
                           (map #(list (* pix-per-grid (+ (:x lel) %1))
@@ -100,7 +122,7 @@
                                [0 2 3 2 0]
                                [0 0 1 2 2]))))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
-    [(draw-test {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
+    [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
                 "O" color 'c 'c)
      symbol]))
@@ -113,7 +135,7 @@
 (defmethod lel-y-min  'inout [lel] (:y lel))
 (defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'inout [lel color]
-  (let [symbol ( Polygone.
+  (let [symbol ( Polygon.
                  ( double-array
                    (apply concat
                           (map #(list (* pix-per-grid (+ (:x lel) %1))
@@ -150,7 +172,7 @@
         line-h (Line. (- 1.0 x) y (+ 1.0 x) y)
         line-v (Line. x (- 1.0 y) x (+ 1.0 y))]
     (.setStroke line-h color) (.setStroke line-v color)
-    [(draw-text g lel (:str lel) color
+    [(draw-text lel (:str lel) color
                 (:v-align lel) (:h-align lel))
      line-h line-v]))
 
@@ -260,7 +282,7 @@
 (defmethod lel-y-min  'mux21 [lel] (:y lel))
 (defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'mux21 [lel g color]
-  (let [trapezoid ( Polygone.
+  (let [trapezoid ( Polygon.
                     ( double-array
                       (apply concat
                         (map #(list (* pix-per-grid (+ (:x lel) %1))
@@ -282,7 +304,9 @@
 (defmethod lel-y-min  'plus [lel] (:y lel))
 (defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'plus [lel color]
-  (let [rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)
+        rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
     [ (draw-text {:x (+ (lel :x) (* 0.5 lel-width  lel))
                   :y (+ (lel :y) (* 0.5 lel-height lel))}
@@ -297,8 +321,9 @@
 (defmethod lel-y-min  'minus [lel] (:y lel))
 (defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'minus [lel color]
-(defmethod lel-draw   'plus [lel color]
-  (let [rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)
+        rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
     [ (draw-text {:x (+ (lel :x) (* 0.5 lel-width  lel))
                   :y (+ (lel :y) (* 0.5 lel-height lel))}
@@ -394,7 +419,8 @@
       ( Scene.
         ( Group.
           (into-array Node
-                      (lel-draw {:type 'not :x 10 :y 10} Color/RED)
+                      (map (fn [[k v]] (lel-draw v Color/BLACK))
+                           lels)
                       ))))
     (.setTitle "Shows a Not Gate")
     (.show)))
@@ -421,24 +447,6 @@
 ;;;--------------------------------------------------
 ;;; states
 ;;;--------------------------------------------------
-;;
-;;(def lels
-;;  (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
-;;               '[{:y 20, :type name , :x 5 ,
-;;                  :str "hoge", :v-align b, :h-align l}
-;;                 {:y 28, :type in   , :x 25}
-;;                 {:y 22, :type in   , :x 25}
-;;                 {:y 28, :type and  , :x 32}
-;;                 {:y 23, :type or   , :x 40}
-;;                 {:y 30, :type in   , :x 25}
-;;                 {:y 36, :type in   , :x 25}
-;;                 {:y 26, :type out  , :x 62}
-;;                 {:y 34, :type in   , :x 25}
-;;                 {:y 22, :type and  , :x 32}
-;;                 {:y 29, :type dot  , :x 30}
-;;                 {:y 26, :type dff  , :x 55}
-;;                 {:y 24, :type mux21, :x 48}
-;;                 ])))
 ;;
 ;;(def selected-lels (ref #{}))
 ;;(def selected-wires (ref {}))
