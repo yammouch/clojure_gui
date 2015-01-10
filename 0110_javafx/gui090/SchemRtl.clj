@@ -46,6 +46,28 @@
                  {:y 24, :type mux21, :x 48}
                  ])))
 
+(def wires
+  (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
+               [{:x0 36, :y0 24, :x1 41, :y1 24}
+                {:x0 46, :y0 29, :x1 48, :y1 29}
+                {:x0 28, :y0 29, :x1 32, :y1 29}
+                {:x0 46, :y0 35, :x1 46, :y1 29}
+                {:x0 30, :y0 29, :x1 30, :y1 25}
+                {:x0 28, :y0 37, :x1 49, :y1 37}
+                {:x0 36, :y0 30, :x1 38, :y1 30}
+                {:x0 49, :y0 37, :x1 49, :y1 29}
+                {:x0 50, :y0 27, :x1 55, :y1 27}
+                {:x0 28, :y0 23, :x1 32, :y1 23}
+                {:x0 28, :y0 31, :x1 32, :y1 31}
+                {:x0 28, :y0 35, :x1 46, :y1 35}
+                {:x0 44, :y0 25, :x1 48, :y1 25}
+                {:x0 44, :y0 25, :x1 44, :y1 25}
+                {:x0 38, :y0 30, :x1 38, :y1 26}
+                {:x0 59, :y0 27, :x1 62, :y1 27}
+                {:x0 30, :y0 25, :x1 32, :y1 25}
+                {:x0 38, :y0 26, :x1 41, :y1 26}
+                ])))
+
 ;--------------------------------------------------
 ; draw-*
 ;--------------------------------------------------
@@ -71,6 +93,18 @@
   [(Circle. (* (:x pos) pix-per-grid)
             (* (:y pos) pix-per-grid)
             (* 0.5 size) color)])
+
+(defn draw-wire [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
+  (let [line (Line. (* x0 pix-per-grid)
+                    (* y0 pix-per-grid)
+                    (* x1 pix-per-grid)
+                    (* y1 pix-per-grid))]
+    (.setStroke line color)
+    line))
+
+;--------------------------------------------------
+; generic functions for lel (Logic ELement)
+;--------------------------------------------------
 
 (defmulti lel-width  (fn [lel] (:type lel)))
 (defmulti lel-height (fn [lel] (:type lel)))
@@ -419,8 +453,12 @@
       ( Scene.
         ( Group.
           ( into-array Node
-            (apply concat (map (fn [[k v]] (lel-draw v Color/BLACK))
-                               @lels))))))
+            (concat (apply concat
+                           (map (fn [[k v]] (lel-draw v Color/BLACK))
+                                @lels))
+                    (map (fn [[k v]]
+                           (draw-wire v Color/BLACK))
+                         @wires))))))
     (.setTitle "Shows a Not Gate")
     (.show)))
 
@@ -451,28 +489,6 @@
 ;;(def selected-wires (ref {}))
 ;;(def selected-name (ref nil))
 ;;
-;;(def wires
-;;  (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
-;;               [{:x0 36, :y0 24, :x1 41, :y1 24}
-;;                {:x0 46, :y0 29, :x1 48, :y1 29}
-;;                {:x0 28, :y0 29, :x1 32, :y1 29}
-;;                {:x0 46, :y0 35, :x1 46, :y1 29}
-;;                {:x0 30, :y0 29, :x1 30, :y1 25}
-;;                {:x0 28, :y0 37, :x1 49, :y1 37}
-;;                {:x0 36, :y0 30, :x1 38, :y1 30}
-;;                {:x0 49, :y0 37, :x1 49, :y1 29}
-;;                {:x0 50, :y0 27, :x1 55, :y1 27}
-;;                {:x0 28, :y0 23, :x1 32, :y1 23}
-;;                {:x0 28, :y0 31, :x1 32, :y1 31}
-;;                {:x0 28, :y0 35, :x1 46, :y1 35}
-;;                {:x0 44, :y0 25, :x1 48, :y1 25}
-;;                {:x0 44, :y0 25, :x1 44, :y1 25}
-;;                {:x0 38, :y0 30, :x1 38, :y1 26}
-;;                {:x0 59, :y0 27, :x1 62, :y1 27}
-;;                {:x0 30, :y0 25, :x1 32, :y1 25}
-;;                {:x0 38, :y0 26, :x1 41, :y1 26}
-;;                ])))
-;;
 ;;(def cursor-pos (ref {:x 5 :y 5}))
 ;;(def cursor-speed (ref 1))
 ;;(def mode (ref {:mode 'cursor}))
@@ -491,13 +507,6 @@
 ;;                                   (+ 12 (* 12 %2)))
 ;;                            objs (range))]
 ;;      (.drawString g (.toString obj) 2 ypos))))
-;;
-;;(defn draw-wire [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
-;;  (.setColor g color)
-;;  (.drawPolyline g
-;;                 (int-array (map #(* pix-per-grid %) [x0 x1]))
-;;                 (int-array (map #(* pix-per-grid %) [y0 y1]))
-;;                 2))
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; draft
