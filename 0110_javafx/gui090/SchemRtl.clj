@@ -14,13 +14,14 @@
   '(javafx.geometry       VPos)
   '(javafx.scene          Group Node Parent Scene)
   '(javafx.scene.input    KeyCode KeyEvent)
-;  '(javafx.scene.layout   HBox StackPane)
+  '(javafx.scene.layout   Pane)
   '(javafx.scene.paint    Color)
   '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
                           Path PathElement MoveTo ArcTo ClosePath
                           HLineTo VLineTo)
   '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.stage          Stage))
+(require 'clojure.pprint)
 
 (def pix-per-grid 8.0)
 
@@ -576,28 +577,31 @@
   ;                   )))))
 
 (defn -start [self stage]
-  (let [topnode (Group.)
+  (let [pane (Pane.)
         keyEventHandler
           (proxy [EventHandler] []
             (handle [keyEvent]
+              (clojure.pprint/pprint keyEvent)
               (let [f (key-command-cursor-mode (.getCode keyEvent))]
                 (when f
-                  (f)
+                  (f 'dummy-frame)
                   (.consume keyEvent)
-                  (.setAll (.getChildren topnode)
+                  (.setAll (.getChildren pane)
                            (schem-node-mode-cursor @cursor-pos
                                                    @lels @wires
                                                    ))))))]
-    (.setOnKeyPressed topnode keyEventHandler)
-    ;(.addEventHandler topnode
+    (clojure.pprint/pprint keyEventHandler)
+    (.setOnKeyPressed  pane keyEventHandler)
+    ;(.addEventHandler pane
     ;                  KeyEvent/KEY_PRESSED
     ;                  keyEventHandler)
-    (.setAll (.getChildren topnode)
+    (.setFocusTraversable pane true)
+    (.setAll (.getChildren pane)
              (schem-node-mode-cursor @cursor-pos
                                      @lels @wires))
     (doto stage
-      (.setScene (Scene. topnode))
-      (.setTitle "Shows a Not Gate")
+      (.setScene (Scene. (Group. (into-array Node [pane]))))
+      (.setTitle "Shows Some Gates")
       (.show))))
 
 (defn -main [& args]
