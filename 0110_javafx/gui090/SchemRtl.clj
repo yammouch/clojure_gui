@@ -21,7 +21,6 @@
                           HLineTo VLineTo)
   '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.stage          Stage))
-(require 'clojure.pprint)
 
 (def pix-per-grid 8.0)
 
@@ -105,6 +104,18 @@
                     (* y1 pix-per-grid))]
     (.setStroke line color)
     line))
+
+(defn draw-status [objs]
+  (map (fn [obj ypos]
+         (let [text (Text. 2.0 (+ 12.0 (* 12.0 ypos))
+                           (if (nil? obj) "nil" (.toString obj)))]
+           (doto text
+             (.setFont (Font. "Monospaced Regular" 10.0))
+             (.setTextAlignment TextAlignment/LEFT)
+             (.setTextOrigin VPos/TOP)
+             (.setStroke Color/BLUE))
+           text))
+       objs (range)))
 
 ;--------------------------------------------------
 ; generic functions for lel (Logic ELement)
@@ -581,16 +592,17 @@
         keyEventHandler
           (proxy [EventHandler] []
             (handle [keyEvent]
-              (clojure.pprint/pprint keyEvent)
               (let [f (key-command-cursor-mode (.getCode keyEvent))]
                 (when f
                   (f 'dummy-frame)
                   (.consume keyEvent)
                   (.setAll (.getChildren pane)
                            (schem-node-mode-cursor @cursor-pos
-                                                   @lels @wires
-                                                   ))))))]
-    (clojure.pprint/pprint keyEventHandler)
+                                                   @lels @wires))
+                  (.addAll (.getChildren pane)
+                           (draw-status [@cursor-pos @lels @wires])
+                           )))))]
+                  ;))))]
     (.setOnKeyPressed  pane keyEventHandler)
     ;(.addEventHandler pane
     ;                  KeyEvent/KEY_PRESSED
@@ -599,6 +611,8 @@
     (.setAll (.getChildren pane)
              (schem-node-mode-cursor @cursor-pos
                                      @lels @wires))
+    (.addAll (.getChildren pane)
+             (draw-status [@cursor-pos @lels @wires]))
     (doto stage
       (.setScene (Scene. (Group. (into-array Node [pane]))))
       (.setTitle "Shows Some Gates")
@@ -634,19 +648,6 @@
 ;;(def mode (ref {:mode 'cursor}))
 ;;(def wire-p0 (ref {:x 0 :y 0}))
 ;;(def catalog-pos (ref {:x 0 :y 0}))
-;;
-;;;--------------------------------------------------
-;;; draw-*
-;;;--------------------------------------------------
-;;
-;;(let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
-;;  (defn draw-status [g objs]
-;;    (.setColor g Color/BLUE)
-;;    (.setFont g font)
-;;    (doseq [[obj ypos] (map #(list (if (nil? %1) "nil" %1)
-;;                                   (+ 12 (* 12 %2)))
-;;                            objs (range))]
-;;      (.drawString g (.toString obj) 2 ypos))))
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; draft
