@@ -936,8 +936,12 @@
                   (.setText label
                             (reduce #(str %1 "\n" %2)
                                     (map #(if (nil? %) "nil" (.toString %))
-                                         [@cursor-pos @cursor-speed
-                                          @lels @wires])))
+                                         [@mode @wire-p0
+                                          @cursor-pos @cursor-speed
+                                          @catalog-pos
+                                          @lels @selected-lels
+                                          @wires @selected-wires
+                                          @selected-name])))
                   (.setAll (.getChildren pane)
                            (schem-node-mode-cursor @cursor-pos
                                                    @lels @wires
@@ -950,8 +954,12 @@
     (.setText label
               (reduce #(str %1 "\n" %2)
                       (map #(if (nil? %) "nil" (.toString %))
-                           [@cursor-pos @cursor-speed
-                            @lels @wires])))
+                           [@mode @wire-p0
+                            @cursor-pos @cursor-speed
+                            @catalog-pos
+                            @lels @selected-lels
+                            @wires @selected-wires
+                            @selected-name])))
     (.setAll (.getChildren pane)
              (schem-node-mode-cursor @cursor-pos
                                      @lels @wires))
