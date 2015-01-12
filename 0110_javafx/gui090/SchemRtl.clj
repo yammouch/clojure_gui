@@ -409,8 +409,8 @@
         y (* (:y lel) pix-per-grid)
         rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
-    [ (draw-text {:x (+ (lel :x) (* 0.5 lel-width  lel))
-                  :y (+ (lel :y) (* 0.5 lel-height lel))}
+    [ (draw-text {:x (+ (lel :x) (* 0.5 (lel-width  lel)))
+                  :y (+ (lel :y) (* 0.5 (lel-height lel)))}
                  "+" color 'c 'c)
       rect]))
 
@@ -426,8 +426,8 @@
         y (* (:y lel) pix-per-grid)
         rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
-    [ (draw-text {:x (+ (lel :x) (* 0.5 lel-width  lel))
-                  :y (+ (lel :y) (* 0.5 lel-height lel))}
+    [ (draw-text {:x (+ (lel :x) (* 0.5 (lel-width  lel)))
+                  :y (+ (lel :y) (* 0.5 (lel-height lel)))}
                  "-" color 'c 'c)
       rect]))
 
@@ -512,18 +512,19 @@
     (.setStrokeWidth rect 2.0)
     (.setFill rect Color/TRANSPARENT)
     ( into-array Node
-      (apply concat
-             (map (fn [{idx0 :idx0 idx1 :idx1 part :part}]
-                    (let [lel (lel-init part)]
-                      (lel-draw (conj lel
-                                      {:x (- (+ (* 10 idx1) 6)
-                                             (int (/ (lel-width lel) 2)))
-                                       :y (- (+ (* 10 idx0) 6)
-                                             (int (/ (lel-height lel) 2))
-                                             )})
-                                Color/BLACK)))
-                  parts))
-      [rect])))
+      ( concat
+        (apply concat
+               (map (fn [{idx0 :idx0 idx1 :idx1 part :part}]
+                      (let [lel (lel-init part)]
+                        (lel-draw (conj lel
+                                        {:x (- (+ (* 10 idx1) 6)
+                                               (int (/ (lel-width lel) 2)))
+                                         :y (- (+ (* 10 idx0) 6)
+                                               (int (/ (lel-height lel) 2))
+                                               )})
+                                  Color/BLACK)))
+                    parts))
+        [rect]))))
 
 ;--------------------------------------------------
 ; move-*
