@@ -461,8 +461,10 @@
                                (* y pix-per-grid)
                                (* width pix-per-grid)
                                (* height pix-per-grid))]
+          (.setFill rect Color/TRANSPARENT)
+          (.setStroke rect Color/BLACK)
           (.setAll (.getStrokeDashArray rect)
-                   ( double-array [2.0 2.0] ))
+                   ( into-array Double [2.0 2.0] ))
           [rect])))))
 
 ;;(defn draw-mode-add [g]
