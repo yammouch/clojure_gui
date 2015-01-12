@@ -14,12 +14,13 @@
   '(javafx.geometry       VPos)
   '(javafx.scene          Group Node Parent Scene)
   '(javafx.scene.input    KeyCode KeyEvent)
-  '(javafx.scene.layout   Pane)
+  '(javafx.scene.layout   Pane VBox)
   '(javafx.scene.paint    Color)
   '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
                           Path PathElement MoveTo ArcTo ClosePath
                           HLineTo VLineTo)
   '(javafx.scene.text     Font Text TextAlignment)
+  '(javafx.scene.control  Label)
   '(javafx.stage          Stage))
 
 (def pix-per-grid 8.0)
@@ -588,7 +589,8 @@
   ;                   )))))
 
 (defn -start [self stage]
-  (let [pane (Pane.)
+  (let [label (Label.)
+        pane (Pane.)
         keyEventHandler
           (proxy [EventHandler] []
             (handle [keyEvent]
@@ -596,25 +598,28 @@
                 (when f
                   (f 'dummy-frame)
                   (.consume keyEvent)
+                  (.setText label
+                            (reduce #(str %1 "\n" %2)
+                                    (map #(if (nil? %) "nil" (.toString %))
+                                         [@cursor-pos @lels @wires])))
                   (.setAll (.getChildren pane)
                            (schem-node-mode-cursor @cursor-pos
-                                                   @lels @wires))
-                  (.addAll (.getChildren pane)
-                           (draw-status [@cursor-pos @lels @wires])
-                           )))))]
-                  ;))))]
+                                                   @lels @wires
+                                                   ))))))]
     (.setOnKeyPressed  pane keyEventHandler)
     ;(.addEventHandler pane
     ;                  KeyEvent/KEY_PRESSED
     ;                  keyEventHandler)
     (.setFocusTraversable pane true)
+    (.setText label
+              (reduce #(str %1 "\n" %2)
+                      (map #(if (nil? %) "nil" (.toString %))
+                           [@cursor-pos @lels @wires])))
     (.setAll (.getChildren pane)
              (schem-node-mode-cursor @cursor-pos
                                      @lels @wires))
-    (.addAll (.getChildren pane)
-             (draw-status [@cursor-pos @lels @wires]))
     (doto stage
-      (.setScene (Scene. (Group. (into-array Node [pane]))))
+      (.setScene (Scene. (VBox. (into-array Node [pane label]))))
       (.setTitle "Shows Some Gates")
       (.show))))
 
