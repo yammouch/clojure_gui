@@ -437,37 +437,33 @@
 
 (defn schem-node-mode-cursor [cursor-pos lels wires]
   ( into-array Node
-    (concat [(draw-dot cursor-pos 9 Color/BLUE)]
-            (apply concat
-                   (map (fn [[k v]]
-                          (let [selected (@selected-wires k)]
-                            (if selected
-                              (draw-wire-selected v selected)
-                              [(draw-wire v Color/BLACK)])))
-                        wires))
-            (apply concat
-                   (map (fn [[k v]]
-                          (lel-draw v (if (@selected-lels k)
-                                        Color/RED
-                                        Color/BLACK)))
-                        lels)))))
-
-  ;(when (@mode :rect-x0)
-  ;  (.setStroke g
-  ;              (BasicStroke. 1.0
-  ;                            BasicStroke/CAP_BUTT
-  ;                            BasicStroke/JOIN_BEVEL
-  ;                            1.0 (float-array [2.0]) 0.0))
-  ;  (let [x (Math/min (@cursor-pos :x) (@mode :rect-x0))
-  ;        y (Math/min (@cursor-pos :y) (@mode :rect-y0))
-  ;        width  (Math/abs (- (@cursor-pos :x) (@mode :rect-x0)))
-  ;        height (Math/abs (- (@cursor-pos :y) (@mode :rect-y0)))]
-  ;    (when (and (< 0 width) (< 0 height))
-  ;      (.drawRect g (int (* x pix-per-grid))
-  ;                   (int (* y pix-per-grid))
-  ;                   (int (* width  pix-per-grid))
-  ;                   (int (* height pix-per-grid))
-  ;                   )))))
+    ( concat
+      [(draw-dot cursor-pos 9 Color/BLUE)]
+      (apply concat
+             (map (fn [[k v]]
+                    (let [selected (@selected-wires k)]
+                      (if selected
+                        (draw-wire-selected v selected)
+                        [(draw-wire v Color/BLACK)])))
+                  wires))
+      (apply concat
+             (map (fn [[k v]]
+                    (lel-draw v (if (@selected-lels k)
+                                  Color/RED
+                                  Color/BLACK)))
+                  lels))
+      (when (@mode :rect-x0)
+        (let [x (Math/min (cursor-pos :x) (@mode :rect-x0))
+              y (Math/min (cursor-pos :y) (@mode :rect-y0))
+              width  (Math/abs (- (cursor-pos :x) (@mode :rect-x0)))
+              height (Math/abs (- (cursor-pos :y) (@mode :rect-y0)))
+              rect (Rectangle. (* x pix-per-grid)
+                               (* y pix-per-grid)
+                               (* width pix-per-grid)
+                               (* height pix-per-grid))]
+          (.setAll (.getStrokeDashArray rect)
+                   ( double-array [2.0 2.0] ))
+          [rect])))))
 
 ;;(defn draw-mode-add [g]
 ;;  (doseq [[k v] @wires]
@@ -743,12 +739,12 @@
    ;                             (release-selection)
    ;                             (ref-set wire-p0 @cursor-pos)
    ;                             (ref-set mode {:mode 'wire})))
-   ;KeyCode/VK_R
-   ;(fn [_]
-   ;  (if (:rect-x0 @mode)
-   ;    (dosync (alter mode dissoc :rect-x0 :rect-y0))
-   ;    (dosync (alter mode conj {:rect-x0 (@cursor-pos :x)
-   ;                              :rect-y0 (@cursor-pos :y)}))))
+   KeyCode/R
+   (fn [_]
+     (if (:rect-x0 @mode)
+       (dosync (alter mode dissoc :rect-x0 :rect-y0))
+       (dosync (alter mode conj {:rect-x0 (@cursor-pos :x)
+                                 :rect-y0 (@cursor-pos :y)}))))
    KeyCode/ENTER
    (fn [_]
      (let [lel-key (find-lel-by-pos @lels @cursor-pos)
