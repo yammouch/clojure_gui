@@ -940,7 +940,7 @@
         keyEventHandler
           (proxy [EventHandler] []
             (handle [keyEvent]
-              (let [f (key-command (:mode @mode)) (.getCode keyEvent))]
+              (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
                 (when f
                   (f 'dummy-frame)
                   (.consume keyEvent)
