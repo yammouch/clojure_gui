@@ -432,7 +432,7 @@
       rect]))
 
 ;--------------------------------------------------
-; draw-mode-*
+; schem-node-mode-*
 ;--------------------------------------------------
 
 (defn schem-node-mode-cursor [cursor-pos lels wires]
@@ -467,52 +467,64 @@
                    ( into-array Double [2.0 2.0] ))
           [rect])))))
 
-;;(defn draw-mode-add [g]
-;;  (doseq [[k v] @wires]
-;;    (draw-wire g v Color/BLACK))
-;;  (doseq [[k v] @lels]
-;;    (lel-draw v g Color/BLACK))
-;;  (lel-draw (conj {:type (:type @mode)}
-;;                  @cursor-pos
-;;                  (when (= (:type @mode) 'name) ; to be refactored
-;;                    {:str "blah" :v-align 'b :h-align 'l}
-;;                    ))
-;;            g Color/RED))
-;;
-;;(defn draw-mode-wire [g]
-;;  (draw-dot g @cursor-pos 9 Color/BLUE)
-;;  (doseq [[k v] @wires]
-;;    (draw-wire g v Color/BLACK))
-;;  (doseq [[k v] @lels]
-;;    (lel-draw v g Color/BLACK))
-;;  (draw-wire g
-;;             {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
-;;              :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
-;;             Color/RED))
-;;
-;;(def catalog-table
-;;  '[[in   out inout dot name ]
-;;    [not  and or    dff mux21]
-;;    [plus minus]])
-;;
-;;(defn draw-mode-catalog [g]
-;;  (doseq [[idx0 parts] (map #(list %1 %2) (range) catalog-table)]
-;;    (doseq [[idx1 part] (map #(list %1 %2) (range) parts)]
-;;      (let [lel (lel-init part)]
-;;        (lel-draw (conj lel
-;;                        {:x (- (+ (* 10 idx1) 6)
-;;                               (int (/ (lel-width lel) 2)))
-;;                         :y (- (+ (* 10 idx0) 6)
-;;                               (int (/ (lel-height lel) 2))
-;;                               )})
-;;                  g Color/BLACK))))
-;;  (.setStroke g (BasicStroke. 2.0))
-;;  (.setColor g Color/RED)
-;;  (.drawRect g (* pix-per-grid (+ (* 10 (@catalog-pos :x)) 1))
-;;               (* pix-per-grid (+ (* 10 (@catalog-pos :y)) 1))
-;;               (* pix-per-grid 10)
-;;               (* pix-per-grid 10)))
-;;
+(defn schem-node-mode-add []
+  ( into-array Node
+    ( concat
+      (map (fn [[k v]] (draw-wire v Color/BLACK))
+           @wires)
+      (apply concat
+             (map (fn [[k v]] (lel-draw v Color/BLACK))
+                  @lels))
+      (lel-draw (conj (lel-init (:type @mode))
+                      @cursor-pos)
+                Color/RED))))
+
+(defn schem-node-mode-wire []
+  ( into-array Node
+    ( concat
+      [(draw-dot cursor-pos 9 Color/BLUE)]
+      (map (fn [[k v]] (draw-wire v Color/BLACK))
+           @wires)
+      (apply concat
+             (map (fn [[k v]] (lel-draw v Color/BLACK))
+                  @lels))
+      [(draw-wire {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
+                   :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
+                  Color/RED)])))
+
+(def catalog-table
+  '[[in   out inout dot name ]
+    [not  and or    dff mux21]
+    [plus minus]])
+
+(defn schem-node-mode-catalog []
+  (let [parts (apply concat
+                     (map (fn [idx0 parts]
+                            (map (fn [idx1 part]
+                                   {:idx0 idx0, :idx1 idx1, :part part})
+                                 (range) parts))
+                          (range) catalog-table))
+        rect (Rectangle. (* pix-per-grid (+ (* 10 (@catalog-pos :x)) 1))
+                         (* pix-per-grid (+ (* 10 (@catalog-pos :y)) 1))
+                         (* pix-per-grid 10)
+                         (* pix-per-grid 10))]
+    (.setStroke rect Color/RED)
+    (.setStrokeWidth rect 2.0)
+    (.setFill rect Color/TRANSPARENT)
+    ( into-array Node
+      (apply concat
+             (map (fn [{idx0 :idx0 idx1 :idx1 part :part}]
+                    (let [lel (lel-init part)]
+                      (lel-draw (conj lel
+                                      {:x (- (+ (* 10 idx1) 6)
+                                             (int (/ (lel-width lel) 2)))
+                                       :y (- (+ (* 10 idx0) 6)
+                                             (int (/ (lel-height lel) 2))
+                                             )})
+                                Color/BLACK)))
+                  parts))
+      [rect])))
+
 ;--------------------------------------------------
 ; move-*
 ;--------------------------------------------------
@@ -734,13 +746,13 @@
                                 (/ @cursor-speed 2)
                                 1))))
    ;KeyCode/VK_Q      (fn [{frame :frame}] (close-window frame))
-   ;KeyCode/VK_C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
-   ;KeyCode/VK_M      (fn [_] (dosync
-   ;                             (ref-set mode {:mode 'move})))
-   ;KeyCode/VK_W      (fn [_] (dosync
-   ;                             (release-selection)
-   ;                             (ref-set wire-p0 @cursor-pos)
-   ;                             (ref-set mode {:mode 'wire})))
+   KeyCode/C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
+   KeyCode/M      (fn [_] (dosync
+                            (ref-set mode {:mode 'move})))
+   KeyCode/W      (fn [_] (dosync
+                            (release-selection)
+                            (ref-set wire-p0 @cursor-pos)
+                            (ref-set mode {:mode 'wire})))
    KeyCode/R
    (fn [_]
      (if (:rect-x0 @mode)
@@ -778,149 +790,144 @@
    KeyCode/ESCAPE (fn [_]
                     (dosync (alter mode dissoc :rect-x0 :rect-y0))
                     (release-selection))
-   ;KeyCode/VK_X      (fn [_] (dosync
-   ;                             (alter lels remove-lel-by-key @selected-lels)
-   ;                             (alter wires remove-wire-by-key @selected-wires)
-   ;                             (ref-set selected-lels #{})
-   ;                             ))
+   KeyCode/X      (fn [_] (dosync
+                            (alter lels remove-lel-by-key @selected-lels)
+                            (alter wires remove-wire-by-key @selected-wires)
+                            (ref-set selected-lels #{})
+                            ))})
+
+; add mode can be merged into move mode
+; if continuous addition is not necessary.
+(def key-command-add-mode
+  {KeyCode/LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyCode/RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
+   KeyCode/UP     (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyCode/DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyCode/H      (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyCode/L      (fn [_] (move-cursor 'right @cursor-speed))
+   KeyCode/K      (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyCode/J      (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyCode/I      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< @cursor-speed 64)
+                                    (* 2 @cursor-speed)
+                                    64))))
+   KeyCode/U      (fn [_] (dosync
+                                (ref-set cursor-speed
+                                  (if (< 1 @cursor-speed)
+                                    (/ @cursor-speed 2)
+                                    1))))
+   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+   KeyCode/C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
+   KeyCode/ENTER
+   (fn [_]
+     (dosync
+       (alter lels conj
+              {(gensym)
+               (conj (lel-init (:type @mode))
+                     @cursor-pos)})))
+   KeyCode/ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
-;;;--------------------------------------------------
-;;; key commands for each mode on schematic panel
-;;;--------------------------------------------------
-;;
-;;; add mode can be merged into move mode
-;;; if continuous addition is not necessary.
-;;(def key-command-add-mode
-;;  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
-;;   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
-;;   KeyEvent/VK_UP     (fn [_] (move-cursor 'up    @cursor-speed))
-;;   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
-;;   KeyEvent/VK_H      (fn [_] (move-cursor 'left  @cursor-speed))
-;;   KeyEvent/VK_L      (fn [_] (move-cursor 'right @cursor-speed))
-;;   KeyEvent/VK_K      (fn [_] (move-cursor 'up    @cursor-speed))
-;;   KeyEvent/VK_J      (fn [_] (move-cursor 'down  @cursor-speed))
-;;   KeyEvent/VK_I      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< @cursor-speed 64)
-;;                                    (* 2 @cursor-speed)
-;;                                    64))))
-;;   KeyEvent/VK_U      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< 1 @cursor-speed)
-;;                                    (/ @cursor-speed 2)
-;;                                    1))))
-;;   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-;;   KeyEvent/VK_C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
-;;   KeyEvent/VK_ENTER
-;;   (fn [_]
-;;     (dosync
-;;       (alter lels conj
-;;              {(gensym)
-;;               (conj (lel-init (:type @mode))
-;;                     @cursor-pos)})))
-;;   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
-;;   })
-;;
-;;(def key-command-move-mode
-;;  {KeyEvent/VK_LEFT   (fn [_] (move-cursor   'left  @cursor-speed)
-;;                              (move-selected 'left  @cursor-speed))
-;;   KeyEvent/VK_RIGHT  (fn [_] (move-cursor   'right @cursor-speed)
-;;                              (move-selected 'right @cursor-speed))
-;;   KeyEvent/VK_UP     (fn [_] (move-cursor   'up    @cursor-speed)
-;;                              (move-selected 'up    @cursor-speed))
-;;   KeyEvent/VK_DOWN   (fn [_] (move-cursor   'down  @cursor-speed)
-;;                              (move-selected 'down  @cursor-speed))
-;;   KeyEvent/VK_H      (fn [_] (move-cursor   'left  @cursor-speed)
-;;                              (move-selected 'left  @cursor-speed))
-;;   KeyEvent/VK_L      (fn [_] (move-cursor   'right @cursor-speed)
-;;                              (move-selected 'right @cursor-speed))
-;;   KeyEvent/VK_K      (fn [_] (move-cursor   'up    @cursor-speed)
-;;                              (move-selected 'up    @cursor-speed))
-;;   KeyEvent/VK_J      (fn [_] (move-cursor   'down  @cursor-speed)
-;;                              (move-selected 'down  @cursor-speed))
-;;   KeyEvent/VK_I      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< @cursor-speed 64)
-;;                                    (* 2 @cursor-speed)
-;;                                    64))))
-;;   KeyEvent/VK_U      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< 1 @cursor-speed)
-;;                                    (/ @cursor-speed 2)
-;;                                    1))))
-;;   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-;;   KeyEvent/VK_ESCAPE (fn [_] (dosync
-;;                                (release-selection)
-;;                                (ref-set mode {:mode 'cursor})))
-;;                                })
-;;
-;;(def key-command-wire-mode  
-;;  {KeyEvent/VK_LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
-;;   KeyEvent/VK_RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
-;;   KeyEvent/VK_UP     (fn [_] (move-cursor 'up    @cursor-speed))
-;;   KeyEvent/VK_DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
-;;   KeyEvent/VK_H      (fn [_] (move-cursor 'left  @cursor-speed))
-;;   KeyEvent/VK_L      (fn [_] (move-cursor 'right @cursor-speed))
-;;   KeyEvent/VK_K      (fn [_] (move-cursor 'up    @cursor-speed))
-;;   KeyEvent/VK_J      (fn [_] (move-cursor 'down  @cursor-speed))
-;;   KeyEvent/VK_I      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< @cursor-speed 64)
-;;                                    (* 2 @cursor-speed)
-;;                                    64))))
-;;   KeyEvent/VK_U      (fn [_] (dosync
-;;                                (ref-set cursor-speed
-;;                                  (if (< 1 @cursor-speed)
-;;                                    (/ @cursor-speed 2)
-;;                                    1))))
-;;   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-;;   KeyEvent/VK_ESCAPE (fn [_] (dosync
-;;                                (ref-set mode {:mode 'cursor})))
-;;   KeyEvent/VK_ENTER  (fn [_] (dosync
-;;                                (alter wires conj
-;;                                      {(gensym) {:x0 (@wire-p0 :x)
-;;                                                 :y0 (@wire-p0 :y)
-;;                                                 :x1 (@cursor-pos :x)
-;;                                                 :y1 (@cursor-pos :y)}})
-;;                                (ref-set mode {:mode 'cursor})))
-;;                                })
-;;
-;;(def key-command-catalog-mode
-;;  {KeyEvent/VK_LEFT   (fn [_] (move-catalog 'left))
-;;   KeyEvent/VK_RIGHT  (fn [_] (move-catalog 'right))
-;;   KeyEvent/VK_UP     (fn [_] (move-catalog 'up))
-;;   KeyEvent/VK_DOWN   (fn [_] (move-catalog 'down))
-;;   KeyEvent/VK_H      (fn [_] (move-catalog 'left))
-;;   KeyEvent/VK_L      (fn [_] (move-catalog 'right))
-;;   KeyEvent/VK_K      (fn [_] (move-catalog 'up))
-;;   KeyEvent/VK_J      (fn [_] (move-catalog 'down))
-;;   KeyEvent/VK_Q      (fn [{frame :frame}] (close-window frame))
-;;
-;;   KeyEvent/VK_ENTER
-;;   (fn [_]
-;;     (let [type (try
-;;                  (nth (nth catalog-table
-;;                            (:y @catalog-pos))
-;;                       (:x @catalog-pos))
-;;                  (catch IndexOutOfBoundsException e nil))]
-;;       (dosync
-;;         (ref-set mode
-;;                  (if type
-;;                    {:mode 'add :type type}
-;;                    {:mode 'cursor})))))
-;;
-;;   KeyEvent/VK_ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
-;;   })
-;;
-;;(def key-command
-;;  {'cursor  key-command-cursor-mode
-;;   'add     key-command-add-mode
-;;   'move    key-command-move-mode
-;;   'wire    key-command-wire-mode
-;;   'catalog key-command-catalog-mode
-;;   })
-;;
+(def key-command-move-mode
+  {KeyCode/LEFT   (fn [_] (move-cursor   'left  @cursor-speed)
+                          (move-selected 'left  @cursor-speed))
+   KeyCode/RIGHT  (fn [_] (move-cursor   'right @cursor-speed)
+                          (move-selected 'right @cursor-speed))
+   KeyCode/UP     (fn [_] (move-cursor   'up    @cursor-speed)
+                          (move-selected 'up    @cursor-speed))
+   KeyCode/DOWN   (fn [_] (move-cursor   'down  @cursor-speed)
+                          (move-selected 'down  @cursor-speed))
+   KeyCode/H      (fn [_] (move-cursor   'left  @cursor-speed)
+                          (move-selected 'left  @cursor-speed))
+   KeyCode/L      (fn [_] (move-cursor   'right @cursor-speed)
+                          (move-selected 'right @cursor-speed))
+   KeyCode/K      (fn [_] (move-cursor   'up    @cursor-speed)
+                          (move-selected 'up    @cursor-speed))
+   KeyCode/J      (fn [_] (move-cursor   'down  @cursor-speed)
+                          (move-selected 'down  @cursor-speed))
+   KeyCode/I      (fn [_] (dosync
+                            (ref-set cursor-speed
+                              (if (< @cursor-speed 64)
+                                (* 2 @cursor-speed)
+                                64))))
+   KeyCode/U      (fn [_] (dosync
+                            (ref-set cursor-speed
+                              (if (< 1 @cursor-speed)
+                                (/ @cursor-speed 2)
+                                1))))
+   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+   KeyCode/ESCAPE (fn [_] (dosync
+                            (release-selection)
+                            (ref-set mode {:mode 'cursor})))
+                            })
+
+(def key-command-wire-mode  
+  {KeyCode/LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyCode/RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
+   KeyCode/UP     (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyCode/DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyCode/H      (fn [_] (move-cursor 'left  @cursor-speed))
+   KeyCode/L      (fn [_] (move-cursor 'right @cursor-speed))
+   KeyCode/K      (fn [_] (move-cursor 'up    @cursor-speed))
+   KeyCode/J      (fn [_] (move-cursor 'down  @cursor-speed))
+   KeyCode/I      (fn [_] (dosync
+                            (ref-set cursor-speed
+                              (if (< @cursor-speed 64)
+                                (* 2 @cursor-speed)
+                                64))))
+   KeyCode/U      (fn [_] (dosync
+                            (ref-set cursor-speed
+                              (if (< 1 @cursor-speed)
+                                (/ @cursor-speed 2)
+                                1))))
+   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+   KeyCode/ESCAPE (fn [_] (dosync
+                            (ref-set mode {:mode 'cursor})))
+   KeyCode/ENTER  (fn [_] (dosync
+                            (alter wires conj
+                                  {(gensym) {:x0 (@wire-p0 :x)
+                                             :y0 (@wire-p0 :y)
+                                             :x1 (@cursor-pos :x)
+                                             :y1 (@cursor-pos :y)}})
+                            (ref-set mode {:mode 'cursor})))
+                            })
+
+(def key-command-catalog-mode
+  {KeyCode/LEFT   (fn [_] (move-catalog 'left))
+   KeyCode/RIGHT  (fn [_] (move-catalog 'right))
+   KeyCode/UP     (fn [_] (move-catalog 'up))
+   KeyCode/DOWN   (fn [_] (move-catalog 'down))
+   KeyCode/H      (fn [_] (move-catalog 'left))
+   KeyCode/L      (fn [_] (move-catalog 'right))
+   KeyCode/K      (fn [_] (move-catalog 'up))
+   KeyCode/J      (fn [_] (move-catalog 'down))
+   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+
+   KeyCode/ENTER
+   (fn [_]
+     (let [type (try
+                  (nth (nth catalog-table
+                            (:y @catalog-pos))
+                       (:x @catalog-pos))
+                  (catch IndexOutOfBoundsException e nil))]
+       (dosync
+         (ref-set mode
+                  (if type
+                    {:mode 'add :type type}
+                    {:mode 'cursor})))))
+
+   KeyCode/ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
+   })
+
+(def key-command
+  {'cursor  key-command-cursor-mode
+   'add     key-command-add-mode
+   'move    key-command-move-mode
+   'wire    key-command-wire-mode
+   'catalog key-command-catalog-mode
+   })
+
 
 ;--------------------------------------------------
 ; JavaFX main routine
@@ -946,9 +953,15 @@
                                           @wires @selected-wires
                                           @selected-name])))
                   (.setAll (.getChildren pane)
-                           (schem-node-mode-cursor @cursor-pos
-                                                   @lels @wires
-                                                   ))))))]
+                           (case (@mode :mode)
+                             cursor  (schem-node-mode-cursor @cursor-pos
+                                                             @lels @wires)
+                             move    (schem-node-mode-cursor @cursor-pos
+                                                             @lels @wires)
+                             add     (schem-node-mode-add)
+                             wire    (schem-node-mode-wire)
+                             catalog (schem-node-mode-catalog)
+                             ))))))]
     (.setOnKeyPressed  pane keyEventHandler)
     ;(.addEventHandler pane
     ;                  KeyEvent/KEY_PRESSED
