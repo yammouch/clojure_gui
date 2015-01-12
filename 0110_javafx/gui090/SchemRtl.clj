@@ -115,26 +115,31 @@
     (.setStroke line color)
     line))
 
-;;(defn draw-wire-selected [g {x0 :x0 y0 :y0 x1 :x1 y1 :y1} selected]
-;;  (.setColor g (if (= selected 'p0p1) Color/RED Color/BLACK))
-;;  (.drawPolyline g
-;;                 (int-array (map #(* pix-per-grid %) [x0 x1]))
-;;                 (int-array (map #(* pix-per-grid %) [y0 y1]))
-;;                 2)
-;;  (if (not= selected 'p0p1)
-;;    (let [x- (- x1 x0) y- (- y1 y0)
-;;          len (Math/sqrt (+ (* x- x-) (* y- y-)))
-;;
-;;          [xorg xhl yorg yhl] ; hl: highlight
-;;          (if (= selected 'p0)
-;;            [x0 (+ x0 (/ x- len)) y0 (+ y0 (/ y- len))]
-;;            [x1 (- x1 (/ x- len)) y1 (- y1 (/ y- len))]
-;;            )]
-;;      (.setColor g Color/RED)
-;;      (.drawPolyline g
-;;                     (int-array (map #(* pix-per-grid %) [xorg xhl]))
-;;                     (int-array (map #(* pix-per-grid %) [yorg yhl]))
-;;                     2))))
+(defn draw-wire-selected [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} selected]
+  (if (= selected 'p0p1)
+    (let [line (Line. (* pix-per-grid x0)
+                      (* pix-per-grid y0)
+                      (* pix-per-grid x1)
+                      (* pix-per-grid y1))]
+      (.setStroke line Color/RED)
+      [line])
+    (let [x- (- x1 x0) y- (- y1 y0)
+          len (Math/sqrt (+ (* x- x-) (* y- y-)))
+
+          [xorg xhl yorg yhl] ; hl: highlight
+          (if (= selected 'p0)
+            [x0 (+ x0 (/ x- len)) y0 (+ y0 (/ y- len))]
+            [x1 (- x1 (/ x- len)) y1 (- y1 (/ y- len))])
+          shortline (Line. (* pix-per-grid xorg)
+                           (* pix-per-grid yorg)
+                           (* pix-per-grid xhl)
+                           (* pix-per-grid yhl))
+          longline (Line. (* pix-per-grid xhl)
+                          (* pix-per-grid yhl)
+                          (* pix-per-grid (if (= selected 'p0) x1 x0))
+                          (* pix-per-grid (if (= selected 'p0) y1 y0)))]
+      (.setStroke shortline Color/RED)
+      [shortline longline])))
 
 (defn draw-status [objs]
   (map (fn [obj ypos]
@@ -433,18 +438,18 @@
 (defn schem-node-mode-cursor [cursor-pos lels wires]
   ( into-array Node
     (concat [(draw-dot cursor-pos 9 Color/BLUE)]
-            (map (fn [[k v]]
-                   ;(let [selected (@selected-wires k)]
-                   ;  (if selected
-                   ;    (draw-wire-selected v selected)
-                       (draw-wire v Color/BLACK)
-                       );))
-                 wires)
             (apply concat
                    (map (fn [[k v]]
-                          (lel-draw v ;(if (@selected-lels k)
-                                      ;  Color/RED
-                                        Color/BLACK));)
+                          (let [selected (@selected-wires k)]
+                            (if selected
+                              (draw-wire-selected v selected)
+                              [(draw-wire v Color/BLACK)])))
+                        wires))
+            (apply concat
+                   (map (fn [[k v]]
+                          (lel-draw v (if (@selected-lels k)
+                                        Color/RED
+                                        Color/BLACK)))
                         lels)))))
 
   ;(when (@mode :rect-x0)
