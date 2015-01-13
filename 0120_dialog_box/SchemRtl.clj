@@ -11,13 +11,13 @@
   '(javafx.geometry       VPos)
   '(javafx.scene          Group Node Scene)
   '(javafx.scene.input    KeyCode KeyEvent)
-  '(javafx.scene.layout   BorderPane Pane VBox)
+  '(javafx.scene.layout   BorderPane Pane VBox FlowPane)
   '(javafx.scene.paint    Color)
   '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
                           Path PathElement MoveTo ArcTo ClosePath
                           HLineTo VLineTo)
   '(javafx.scene.text     Font Text TextAlignment)
-  '(javafx.scene.control  Label TextField)
+  '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button)
   '(javafx.stage          Stage))
 (require 'clojure.set)
 
@@ -952,6 +952,36 @@
                 @catalog-pos @lels @selected-lels
                 @wires @selected-wires @selected-name])))
 
+;--------------------------------------------------
+; dialog box
+;--------------------------------------------------
+(defn make-dialog-box []
+  (let [vbox (VBox.)
+        h-flow-pane (FlowPane.)
+        h-label (Label. "H Align")
+        h-buttons (map #(RadioButton. %) ["left" "center" "right"])
+        h-group (ToggleGroup.)
+        v-flow-pane (FlowPane.)
+        v-label (Label. "V Align")
+        v-buttons (map #(RadioButton. %) ["top" "center" "bottom"])
+        v-group (ToggleGroup.)
+        okcancel-flow-pane (FlowPane.)
+        ok-button (Button. "OK")
+        cancel-button (Button. "Cancel")]
+    (doseq [b h-buttons] (.setToggleGroup b h-group))
+    (doseq [b v-buttons] (.setToggleGroup b v-group))
+    (doseq [x (cons h-label h-buttons)] (.add (.getChildren h-flow-pane) x))
+    (doseq [x (cons v-label v-buttons)] (.add (.getChildren v-flow-pane) x))
+    (doseq [b [ok-button cancel-button]]
+      (.add (.getChildren okcancel-flow-pane) b))
+    (doseq [x [h-flow-pane v-flow-pane okcancel-flow-pane]]
+      (.add (.getChildren vbox) x))
+    vbox))
+
+;--------------------------------------------------
+; key handlers
+;--------------------------------------------------
+
 (defn make-key-event-handler-textfield [topgroup textfield pane label]
   (proxy [EventHandler] []
     (handle [keyEvent]
@@ -995,7 +1025,7 @@
 ;--------------------------------------------------
 ; JavaFX main routine
 ;--------------------------------------------------
-
+(require 'clojure.pprint)
 (defn -start [self stage]
   (let [topgroup (VBox.)
         label (Label.)
@@ -1003,7 +1033,9 @@
         textfield (TextField.)
         borderpane (BorderPane.)
         keyEventHandler
-          (make-key-event-handler topgroup borderpane pane label)]
+          (make-key-event-handler topgroup borderpane pane label)
+        dialog-box (make-dialog-box)]
+    (clojure.pprint/pprint dialog-box)
     (.setOnKeyPressed pane keyEventHandler)
     (.setFocusTraversable pane true)
     (.setText label (state-text))
@@ -1011,6 +1043,7 @@
              (schem-pane-mode-cursor @cursor-pos
                                      @lels @wires))
     (.setCenter borderpane pane)
+    (.setRight borderpane dialog-box)
     (.setAll (.getChildren topgroup)
              (into-array Node [borderpane label]))
     (doto stage
