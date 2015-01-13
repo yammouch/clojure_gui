@@ -14,7 +14,7 @@
   '(javafx.geometry       VPos)
   '(javafx.scene          Group Node Parent Scene)
   '(javafx.scene.input    KeyCode KeyEvent)
-  '(javafx.scene.layout   Pane VBox)
+  '(javafx.scene.layout   BorderPane Pane VBox)
   '(javafx.scene.paint    Color)
   '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
                           Path PathElement MoveTo ArcTo ClosePath
@@ -432,10 +432,10 @@
       rect]))
 
 ;--------------------------------------------------
-; schem-node-mode-*
+; schem-pane-mode-*
 ;--------------------------------------------------
 
-(defn schem-node-mode-cursor [cursor-pos lels wires]
+(defn schem-pane-mode-cursor [cursor-pos lels wires]
   ( into-array Node
     ( concat
       [(draw-dot cursor-pos 9 Color/BLUE)]
@@ -467,7 +467,7 @@
                    ( into-array Double [2.0 2.0] ))
           [rect])))))
 
-(defn schem-node-mode-add []
+(defn schem-pane-mode-add []
   ( into-array Node
     ( concat
       (map (fn [[k v]] (draw-wire v Color/BLACK))
@@ -479,7 +479,7 @@
                       @cursor-pos)
                 Color/RED))))
 
-(defn schem-node-mode-wire []
+(defn schem-pane-mode-wire []
   ( into-array Node
     ( concat
       [(draw-dot cursor-pos 9 Color/BLUE)]
@@ -497,7 +497,7 @@
     [not  and or    dff mux21]
     [plus minus]])
 
-(defn schem-node-mode-catalog []
+(defn schem-pane-mode-catalog []
   (let [parts (apply concat
                      (map (fn [idx0 parts]
                             (map (fn [idx1 part]
@@ -525,6 +525,17 @@
                                   Color/BLACK)))
                     parts))
         [rect]))))
+
+(defn schem-pane []
+  (case (@mode :mode)
+    cursor  (schem-pane-mode-cursor @cursor-pos
+                                    @lels @wires)
+    move    (schem-pane-mode-cursor @cursor-pos
+                                    @lels @wires)
+    add     (schem-pane-mode-add)
+    wire    (schem-pane-mode-wire)
+    catalog (schem-pane-mode-catalog)
+    ))
 
 ;--------------------------------------------------
 ; move-*
@@ -929,6 +940,23 @@
    'catalog key-command-catalog-mode
    })
 
+(defn state-text []
+  (reduce #(str %1 "\n" %2)
+          (map #(if (nil? %) "nil" (.toString %))
+               [@mode @wire-p0 @cursor-pos @cursor-speed
+                @catalog-pos @lels @selected-lels
+                @wires @selected-wires @selected-name])))
+
+(defn make-key-event-handler [borderpane pane label]
+  (proxy [EventHandler] []
+    (handle [keyEvent]
+      (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
+        (when f
+          (f {:borderpane borderpane :pane pane :label label})
+          (.consume keyEvent)
+          (.setText label (state-text))
+          (.setAll (.getChildren pane) (schem-pane))
+          )))))
 
 ;--------------------------------------------------
 ; JavaFX main routine
@@ -937,51 +965,17 @@
 (defn -start [self stage]
   (let [label (Label.)
         pane (Pane.)
-        keyEventHandler
-          (proxy [EventHandler] []
-            (handle [keyEvent]
-              (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
-                (when f
-                  (f 'dummy-frame)
-                  (.consume keyEvent)
-                  (.setText label
-                            (reduce #(str %1 "\n" %2)
-                                    (map #(if (nil? %) "nil" (.toString %))
-                                         [@mode @wire-p0
-                                          @cursor-pos @cursor-speed
-                                          @catalog-pos
-                                          @lels @selected-lels
-                                          @wires @selected-wires
-                                          @selected-name])))
-                  (.setAll (.getChildren pane)
-                           (case (@mode :mode)
-                             cursor  (schem-node-mode-cursor @cursor-pos
-                                                             @lels @wires)
-                             move    (schem-node-mode-cursor @cursor-pos
-                                                             @lels @wires)
-                             add     (schem-node-mode-add)
-                             wire    (schem-node-mode-wire)
-                             catalog (schem-node-mode-catalog)
-                             ))))))]
-    (.setOnKeyPressed  pane keyEventHandler)
-    ;(.addEventHandler pane
-    ;                  KeyEvent/KEY_PRESSED
-    ;                  keyEventHandler)
-    (.setFocusTraversable pane true)
-    (.setText label
-              (reduce #(str %1 "\n" %2)
-                      (map #(if (nil? %) "nil" (.toString %))
-                           [@mode @wire-p0
-                            @cursor-pos @cursor-speed
-                            @catalog-pos
-                            @lels @selected-lels
-                            @wires @selected-wires
-                            @selected-name])))
+        borderpane (BorderPane.)
+        keyEventHandler (make-key-event-handler borderpane pane label)]
+    (.setOnKeyPressed borderpane keyEventHandler)
+    (.setFocusTraversable borderpane true)
+    (.setText label (state-text))
     (.setAll (.getChildren pane)
-             (schem-node-mode-cursor @cursor-pos
+             (schem-pane-mode-cursor @cursor-pos
                                      @lels @wires))
+    (.setCenter borderpane pane)
     (doto stage
-      (.setScene (Scene. (VBox. (into-array Node [pane label]))))
+      (.setScene (Scene. (VBox. (into-array Node [borderpane label]))))
       (.setTitle "Shows Some Gates")
       (.show))))
 
@@ -989,40 +983,6 @@
   (Application/launch (Class/forName "SchemRtl")
                       (into-array String [])))
 
-;;;--------------------------------------------------
-;;; drawing on Java GUI
-;;;--------------------------------------------------
-;;
-;;(defn make-panel []
-;;  (proxy [JPanel] []
-;;    (paintComponent [g]
-;;      (proxy-super paintComponent g)
-;;      (draw-status g [@cursor-pos @cursor-speed @mode
-;;                      @lels @selected-lels
-;;                      @wires @selected-wires @catalog-pos
-;;                      @selected-name])
-;;      (case (@mode :mode)
-;;        cursor  (draw-mode-cursor  g)
-;;        move    (draw-mode-cursor  g)
-;;        add     (draw-mode-add     g)
-;;        wire    (draw-mode-wire    g)
-;;        catalog (draw-mode-catalog g)))
-;;    (getPreferredSize []
-;;      (Dimension. 800 400))))
-;;
-;;;--------------------------------------------------
-;;; key listener for schematic panel
-;;;--------------------------------------------------
-;;
-;;(defn make-key-lis [frame panel text-area]
-;;  (proxy [KeyListener] []
-;;    (keyPressed [e]
-;;      (let [f ((key-command (:mode @mode)) (.getKeyCode e))]
-;;        (when f (f {:frame frame :text-area text-area})))
-;;      (.repaint panel))
-;;    (keyReleased [e])
-;;    (keyTyped [e])))
-;;
 ;;;--------------------------------------------------
 ;;; key bindings for JTextArea
 ;;;--------------------------------------------------
@@ -1047,24 +1007,3 @@
 ;;    (.put (.getActionMap text-area)
 ;;          "update"
 ;;          action)))
-;;
-;;;--------------------------------------------------
-;;; main
-;;;--------------------------------------------------
-;;
-;;(defn -main []
-;;  (let [frame (JFrame. "catalog")
-;;        content-pane (.getContentPane frame)
-;;        panel (make-panel)
-;;        text-area (JTextArea. 1 40)
-;;        key-lis (make-key-lis frame panel text-area)]
-;;    (make-key-bindings panel text-area)
-;;    (.setFont text-area (Font. Font/MONOSPACED Font/PLAIN 12))
-;;    (.setFocusable panel true)
-;;    (.addKeyListener panel key-lis)
-;;    (.add content-pane panel BorderLayout/CENTER)
-;;    (.add content-pane text-area BorderLayout/SOUTH)
-;;    (.pack frame)
-;;    ;(.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-;;    (.setVisible frame true)
-;;    'done))
