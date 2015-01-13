@@ -20,7 +20,7 @@
                           Path PathElement MoveTo ArcTo ClosePath
                           HLineTo VLineTo)
   '(javafx.scene.text     Font Text TextAlignment)
-  '(javafx.scene.control  Label)
+  '(javafx.scene.control  Label TextField)
   '(javafx.stage          Stage))
 (require 'clojure.set)
 
@@ -791,14 +791,21 @@
            (alter selected-wires merge-selected-wire (:wires rect-keys)))
          (alter mode dissoc :rect-x0 :rect-y0)
          )))
-   ;KeyCode/VK_T
-   ;(fn [{text-area :text-area}]
-   ;  (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
-   ;    (when (= (:type (@lels lel-key)) 'name)
-   ;      (dosync (ref-set selected-name lel-key))
-   ;      (.setText text-area (:str (@lels lel-key)))
-   ;      (.requestFocus text-area)
-   ;      )))
+   KeyCode/T
+   (fn [{topgroup :topgroup, borderpane :borderpane, pane :pane,
+         textfield :textfield, label :label}]
+     (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
+       (when (= (:type (@lels lel-key)) 'name)
+         (dosync (ref-set selected-name lel-key))
+         (.setText textfield (:str (@lels lel-key)))
+         (.setFocusTraversable borderpane false)
+         (let [borderpane-new (BorderPane.)]
+           (.setCenter borderpane-new pane)
+           (.setBottom borderpane-new textfield)
+           (.setAll (.getChildren topgroup)
+                    (into-array Node [borderpane-new label]))
+           (.setFocusTraversable textfield true)
+           ))))
    KeyCode/ESCAPE (fn [_]
                     (dosync (alter mode dissoc :rect-x0 :rect-y0))
                     (release-selection))
@@ -874,7 +881,7 @@
                             (ref-set mode {:mode 'cursor})))
                             })
 
-(def key-command-wire-mode  
+(def key-command-wire-mode
   {KeyCode/LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
    KeyCode/RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
    KeyCode/UP     (fn [_] (move-cursor 'up    @cursor-speed))
@@ -947,26 +954,56 @@
                 @catalog-pos @lels @selected-lels
                 @wires @selected-wires @selected-name])))
 
-(defn make-key-event-handler [borderpane pane label]
+(defn make-key-event-handler-textfield [topgroup textfield pane label]
   (proxy [EventHandler] []
-    (handle [keyEvent]
-      (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
-        (when f
-          (f {:borderpane borderpane :pane pane :label label})
-          (.consume keyEvent)
-          (.setText label (state-text))
-          (.setAll (.getChildren pane) (schem-pane))
-          )))))
+    (handle [KeyEvent]
+      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode KeyEvent))
+        (when (and (= (.getCode KeyEvent) KeyCode/ENTER)
+                   @selected-name)
+          (dosync
+            (ref-set lels
+                     (assoc @lels @selected-name
+                            (assoc (@lels @selected-name) :str
+                                   (.getText textfield))))
+            (ref-set selected-name nil)))
+        (.setText textfield "")
+        (.setFocusTraversable textfield false)
+        (.setAll (.getChildren pane) (schem-pane))
+        (let [borderpane (BorderPane.)]
+          (.setCenter borderpane pane)
+          (.setFocusTraversable borderpane true)
+          (.setAll (.getChildren topgroup)
+                   (into-array Node [borderpane label])
+                   ))))))
+
+(defn make-key-event-handler [topgroup borderpane pane label]
+  (let [textfield (TextField.)]
+    (.setOnKeyPressed textfield
+                      ( make-key-event-handler-textfield
+                        topgroup textfield pane label))
+    (proxy [EventHandler] []
+      (handle [keyEvent]
+        (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
+          (when f
+            (f {:topgroup topgroup :borderpane borderpane
+                :pane pane :label label :textfield textfield})
+            (.consume keyEvent)
+            (.setText label (state-text))
+            (.setAll (.getChildren pane) (schem-pane))
+            ))))))
 
 ;--------------------------------------------------
 ; JavaFX main routine
 ;--------------------------------------------------
 
 (defn -start [self stage]
-  (let [label (Label.)
+  (let [topgroup (VBox.)
+        label (Label.)
         pane (Pane.)
+        textfield (TextField.)
         borderpane (BorderPane.)
-        keyEventHandler (make-key-event-handler borderpane pane label)]
+        keyEventHandler
+          (make-key-event-handler topgroup borderpane pane label)]
     (.setOnKeyPressed borderpane keyEventHandler)
     (.setFocusTraversable borderpane true)
     (.setText label (state-text))
@@ -974,8 +1011,10 @@
              (schem-pane-mode-cursor @cursor-pos
                                      @lels @wires))
     (.setCenter borderpane pane)
+    (.setAll (.getChildren topgroup)
+             (into-array Node [borderpane label]))
     (doto stage
-      (.setScene (Scene. (VBox. (into-array Node [borderpane label]))))
+      (.setScene (Scene. topgroup))
       (.setTitle "Shows Some Gates")
       (.show))))
 
@@ -983,27 +1022,3 @@
   (Application/launch (Class/forName "SchemRtl")
                       (into-array String [])))
 
-;;;--------------------------------------------------
-;;; key bindings for JTextArea
-;;;--------------------------------------------------
-;;
-;;(defn make-key-bindings [panel text-area]
-;;  (let [action (proxy [AbstractAction] []
-;;                 (actionPerformed [ae]
-;;                   (dosync
-;;                     (when @selected-name
-;;                       (ref-set lels
-;;                                (assoc @lels @selected-name
-;;                                       (assoc (@lels @selected-name)
-;;                                              :str
-;;                                              (.getText text-area)))))
-;;                     (ref-set selected-name nil))
-;;                   (.setText text-area "")
-;;                   (.repaint panel)
-;;                   (.requestFocus panel)))]
-;;    (.put (.getInputMap text-area)
-;;          (KeyStroke/getKeyStroke "ENTER")
-;;          "update")
-;;    (.put (.getActionMap text-area)
-;;          "update"
-;;          action)))
