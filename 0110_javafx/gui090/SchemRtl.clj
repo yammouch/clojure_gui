@@ -7,12 +7,9 @@
 
 (import
   '(javafx.application    Application)
-;  '(javafx.beans.binding  Bindings)
-;  '(javafx.beans.property BooleanProperty)
-;  '(javafx.beans.property SimpleBooleanProperty)
   '(javafx.event          EventHandler)
   '(javafx.geometry       VPos)
-  '(javafx.scene          Group Node Parent Scene)
+  '(javafx.scene          Group Node Scene)
   '(javafx.scene.input    KeyCode KeyEvent)
   '(javafx.scene.layout   BorderPane Pane VBox)
   '(javafx.scene.paint    Color)
@@ -23,7 +20,6 @@
   '(javafx.scene.control  Label TextField)
   '(javafx.stage          Stage))
 (require 'clojure.set)
-(require 'clojure.pprint)
 
 (def pix-per-grid 8.0)
 
@@ -799,13 +795,14 @@
        (when (= (:type (@lels lel-key)) 'name)
          (dosync (ref-set selected-name lel-key))
          (.setText textfield (:str (@lels lel-key)))
-         (.setFocusTraversable borderpane false)
+         (.setFocusTraversable pane false)
          (let [borderpane-new (BorderPane.)]
            (.setCenter borderpane-new pane)
            (.setBottom borderpane-new textfield)
            (.setAll (.getChildren topgroup)
                     (into-array Node [borderpane-new label]))
            (.setFocusTraversable textfield true)
+           (.requestFocus textfield)
            ))))
    KeyCode/ESCAPE (fn [_]
                     (dosync (alter mode dissoc :rect-x0 :rect-y0))
@@ -976,8 +973,7 @@
           (.setCenter borderpane pane)
           (.setAll (.getChildren topgroup)
                    (into-array Node [borderpane label]))
-          (.setFocusTraversable borderpane true)
-          (.requestFocus borderpane)
+          (.setFocusTraversable pane true)
           )))))
 
 (defn make-key-event-handler [topgroup borderpane pane label]
@@ -987,7 +983,6 @@
                         topgroup textfield pane label))
     (proxy [EventHandler] []
       (handle [keyEvent]
-        (clojure.pprint/pprint keyEvent)
         (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
           (when f
             (f {:topgroup topgroup :borderpane borderpane
@@ -1009,8 +1004,8 @@
         borderpane (BorderPane.)
         keyEventHandler
           (make-key-event-handler topgroup borderpane pane label)]
-    (.setOnKeyPressed borderpane keyEventHandler)
-    (.setFocusTraversable borderpane true)
+    (.setOnKeyPressed pane keyEventHandler)
+    (.setFocusTraversable pane true)
     (.setText label (state-text))
     (.setAll (.getChildren pane)
              (schem-pane-mode-cursor @cursor-pos
