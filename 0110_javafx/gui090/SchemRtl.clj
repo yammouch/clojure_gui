@@ -23,6 +23,7 @@
   '(javafx.scene.control  Label TextField)
   '(javafx.stage          Stage))
 (require 'clojure.set)
+(require 'clojure.pprint)
 
 (def pix-per-grid 8.0)
 
@@ -956,9 +957,9 @@
 
 (defn make-key-event-handler-textfield [topgroup textfield pane label]
   (proxy [EventHandler] []
-    (handle [KeyEvent]
-      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode KeyEvent))
-        (when (and (= (.getCode KeyEvent) KeyCode/ENTER)
+    (handle [keyEvent]
+      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
+        (when (and (= (.getCode keyEvent) KeyCode/ENTER)
                    @selected-name)
           (dosync
             (ref-set lels
@@ -966,15 +967,18 @@
                             (assoc (@lels @selected-name) :str
                                    (.getText textfield))))
             (ref-set selected-name nil)))
+        (.consume keyEvent)
         (.setText textfield "")
+        (.setText label (state-text))
         (.setFocusTraversable textfield false)
         (.setAll (.getChildren pane) (schem-pane))
         (let [borderpane (BorderPane.)]
           (.setCenter borderpane pane)
-          (.setFocusTraversable borderpane true)
           (.setAll (.getChildren topgroup)
-                   (into-array Node [borderpane label])
-                   ))))))
+                   (into-array Node [borderpane label]))
+          (.setFocusTraversable borderpane true)
+          (.requestFocus borderpane)
+          )))))
 
 (defn make-key-event-handler [topgroup borderpane pane label]
   (let [textfield (TextField.)]
@@ -983,6 +987,7 @@
                         topgroup textfield pane label))
     (proxy [EventHandler] []
       (handle [keyEvent]
+        (clojure.pprint/pprint keyEvent)
         (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
           (when f
             (f {:topgroup topgroup :borderpane borderpane
