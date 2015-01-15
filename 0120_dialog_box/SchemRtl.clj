@@ -27,6 +27,8 @@
 ; state
 ;--------------------------------------------------
 
+(def *label-debug* (Label.))
+
 (def cursor-pos (ref {:x 5 :y 5}))
 (def cursor-speed (ref 1))
 
@@ -429,10 +431,10 @@
       rect]))
 
 ;--------------------------------------------------
-; schem-pane-mode-*
+; draw-mode-*
 ;--------------------------------------------------
 
-(defn schem-pane-mode-cursor [cursor-pos lels wires]
+(defn draw-mode-cursor [cursor-pos lels wires]
   ( into-array Node
     ( concat
       [(draw-dot cursor-pos 9 Color/BLUE)]
@@ -464,7 +466,7 @@
                    ( into-array Double [2.0 2.0] ))
           [rect])))))
 
-(defn schem-pane-mode-add []
+(defn draw-mode-add []
   ( into-array Node
     ( concat
       (map (fn [[k v]] (draw-wire v Color/BLACK))
@@ -476,7 +478,7 @@
                       @cursor-pos)
                 Color/RED))))
 
-(defn schem-pane-mode-wire []
+(defn draw-mode-wire []
   ( into-array Node
     ( concat
       [(draw-dot cursor-pos 9 Color/BLUE)]
@@ -494,7 +496,7 @@
     [not  and or    dff mux21]
     [plus minus]])
 
-(defn schem-pane-mode-catalog []
+(defn draw-mode-catalog []
   (let [parts (apply concat
                      (map (fn [idx0 parts]
                             (map (fn [idx1 part]
@@ -523,15 +525,15 @@
                     parts))
         [rect]))))
 
-(defn schem-pane []
+(defn draw-mode []
   (case (@mode :mode)
-    cursor  (schem-pane-mode-cursor @cursor-pos
+    cursor  (draw-mode-cursor @cursor-pos
                                     @lels @wires)
-    move    (schem-pane-mode-cursor @cursor-pos
+    move    (draw-mode-cursor @cursor-pos
                                     @lels @wires)
-    add     (schem-pane-mode-add)
-    wire    (schem-pane-mode-wire)
-    catalog (schem-pane-mode-catalog)
+    add     (draw-mode-add)
+    wire    (draw-mode-wire)
+    catalog (draw-mode-catalog)
     ))
 
 ;--------------------------------------------------
@@ -788,22 +790,6 @@
            (alter selected-wires merge-selected-wire (:wires rect-keys)))
          (alter mode dissoc :rect-x0 :rect-y0)
          )))
-   KeyCode/T
-   (fn [{topgroup :topgroup, borderpane :borderpane, pane :pane,
-         textfield :textfield, label :label}]
-     (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
-       (when (= (:type (@lels lel-key)) 'name)
-         (dosync (ref-set selected-name lel-key))
-         (.setText textfield (:str (@lels lel-key)))
-         (.setFocusTraversable pane false)
-         (let [borderpane-new (BorderPane.)]
-           (.setCenter borderpane-new pane)
-           (.setBottom borderpane-new textfield)
-           (.setAll (.getChildren topgroup)
-                    (into-array Node [borderpane-new label]))
-           (.setFocusTraversable textfield true)
-           (.requestFocus textfield)
-           ))))
    KeyCode/ESCAPE (fn [_]
                     (dosync (alter mode dissoc :rect-x0 :rect-y0))
                     (release-selection))
@@ -953,9 +939,43 @@
                 @wires @selected-wires @selected-name])))
 
 ;--------------------------------------------------
+; text field
+;--------------------------------------------------
+
+(defn pane-text-key [f-revert textfield]
+  (proxy [EventHandler] []
+    (handle [keyEvent]
+      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
+        (when (and (= (.getCode keyEvent) KeyCode/ENTER)
+                   @selected-name)
+          (dosync
+            (ref-set lels
+                     (assoc @lels @selected-name
+                            (assoc (@lels @selected-name) :str
+                                   (.getText textfield))))
+            (ref-set selected-name nil)))
+        (.consume keyEvent)
+        (f-revert)
+        ))))
+
+(defn pane-text [str f-revert]
+  (let [textfield (TextField. str)]
+    (.setOnKeyPressed textfield (pane-text-key f-revert textfield))
+    (.setFocusable textfield true)
+    textfield))
+
+;--------------------------------------------------
 ; dialog box
 ;--------------------------------------------------
-(defn make-dialog-box []
+
+(defn pane-dialog-key [f-revert]
+  (proxy [EventHandler] []
+    (handle [keyEvent]
+      (when (= KeyCode/ENTER (.getCode keyEvent))
+        (f-revert)
+        ))))
+
+(defn pane-dialog [f-revert]
   (let [vbox (VBox.)
         h-flow-pane (FlowPane.)
         h-label (Label. "H Align")
@@ -976,51 +996,65 @@
       (.add (.getChildren okcancel-flow-pane) b))
     (doseq [x [h-flow-pane v-flow-pane okcancel-flow-pane]]
       (.add (.getChildren vbox) x))
+    (.setOnKeyPressed vbox (pane-dialog-key f-revert))
     vbox))
 
 ;--------------------------------------------------
-; key handlers
+; schematic pane
 ;--------------------------------------------------
 
-(defn make-key-event-handler-textfield [topgroup textfield pane label]
+(defn pane-schem-revert [f-parent pane]
+  (.setText *label-debug* (state-text))
+  (f-parent pane)
+  (.setAll (.getChildren pane) (draw-mode))
+  (.setFocusTraversable pane true)
+  (.requestFocus pane))
+
+(defn pane-schem-key [f-parent pane]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
-        (when (and (= (.getCode keyEvent) KeyCode/ENTER)
-                   @selected-name)
-          (dosync
-            (ref-set lels
-                     (assoc @lels @selected-name
-                            (assoc (@lels @selected-name) :str
-                                   (.getText textfield))))
-            (ref-set selected-name nil)))
-        (.consume keyEvent)
-        (.setText textfield "")
-        (.setText label (state-text))
-        (.setFocusTraversable textfield false)
-        (.setAll (.getChildren pane) (schem-pane))
-        (let [borderpane (BorderPane.)]
-          (.setCenter borderpane pane)
-          (.setAll (.getChildren topgroup)
-                   (into-array Node [borderpane label]))
-          (.setFocusTraversable pane true)
-          )))))
+      (cond (and (= KeyCode/T (.getCode keyEvent))
+                 (= @mode 'cursor))
+            (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
+              (when (= (:type (@lels lel-key)) 'name)
+                (.setFocusTraversable pane false)
+                (dosync (ref-set selected-name lel-key))
+                (let [borderpane (BorderPane.)
+                      textfield (pane-text (:str (@lels lel-key))
+                                           pane-schem-revert)]
+                  (.setCenter borderpane pane)
+                  (.setBottom borderpane textfield)
+                  (f-parent borderpane)
+                  (.setFocusTraversable textfield true)
+                  (.requestFocus textfield)
+                  )))
 
-(defn make-key-event-handler [topgroup borderpane pane label]
-  (let [textfield (TextField.)]
-    (.setOnKeyPressed textfield
-                      ( make-key-event-handler-textfield
-                        topgroup textfield pane label))
-    (proxy [EventHandler] []
-      (handle [keyEvent]
-        (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
-          (when f
-            (f {:topgroup topgroup :borderpane borderpane
-                :pane pane :label label :textfield textfield})
-            (.consume keyEvent)
-            (.setText label (state-text))
-            (.setAll (.getChildren pane) (schem-pane))
-            ))))))
+            (= KeyCode/D (.getCode keyEvent))
+            (let [dialog (pane-dialog pane-schem-revert)
+                  borderpane (BorderPane.)]
+              (.setFocusTraversable pane false)
+              (.setCenter borderpane pane)
+              (.setRight  borderpane pane-dialog)
+              (f-parent borderpane)
+              (.setFocusTraversable pane-dialog true)
+              (.requestFocus pane-dialog))
+
+            :else
+            (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
+              (when f
+                (f 'dummy)
+                (.consume keyEvent)
+                (.setText *label-debug* (state-text))
+                (.setAll (.getChildren pane) (draw-mode))
+                ))))))
+
+(defn pane-schem [f-parent]
+  (let [pane (Pane.)]
+    (.setOnKeyPressed pane (pane-schem-key f-parent pane))
+    (.setFocusTraversable pane true)
+    (.setAll (.getChildren pane) (draw-mode))
+    (f-parent pane)
+    pane))
 
 ;--------------------------------------------------
 ; JavaFX main routine
@@ -1028,24 +1062,15 @@
 (require 'clojure.pprint)
 (defn -start [self stage]
   (let [topgroup (VBox.)
-        label (Label.)
-        pane (Pane.)
-        textfield (TextField.)
-        borderpane (BorderPane.)
-        keyEventHandler
-          (make-key-event-handler topgroup borderpane pane label)
-        dialog-box (make-dialog-box)]
-    (clojure.pprint/pprint dialog-box)
-    (.setOnKeyPressed pane keyEventHandler)
-    (.setFocusTraversable pane true)
-    (.setText label (state-text))
-    (.setAll (.getChildren pane)
-             (schem-pane-mode-cursor @cursor-pos
-                                     @lels @wires))
-    (.setCenter borderpane pane)
-    (.setRight borderpane dialog-box)
-    (.setAll (.getChildren topgroup)
-             (into-array Node [borderpane label]))
+        pane ( pane-schem
+               (fn [pane]
+                 (.. topgroup getChildren setAll
+                     (into-array Node [pane *label-debug*])
+                     )))]
+    (.setText *label-debug* (state-text))
+    (.setAll (.getChildren pane) (draw-mode))
+    (.. topgroup getChildren setAll
+        (into-array Node [pane *label-debug*]))
     (doto stage
       (.setScene (Scene. topgroup))
       (.setTitle "Shows Some Gates")
