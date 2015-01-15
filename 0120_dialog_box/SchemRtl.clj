@@ -725,7 +725,7 @@
                 (remove (fn [[k v]]
                           (let [points (keys k)]
                             (= points 'p0p1)))
-                        lels))))
+                        wires))))
 
 ;;(defn close-window [frame]
 ;;  (let [yn (JOptionPane/showConfirmDialog
@@ -961,7 +961,7 @@
 (defn pane-text [str f-revert]
   (let [textfield (TextField. str)]
     (.setOnKeyPressed textfield (pane-text-key f-revert textfield))
-    (.setFocusable textfield true)
+    (.setFocusTraversable textfield true)
     textfield))
 
 ;--------------------------------------------------
@@ -1014,14 +1014,15 @@
   (proxy [EventHandler] []
     (handle [keyEvent]
       (cond (and (= KeyCode/T (.getCode keyEvent))
-                 (= @mode 'cursor))
+                 (= (:mode @mode) 'cursor))
             (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
               (when (= (:type (@lels lel-key)) 'name)
                 (.setFocusTraversable pane false)
                 (dosync (ref-set selected-name lel-key))
                 (let [borderpane (BorderPane.)
-                      textfield (pane-text (:str (@lels lel-key))
-                                           pane-schem-revert)]
+                      textfield
+                        (pane-text (:str (@lels lel-key))
+                                   #(pane-schem-revert f-parent pane))]
                   (.setCenter borderpane pane)
                   (.setBottom borderpane textfield)
                   (f-parent borderpane)
@@ -1030,14 +1031,14 @@
                   )))
 
             (= KeyCode/D (.getCode keyEvent))
-            (let [dialog (pane-dialog pane-schem-revert)
+            (let [dialog (pane-dialog #(pane-schem-revert f-parent pane))
                   borderpane (BorderPane.)]
               (.setFocusTraversable pane false)
               (.setCenter borderpane pane)
-              (.setRight  borderpane pane-dialog)
+              (.setRight  borderpane dialog)
               (f-parent borderpane)
-              (.setFocusTraversable pane-dialog true)
-              (.requestFocus pane-dialog))
+              (.setFocusTraversable dialog true)
+              (.requestFocus dialog))
 
             :else
             (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
@@ -1064,13 +1065,13 @@
   (let [topgroup (VBox.)
         pane ( pane-schem
                (fn [pane]
-                 (.. topgroup getChildren setAll
-                     (into-array Node [pane *label-debug*])
-                     )))]
+                 (.setAll (.getChildren topgroup)
+                          (into-array Node [pane *label-debug*])
+                          )))]
     (.setText *label-debug* (state-text))
     (.setAll (.getChildren pane) (draw-mode))
-    (.. topgroup getChildren setAll
-        (into-array Node [pane *label-debug*]))
+    (.setAll (.getChildren topgroup)
+             (into-array Node [pane *label-debug*]))
     (doto stage
       (.setScene (Scene. topgroup))
       (.setTitle "Shows Some Gates")
