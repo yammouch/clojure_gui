@@ -481,7 +481,7 @@
 (defn draw-mode-wire []
   ( into-array Node
     ( concat
-      [(draw-dot cursor-pos 9 Color/BLUE)]
+      [(draw-dot @cursor-pos 9 Color/BLUE)]
       (map (fn [[k v]] (draw-wire v Color/BLACK))
            @wires)
       (apply concat
@@ -528,9 +528,9 @@
 (defn draw-mode []
   (case (@mode :mode)
     cursor  (draw-mode-cursor @cursor-pos
-                                    @lels @wires)
+                              @lels @wires)
     move    (draw-mode-cursor @cursor-pos
-                                    @lels @wires)
+                              @lels @wires)
     add     (draw-mode-add)
     wire    (draw-mode-wire)
     catalog (draw-mode-catalog)
