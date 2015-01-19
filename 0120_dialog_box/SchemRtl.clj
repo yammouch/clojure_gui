@@ -978,10 +978,12 @@
 (defn pane-dialog [f-revert]
   (let [vbox (VBox.)
         h-flow-pane (FlowPane.)
+        h-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
         h-label (Label. "H Align")
         h-buttons (map #(RadioButton. %) ["left" "center" "right"])
         h-group (ToggleGroup.)
         v-flow-pane (FlowPane.)
+        v-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
         v-label (Label. "V Align")
         v-buttons (map #(RadioButton. %) ["top" "center" "bottom"])
         v-group (ToggleGroup.)
@@ -990,8 +992,10 @@
         cancel-button (Button. "Cancel")]
     (doseq [b h-buttons] (.setToggleGroup b h-group))
     (doseq [b v-buttons] (.setToggleGroup b v-group))
-    (doseq [x (cons h-label h-buttons)] (.add (.getChildren h-flow-pane) x))
-    (doseq [x (cons v-label v-buttons)] (.add (.getChildren v-flow-pane) x))
+    (doseq [x (concat [h-cursor h-label] h-buttons)]
+      (.add (.getChildren h-flow-pane) x))
+    (doseq [x (concat [v-cursor v-label] v-buttons)]
+      (.add (.getChildren v-flow-pane) x))
     (doseq [b [ok-button cancel-button]]
       (.add (.getChildren okcancel-flow-pane) b))
     (doseq [x [h-flow-pane v-flow-pane okcancel-flow-pane]]
