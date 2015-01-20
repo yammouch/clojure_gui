@@ -982,7 +982,14 @@
       up   (set-cursor (Math/max (dec selected-i) 0))
       )))
 
-(defn pane-dialog-key [f-revert h-cursor h-buttons v-cursor v-buttons]
+(require 'clojure.pprint)
+(defn pane-dialog-radio-button-move [toggleGroup dir]
+  (let [toggles (.getToggles toggleGroup)]
+    (clojure.pprint/pprint toggles)
+    (clojure.pprint/pprint (rest toggles))
+    ))
+
+(defn pane-dialog-key [f-revert h-cursor v-cursor h-tgroup v-tgroup]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (cond (= KeyCode/ENTER (.getCode keyEvent))
@@ -991,6 +998,8 @@
               (pane-dialog-cursor-move [h-cursor v-cursor] 'down)
             (= KeyCode/K (.getCode keyEvent))
               (pane-dialog-cursor-move [h-cursor v-cursor] 'up)
+            (= KeyCode/H (.getCode keyEvent))
+              (pane-dialog-radio-button-move h-tgroup 'left)
             ))))
 
 (defn pane-dialog [f-revert]
@@ -999,17 +1008,19 @@
         h-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
         h-label (Label. "H Align")
         h-buttons (map #(RadioButton. %) ["left" "center" "right"])
-        h-group (ToggleGroup.)
+        h-tgroup (ToggleGroup.)
         v-flow-pane (FlowPane.)
         v-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
         v-label (Label. "V Align")
         v-buttons (map #(RadioButton. %) ["top" "center" "bottom"])
-        v-group (ToggleGroup.)
+        v-tgroup (ToggleGroup.)
         okcancel-flow-pane (FlowPane.)
         ok-button (Button. "OK")
         cancel-button (Button. "Cancel")]
-    (doseq [b h-buttons] (.setToggleGroup b h-group))
-    (doseq [b v-buttons] (.setToggleGroup b v-group))
+    (doseq [b h-buttons] (.setToggleGroup b h-tgroup))
+    (.selectToggle h-tgroup (nth h-buttons 0))
+    (doseq [b v-buttons] (.setToggleGroup b v-tgroup))
+    (.selectToggle v-tgroup (nth v-buttons 0))
     (doseq [x (concat [h-cursor h-label] h-buttons)]
       (.add (.getChildren h-flow-pane) x))
     (doseq [x (concat [v-cursor v-label] v-buttons)]
@@ -1021,8 +1032,8 @@
     (.setFill h-cursor Color/BLACK)
     (.setFill v-cursor Color/TRANSPARENT)
     (.setOnKeyPressed vbox
-                      (pane-dialog-key f-revert h-cursor h-buttons
-                                       v-cursor v-buttons))
+                      (pane-dialog-key f-revert h-cursor v-cursor
+                                       h-tgroup v-tgroup))
     vbox))
 
 ;--------------------------------------------------
