@@ -968,16 +968,30 @@
 ; dialog box
 ;--------------------------------------------------
 
+(defn pane-dialog-cursor-move [cursors dir]
+  (let [selected-i
+          (ffirst (drop-while #(= (.getFill (fnext %)) Color/TRANSPARENT)
+                              (map list (range) cursors)))
+        set-cursor
+          (fn [i]
+            (doseq [[j c] (map list (range) cursors)]
+              (.setFill c (if (= j i) Color/BLACK Color/TRANSPARENT))
+              ))]
+    (case dir
+      down (set-cursor (Math/min (inc selected-i) (dec (.size cursors))))
+      up   (set-cursor (Math/max (dec selected-i) 0))
+      )))
+
 (defn pane-dialog-key [f-revert h-cursor h-buttons v-cursor v-buttons]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (cond (= KeyCode/ENTER (.getCode keyEvent))
-            (f-revert)
+              (f-revert)
             (= KeyCode/J (.getCode keyEvent))
-            (do
-              (println (.. h-cursor getFill toString))
-              (println (.. v-cursor getFill toString))
-              )))))
+              (pane-dialog-cursor-move [h-cursor v-cursor] 'down)
+            (= KeyCode/K (.getCode keyEvent))
+              (pane-dialog-cursor-move [h-cursor v-cursor] 'up)
+            ))))
 
 (defn pane-dialog [f-revert]
   (let [vbox (VBox.)
