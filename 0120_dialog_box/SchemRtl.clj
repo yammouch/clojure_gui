@@ -978,16 +978,27 @@
               (.setFill c (if (= j i) Color/BLACK Color/TRANSPARENT))
               ))]
     (case dir
-      down (set-cursor (Math/min (inc selected-i) (dec (.size cursors))))
       up   (set-cursor (Math/max (dec selected-i) 0))
+      down (set-cursor (Math/min (inc selected-i) (dec (.size cursors))))
       )))
 
 (require 'clojure.pprint)
 (defn pane-dialog-radio-button-move [toggleGroup dir]
-  (let [toggles (.getToggles toggleGroup)]
-    (clojure.pprint/pprint toggles)
-    (clojure.pprint/pprint (rest toggles))
-    ))
+  (let [toggles (.getToggles toggleGroup)
+        [prv nxt] (loop [prev nil tog toggles]
+                    (cond (empty? tog)
+                            [prev prev]
+                          (.isSelected (first tog))
+                            [ (if prev prev (first tog))
+                              (if (not (empty? (next tog)))
+                                (fnext tog) (first tog))]
+                          :else
+                            (recur (first tog) (next tog))
+                          ))]
+    (case dir
+      left  (.selectToggle toggleGroup prv)
+      right (.selectToggle toggleGroup nxt)
+      )))
 
 (defn pane-dialog-key [f-revert h-cursor v-cursor h-tgroup v-tgroup]
   (proxy [EventHandler] []
@@ -1000,6 +1011,8 @@
               (pane-dialog-cursor-move [h-cursor v-cursor] 'up)
             (= KeyCode/H (.getCode keyEvent))
               (pane-dialog-radio-button-move h-tgroup 'left)
+            (= KeyCode/L (.getCode keyEvent))
+              (pane-dialog-radio-button-move h-tgroup 'right)
             ))))
 
 (defn pane-dialog [f-revert]
