@@ -968,33 +968,26 @@
 ; dialog box
 ;--------------------------------------------------
 
+(defn prev-next [f list]
+  (loop [prev nil l list]
+    (cond (empty? l) [prev prev]
+          (f (first l))
+            [ (if prev prev (first l))
+              (if (empty? (next l)) (first l) (fnext l))]
+          :else (recur (first l) (next l))
+          )))
+
 (defn pane-dialog-cursor-move [cursors dir]
-  (let [selected-i
-          (ffirst (drop-while #(= (.getFill (fnext %)) Color/TRANSPARENT)
-                              (map list (range) cursors)))
-        set-cursor
-          (fn [i]
-            (doseq [[j c] (map list (range) cursors)]
-              (.setFill c (if (= j i) Color/BLACK Color/TRANSPARENT))
-              ))]
-    (case dir
-      up   (set-cursor (Math/max (dec selected-i) 0))
-      down (set-cursor (Math/min (inc selected-i) (dec (.size cursors))))
+  (let [[prv nxt] (prev-next #(= (.getFill %) Color/TRANSPARENT) cursors)
+        target (case dir up prv, down nxt)]
+    (doseq [c cursors]
+      (.setFill c (if (= c target) Color/BLACK Color/TRANSPARENT))
       )))
 
 (require 'clojure.pprint)
 (defn pane-dialog-radio-button-move [toggleGroup dir]
   (let [toggles (.getToggles toggleGroup)
-        [prv nxt] (loop [prev nil tog toggles]
-                    (cond (empty? tog)
-                            [prev prev]
-                          (.isSelected (first tog))
-                            [ (if prev prev (first tog))
-                              (if (not (empty? (next tog)))
-                                (fnext tog) (first tog))]
-                          :else
-                            (recur (first tog) (next tog))
-                          ))]
+        [prv nxt] (prev-next #(.isSelected %) toggles)]
     (case dir
       left  (.selectToggle toggleGroup prv)
       right (.selectToggle toggleGroup nxt)
