@@ -1004,6 +1004,8 @@
       (.add (.getChildren okcancel-flow-pane) b))
     (doseq [x [h-flow-pane v-flow-pane okcancel-flow-pane]]
       (.add (.getChildren vbox) x))
+    (.setFill h-cursor Color/BLACK)
+    (.setFill v-cursor Color/TRANSPARENT)
     (.setOnKeyPressed vbox
                       (pane-dialog-key f-revert h-cursor h-buttons
                                        v-cursor v-buttons))
