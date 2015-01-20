@@ -978,35 +978,33 @@
           )))
 
 (defn pane-dialog-cursor-move [cursors dir]
-  (let [[prv nxt] (prev-next #(= (.getFill %) Color/TRANSPARENT) cursors)
+  (let [[prv nxt] (prev-next #(not= (.getFill %) Color/TRANSPARENT) cursors)
         target (case dir up prv, down nxt)]
     (doseq [c cursors]
       (.setFill c (if (= c target) Color/BLACK Color/TRANSPARENT))
       )))
 
-(require 'clojure.pprint)
 (defn pane-dialog-radio-button-move [toggleGroup dir]
   (let [toggles (.getToggles toggleGroup)
         [prv nxt] (prev-next #(.isSelected %) toggles)]
-    (case dir
-      left  (.selectToggle toggleGroup prv)
-      right (.selectToggle toggleGroup nxt)
-      )))
+    (.selectToggle toggleGroup (case dir left prv, right nxt))))
 
 (defn pane-dialog-key [f-revert h-cursor v-cursor h-tgroup v-tgroup]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (cond (= KeyCode/ENTER (.getCode keyEvent))
-              (f-revert)
-            (= KeyCode/J (.getCode keyEvent))
-              (pane-dialog-cursor-move [h-cursor v-cursor] 'down)
-            (= KeyCode/K (.getCode keyEvent))
-              (pane-dialog-cursor-move [h-cursor v-cursor] 'up)
-            (= KeyCode/H (.getCode keyEvent))
-              (pane-dialog-radio-button-move h-tgroup 'left)
-            (= KeyCode/L (.getCode keyEvent))
-              (pane-dialog-radio-button-move h-tgroup 'right)
-            ))))
+      (let [kc (.getCode keyEvent)]
+        (cond (= KeyCode/ENTER kc) (f-revert)
+              (#{KeyCode/J KeyCode/K} kc)
+                ( pane-dialog-cursor-move [h-cursor v-cursor]
+                  (if (= kc KeyCode/J) 'down 'up))
+              (#{KeyCode/H KeyCode/L} kc)
+                (let [cursor (first ( drop-while
+                                      #(= (.getFill %) Color/TRANSPARENT)
+                                      [h-cursor v-cursor]))]
+                  ( pane-dialog-radio-button-move
+                    (if (= cursor h-cursor) h-tgroup v-tgroup)
+                    (if (= kc KeyCode/H) 'left 'right)))
+              )))))
 
 (defn pane-dialog [f-revert]
   (let [vbox (VBox.)
