@@ -968,12 +968,16 @@
 ; dialog box
 ;--------------------------------------------------
 
-(defn pane-dialog-key [f-revert]
+(defn pane-dialog-key [f-revert h-cursor h-buttons v-cursor v-buttons]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (when (= KeyCode/ENTER (.getCode keyEvent))
-        (f-revert)
-        ))))
+      (cond (= KeyCode/ENTER (.getCode keyEvent))
+            (f-revert)
+            (= KeyCode/J (.getCode keyEvent))
+            (do
+              (println (.. h-cursor getFill toString))
+              (println (.. v-cursor getFill toString))
+              )))))
 
 (defn pane-dialog [f-revert]
   (let [vbox (VBox.)
@@ -1000,7 +1004,9 @@
       (.add (.getChildren okcancel-flow-pane) b))
     (doseq [x [h-flow-pane v-flow-pane okcancel-flow-pane]]
       (.add (.getChildren vbox) x))
-    (.setOnKeyPressed vbox (pane-dialog-key f-revert))
+    (.setOnKeyPressed vbox
+                      (pane-dialog-key f-revert h-cursor h-buttons
+                                       v-cursor v-buttons))
     vbox))
 
 ;--------------------------------------------------
