@@ -942,26 +942,10 @@
 ; text field
 ;--------------------------------------------------
 
-(defn pane-text-key [f-revert textfield]
-  (proxy [EventHandler] []
-    (handle [keyEvent]
-      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
-        (when (and (= (.getCode keyEvent) KeyCode/ENTER)
-                   @selected-name)
-          (dosync
-            (ref-set lels
-                     (assoc @lels @selected-name
-                            (assoc (@lels @selected-name) :str
-                                   (.getText textfield))))
-            (ref-set selected-name nil)))
-        (.consume keyEvent)
-        (f-revert)
-        ))))
-
-(defn pane-text [str f-revert]
+(defn pane-text [f-set-to-parent str]
   (let [textfield (TextField. str)]
-    (.setOnKeyPressed textfield (pane-text-key f-revert textfield))
     (.setFocusTraversable textfield true)
+    (f-set-to-parent textfield)
     textfield))
 
 ;--------------------------------------------------
@@ -989,25 +973,70 @@
         [prv nxt] (prev-next #(.isSelected %) toggles)]
     (.selectToggle toggleGroup (case dir left prv, right nxt))))
 
-(defn pane-dialog-key [f-revert h-cursor v-cursor h-tgroup v-tgroup]
+(defn pane-text-key-dialog [f-revert textfield label-on-dialog]
+  (proxy [EventHandler] []
+    (handle [keyEvent]
+      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
+        (when (= (.getCode keyEvent) KeyCode/ENTER)
+          (.setText label-on-dialog (.getText textfield)))
+        (.consume keyEvent)
+        (f-revert)
+        ))))
+
+(defn pane-dialog-revert [f-set-to-parent pane]
+  (.setText *label-debug* (state-text))
+  (f-set-to-parent pane)
+  (.setFocusTraversable pane true)
+  (.requestFocus pane))
+
+(defn pane-dialog-key [f-set-to-parent f-revert pane
+                       str-cursor h-cursor v-cursor
+                       str-label h-tgroup v-tgroup]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (let [kc (.getCode keyEvent)]
-        (cond (= KeyCode/ENTER kc) (f-revert)
+        (cond (= KeyCode/ENTER kc)
+                (do
+                  (println
+                    (.getText str-label)
+                    ( {"left" 'l, "center" 'c, "right" 'r}
+                      (.. h-tgroup getSelectedToggle getText))
+                    ( {"top" 't, "center" 'c, "bottom" 'b}
+                      (.. v-tgroup getSelectedToggle getText)))
+                  (f-revert))
+              (and (= KeyCode/SPACE kc)
+                   (not= (.getFill str-cursor) Color/TRANSPARENT))
+                (let [borderpane (BorderPane.)
+                      textfield
+                        (pane-text #(.setBottom borderpane %)
+                                   (.getText str-label))]
+                  ( .setOnKeyPressed textfield
+                    ( pane-text-key-dialog
+                      #(pane-dialog-revert f-set-to-parent pane)
+                      textfield str-label))
+                  (.setFocusTraversable pane false)
+                  (.setCenter borderpane pane)
+                  (f-set-to-parent borderpane)
+                  (.setFocusTraversable textfield true)
+                  (.requestFocus textfield))
               (#{KeyCode/J KeyCode/K} kc)
-                ( pane-dialog-cursor-move [h-cursor v-cursor]
+                ( pane-dialog-cursor-move [str-cursor h-cursor v-cursor]
                   (if (= kc KeyCode/J) 'down 'up))
               (#{KeyCode/H KeyCode/L} kc)
                 (let [cursor (first ( drop-while
                                       #(= (.getFill %) Color/TRANSPARENT)
                                       [h-cursor v-cursor]))]
-                  ( pane-dialog-radio-button-move
-                    (if (= cursor h-cursor) h-tgroup v-tgroup)
-                    (if (= kc KeyCode/H) 'left 'right)))
+                  (when cursor
+                    ( pane-dialog-radio-button-move
+                      (if (= cursor h-cursor) h-tgroup v-tgroup)
+                      (if (= kc KeyCode/H) 'left 'right))))
               )))))
 
-(defn pane-dialog [f-revert]
+(defn pane-dialog [f-set-to-parent f-revert]
   (let [vbox (VBox.)
+        str-flow-pane (FlowPane.)
+        str-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
+        str-label (Label. "hoge")
         h-flow-pane (FlowPane.)
         h-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
         h-label (Label. "H Align")
@@ -1025,33 +1054,54 @@
     (.selectToggle h-tgroup (nth h-buttons 0))
     (doseq [b v-buttons] (.setToggleGroup b v-tgroup))
     (.selectToggle v-tgroup (nth v-buttons 0))
+    (doseq [x [str-cursor str-label]]
+      (.add (.getChildren str-flow-pane) x))
     (doseq [x (concat [h-cursor h-label] h-buttons)]
       (.add (.getChildren h-flow-pane) x))
     (doseq [x (concat [v-cursor v-label] v-buttons)]
       (.add (.getChildren v-flow-pane) x))
     (doseq [b [ok-button cancel-button]]
       (.add (.getChildren okcancel-flow-pane) b))
-    (doseq [x [h-flow-pane v-flow-pane okcancel-flow-pane]]
+    (doseq [x [str-flow-pane h-flow-pane v-flow-pane okcancel-flow-pane]]
       (.add (.getChildren vbox) x))
-    (.setFill h-cursor Color/BLACK)
+    (.setFill str-cursor Color/BLACK)
+    (.setFill h-cursor Color/TRANSPARENT)
     (.setFill v-cursor Color/TRANSPARENT)
     (.setOnKeyPressed vbox
-                      (pane-dialog-key f-revert h-cursor v-cursor
-                                       h-tgroup v-tgroup))
+                      (pane-dialog-key f-set-to-parent f-revert vbox
+                                       str-cursor h-cursor v-cursor
+                                       str-label h-tgroup v-tgroup))
+    (f-set-to-parent vbox)
     vbox))
 
 ;--------------------------------------------------
 ; schematic pane
 ;--------------------------------------------------
 
-(defn pane-schem-revert [f-parent pane]
+(defn pane-text-key-wire-name [f-revert textfield]
+  (proxy [EventHandler] []
+    (handle [keyEvent]
+      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
+        (when (and (= (.getCode keyEvent) KeyCode/ENTER)
+                   @selected-name)
+          (dosync
+            (ref-set lels
+                     (assoc @lels @selected-name
+                            (assoc (@lels @selected-name) :str
+                                   (.getText textfield))))
+            (ref-set selected-name nil)))
+        (.consume keyEvent)
+        (f-revert)
+        ))))
+
+(defn pane-schem-revert [f-set-to-parent pane]
   (.setText *label-debug* (state-text))
-  (f-parent pane)
+  (f-set-to-parent pane)
   (.setAll (.getChildren pane) (draw-mode))
   (.setFocusTraversable pane true)
   (.requestFocus pane))
 
-(defn pane-schem-key [f-parent pane]
+(defn pane-schem-key [f-set-to-parent pane]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (cond (and (= KeyCode/T (.getCode keyEvent))
@@ -1062,22 +1112,26 @@
                 (dosync (ref-set selected-name lel-key))
                 (let [borderpane (BorderPane.)
                       textfield
-                        (pane-text (:str (@lels lel-key))
-                                   #(pane-schem-revert f-parent pane))]
+                        (pane-text #(.setBottom borderpane %)
+                                   (:str (@lels lel-key)))]
+                  ( .setOnKeyPressed textfield
+                    ( pane-text-key-wire-name
+                      #(pane-schem-revert f-set-to-parent pane)
+                      textfield))
                   (.setCenter borderpane pane)
-                  (.setBottom borderpane textfield)
-                  (f-parent borderpane)
+                  (f-set-to-parent borderpane)
                   (.setFocusTraversable textfield true)
                   (.requestFocus textfield)
                   )))
 
             (= KeyCode/D (.getCode keyEvent))
-            (let [dialog (pane-dialog #(pane-schem-revert f-parent pane))
-                  borderpane (BorderPane.)]
+            (let [borderpane (BorderPane.)
+                  dialog
+                    (pane-dialog #(.setRight borderpane %)
+                                 #(pane-schem-revert f-set-to-parent pane))]
               (.setFocusTraversable pane false)
               (.setCenter borderpane pane)
-              (.setRight  borderpane dialog)
-              (f-parent borderpane)
+              (f-set-to-parent borderpane)
               (.setFocusTraversable dialog true)
               (.requestFocus dialog))
 
@@ -1090,12 +1144,12 @@
                 (.setAll (.getChildren pane) (draw-mode))
                 ))))))
 
-(defn pane-schem [f-parent]
+(defn pane-schem [f-set-to-parent]
   (let [pane (Pane.)]
-    (.setOnKeyPressed pane (pane-schem-key f-parent pane))
+    (.setOnKeyPressed pane (pane-schem-key f-set-to-parent pane))
     (.setFocusTraversable pane true)
     (.setAll (.getChildren pane) (draw-mode))
-    (f-parent pane)
+    (f-set-to-parent pane)
     pane))
 
 ;--------------------------------------------------
