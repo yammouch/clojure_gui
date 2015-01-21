@@ -85,20 +85,19 @@
 ;--------------------------------------------------
 
 (defn draw-text [pos str color v-align h-align]
-  (let [text (Text. (* (:x pos) pix-per-grid)
-                    (* (:y pos) pix-per-grid)
-                    str)]
+  (let [text (Text. str)]
     (doto text
-      (.setFont (Font. "Monospaced Regular" 10.0))
-      (.setTextAlignment (case h-align
-                           l TextAlignment/LEFT
-                           c TextAlignment/CENTER
-                           r TextAlignment/RIGHT))
+      (.setFont (Font. "monospaced Regular" 12.0))
+      (.setY (+ (* (:y pos) pix-per-grid)
+                (case v-align b -2.0, c 0.0, t 2.0)))
       (.setTextOrigin (case v-align
                         b VPos/BOTTOM
                         c VPos/CENTER
                         t VPos/TOP))
       (.setStroke color))
+    (let [width (.. text getLayoutBounds getWidth)]
+      (.setX text (- (* (:x pos) pix-per-grid)
+                     (case h-align l 0.0, c (* 0.5 width), r width))))
     text))
 
 (defn draw-dot [pos size color]
@@ -996,13 +995,15 @@
     (handle [keyEvent]
       (let [kc (.getCode keyEvent)]
         (cond (= KeyCode/ENTER kc)
-                (do
-                  (println
-                    (.getText str-label)
-                    ( {"left" 'l, "center" 'c, "right" 'r}
-                      (.. h-tgroup getSelectedToggle getText))
-                    ( {"top" 't, "center" 'c, "bottom" 'b}
-                      (.. v-tgroup getSelectedToggle getText)))
+                (dosync
+                  ( alter lels assoc @selected-name
+                    ( conj (@lels @selected-name)
+                      { :str (.getText str-label)
+                        :h-align ( {"left" 'l, "center" 'c, "right" 'r}
+                                   (.. h-tgroup getSelectedToggle getText))
+                        :v-align ( {"top" 't, "center" 'c, "bottom" 'b}
+                                   (.. v-tgroup getSelectedToggle getText)
+                                   )}))
                   (f-revert))
               (and (= KeyCode/SPACE kc)
                    (not= (.getFill str-cursor) Color/TRANSPARENT))
@@ -1033,10 +1034,11 @@
               )))))
 
 (defn pane-dialog [f-set-to-parent f-revert]
-  (let [vbox (VBox.)
+  (let [name (@lels @selected-name)
+        vbox (VBox.)
         str-flow-pane (FlowPane.)
         str-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
-        str-label (Label. "hoge")
+        str-label (Label. (:str name))
         h-flow-pane (FlowPane.)
         h-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
         h-label (Label. "H Align")
@@ -1051,9 +1053,11 @@
         ok-button (Button. "OK")
         cancel-button (Button. "Cancel")]
     (doseq [b h-buttons] (.setToggleGroup b h-tgroup))
-    (.selectToggle h-tgroup (nth h-buttons 0))
+    ( .selectToggle h-tgroup
+      (nth h-buttons ({'l 0, 'c 1, 'r 2} (:h-align name))))
     (doseq [b v-buttons] (.setToggleGroup b v-tgroup))
-    (.selectToggle v-tgroup (nth v-buttons 0))
+    ( .selectToggle v-tgroup
+      (nth v-buttons ({'t 0, 'c 1, 'b 2} (:v-align name))))
     (doseq [x [str-cursor str-label]]
       (.add (.getChildren str-flow-pane) x))
     (doseq [x (concat [h-cursor h-label] h-buttons)]
@@ -1078,22 +1082,6 @@
 ; schematic pane
 ;--------------------------------------------------
 
-(defn pane-text-key-wire-name [f-revert textfield]
-  (proxy [EventHandler] []
-    (handle [keyEvent]
-      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
-        (when (and (= (.getCode keyEvent) KeyCode/ENTER)
-                   @selected-name)
-          (dosync
-            (ref-set lels
-                     (assoc @lels @selected-name
-                            (assoc (@lels @selected-name) :str
-                                   (.getText textfield))))
-            (ref-set selected-name nil)))
-        (.consume keyEvent)
-        (f-revert)
-        ))))
-
 (defn pane-schem-revert [f-set-to-parent pane]
   (.setText *label-debug* (state-text))
   (f-set-to-parent pane)
@@ -1104,36 +1092,21 @@
 (defn pane-schem-key [f-set-to-parent pane]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (cond (and (= KeyCode/T (.getCode keyEvent))
+      (cond (and (= KeyCode/D (.getCode keyEvent))
                  (= (:mode @mode) 'cursor))
             (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
               (when (= (:type (@lels lel-key)) 'name)
                 (.setFocusTraversable pane false)
                 (dosync (ref-set selected-name lel-key))
                 (let [borderpane (BorderPane.)
-                      textfield
-                        (pane-text #(.setBottom borderpane %)
-                                   (:str (@lels lel-key)))]
-                  ( .setOnKeyPressed textfield
-                    ( pane-text-key-wire-name
-                      #(pane-schem-revert f-set-to-parent pane)
-                      textfield))
+                      dialog
+                        ( pane-dialog #(.setRight borderpane %)
+                          #(pane-schem-revert f-set-to-parent pane))]
                   (.setCenter borderpane pane)
                   (f-set-to-parent borderpane)
-                  (.setFocusTraversable textfield true)
-                  (.requestFocus textfield)
+                  (.setFocusTraversable dialog true)
+                  (.requestFocus dialog)
                   )))
-
-            (= KeyCode/D (.getCode keyEvent))
-            (let [borderpane (BorderPane.)
-                  dialog
-                    (pane-dialog #(.setRight borderpane %)
-                                 #(pane-schem-revert f-set-to-parent pane))]
-              (.setFocusTraversable pane false)
-              (.setCenter borderpane pane)
-              (f-set-to-parent borderpane)
-              (.setFocusTraversable dialog true)
-              (.requestFocus dialog))
 
             :else
             (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
