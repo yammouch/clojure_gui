@@ -43,7 +43,7 @@
 (def lels
   (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
                '[{:y 20, :type name , :x 5 ,
-                  :str "hoge", :v-align b, :h-align l}
+                  string "hoge", v-align bottom, h-align left}
                  {:y 28, :type in   , :x 25}
                  {:y 22, :type in   , :x 25}
                  {:y 28, :type and  , :x 32}
@@ -89,15 +89,16 @@
     (doto text
       (.setFont (Font. "monospaced Regular" 12.0))
       (.setY (+ (* (:y pos) pix-per-grid)
-                (case v-align b -2.0, c 0.0, t 2.0)))
+                (case v-align bottom -2.0, center 0.0, top 2.0)))
       (.setTextOrigin (case v-align
-                        b VPos/BOTTOM
-                        c VPos/CENTER
-                        t VPos/TOP))
+                        bottom VPos/BOTTOM
+                        center VPos/CENTER
+                        top    VPos/TOP))
       (.setStroke color))
     (let [width (.. text getLayoutBounds getWidth)]
       (.setX text (- (* (:x pos) pix-per-grid)
-                     (case h-align l 0.0, c (* 0.5 width), r width))))
+                     (case h-align
+                       left 0.0, center (* 0.5 width), right width))))
     text))
 
 (defn draw-dot [pos size color]
@@ -161,7 +162,8 @@
     out   {:type 'out   :x 0 :y 0}
     inout {:type 'inout :x 0 :y 0}
     dot   {:type 'dot   :x 0 :y 0}
-    name  {:type 'name  :x 0 :y 0 :str "blah" :v-align 'b :h-align 'l}
+    name  {:type 'name  :x 0 :y 0
+           'string "blah" 'v-align 'bottom 'h-align 'left}
     not   {:type 'not   :x 0 :y 0}
     and   {:type 'and   :x 0 :y 0}
     or    {:type 'or    :x 0 :y 0}
@@ -202,7 +204,7 @@
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
-                "I" color 'c 'c)
+                "I" color 'center 'center)
      symbol]))
 
 ; for "out"
@@ -223,7 +225,7 @@
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
-                "O" color 'c 'c)
+                "O" color 'center 'center)
      symbol]))
 
 ; for "inout"
@@ -244,7 +246,7 @@
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
-                "IO" color 'c 'c)
+                "IO" color 'center 'center)
      symbol]))
 
 ; for "dot"
@@ -271,8 +273,8 @@
         line-h (Line. (- x 1.0) y (+ x 1.0) y)
         line-v (Line. x (- y 1.0) x (+ y 1.0))]
     (.setStroke line-h color) (.setStroke line-v color)
-    [(draw-text lel (:str lel) color
-                (:v-align lel) (:h-align lel))
+    [(draw-text lel (lel 'string) color
+                (lel 'v-align) (lel 'h-align))
      line-h line-v]))
 
 ; for "not"
@@ -390,9 +392,9 @@
                              [0 2 4 6]))))]
     (doto trapezoid (.setStroke color) (.setFill Color/TRANSPARENT))
     [ (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 2)}
-                 "0" color 'c 'c)
+                 "0" color 'center 'center)
       (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 4)}
-                 "1" color 'c 'c)
+                 "1" color 'center 'center)
       trapezoid]))
 
 ; for "plus"
@@ -409,7 +411,7 @@
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
     [ (draw-text {:x (+ (lel :x) (* 0.5 (lel-width  lel)))
                   :y (+ (lel :y) (* 0.5 (lel-height lel)))}
-                 "+" color 'c 'c)
+                 "+" color 'center 'center)
       rect]))
 
 ; for "minus"
@@ -426,7 +428,7 @@
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
     [ (draw-text {:x (+ (lel :x) (* 0.5 (lel-width  lel)))
                   :y (+ (lel :y) (* 0.5 (lel-height lel)))}
-                 "-" color 'c 'c)
+                 "-" color 'center 'center)
       rect]))
 
 ;--------------------------------------------------
@@ -951,6 +953,34 @@
 ; dialog box
 ;--------------------------------------------------
 
+; for "inv"
+(def dialog-inv
+  '[ [radio direction right up left down]])
+
+; for "and" and "or"
+(def dialog-and-or
+  '[ [label width ]
+     [label height]
+     [radio direction dir right up left down]])
+
+; for "name"
+(def dialog-name
+  '[ [label string]
+     [radio h-align left   center right]
+     [radio v-align bottom center top  ]])
+; str: "xxx"
+; h-align: left center right
+; v-align: bottom center top
+
+; for "and", "or"
+; dir: right up left down
+; height: 4
+; width: 4
+
+; for "inv"
+; dir: right up left down
+
+
 (defn prev-next [f list]
   (loop [prev nil l list]
     (cond (empty? l) [prev prev]
@@ -998,10 +1028,10 @@
                 (dosync
                   ( alter lels assoc @selected-name
                     ( conj (@lels @selected-name)
-                      { :str (.getText str-label)
-                        :h-align ( {"left" 'l, "center" 'c, "right" 'r}
+                      { 'string (.getText str-label)
+                        'h-align ( symbol
                                    (.. h-tgroup getSelectedToggle getText))
-                        :v-align ( {"top" 't, "center" 'c, "bottom" 'b}
+                        'v-align ( symbol
                                    (.. v-tgroup getSelectedToggle getText)
                                    )}))
                   (f-revert))
@@ -1038,7 +1068,7 @@
         vbox (VBox.)
         str-flow-pane (FlowPane.)
         str-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
-        str-label (Label. (:str name))
+        str-label (Label. (name 'string))
         h-flow-pane (FlowPane.)
         h-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
         h-label (Label. "H Align")
@@ -1054,10 +1084,10 @@
         cancel-button (Button. "Cancel")]
     (doseq [b h-buttons] (.setToggleGroup b h-tgroup))
     ( .selectToggle h-tgroup
-      (nth h-buttons ({'l 0, 'c 1, 'r 2} (:h-align name))))
+      (nth h-buttons ('{left 0, center 1, right 2} (name 'h-align))))
     (doseq [b v-buttons] (.setToggleGroup b v-tgroup))
     ( .selectToggle v-tgroup
-      (nth v-buttons ({'t 0, 'c 1, 'b 2} (:v-align name))))
+      (nth v-buttons ('{left 0, center 1, bottom 2} (name 'v-align))))
     (doseq [x [str-cursor str-label]]
       (.add (.getChildren str-flow-pane) x))
     (doseq [x (concat [h-cursor h-label] h-buttons)]
