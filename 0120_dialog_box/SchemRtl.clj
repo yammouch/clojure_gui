@@ -1006,6 +1006,7 @@
   (.setFocusTraversable pane true)
   (.requestFocus pane))
 
+(require 'clojure.pprint)
 (defn pane-dialog-key [f-set-to-parent f-revert pane rows lel-key]
   (proxy [EventHandler] []
     (handle [keyEvent]
@@ -1015,44 +1016,50 @@
                   ( alter lels assoc lel-key
                     ( into (@lels lel-key)
                       (map #(list (:label %)
+                      ;(map #(do (clojure.pprint/pprint %)
+                      ;      (list (:label %)
                                   (case (:type %)
                                     edstr (.getText (:str %))
                                     radio (.. (:togglegroup %)
-                                              getSelectedToggle getText))])
+                                              getSelectedToggle getText)))
+                                              ;getSelectedToggle getText))))
                            rows)))
                   (f-revert))
               (= KeyCode/ESCAPE kc)
                 (f-revert)
-              (and (= KeyCode/SPACE kc)
-                   (not= (.getFill str-cursor) Color/TRANSPARENT))
-                (let [borderpane (BorderPane.)
-                      textfield
-                        (pane-text #(.setBottom borderpane %)
-                                   (.getText str-label))]
-                  ( .setOnKeyPressed textfield
-                    ( pane-text-key-dialog
-                      #(pane-dialog-revert f-set-to-parent pane)
-                      textfield str-label))
-                  (.setFocusTraversable pane false)
-                  (.setCenter borderpane pane)
-                  (f-set-to-parent borderpane)
-                  (.setFocusTraversable textfield true)
-                  (.requestFocus textfield))
+              (= KeyCode/SPACE kc)
+                (let [row (first (filter #(not= (.getFill (:cursor %))
+                                                Color/TRANSPARENT)))]
+                  (when (= (:type row) 'edstr)
+                    (let [borderpane (BorderPane.)
+                          textfield
+                            (pane-text #(.setBottom borderpane %)
+                                       (.getText (:str row)))]
+                      ( .setOnKeyPressed textfield
+                        ( pane-text-key-dialog
+                          #(pane-dialog-revert f-set-to-parent pane)
+                          textfield (:str row)))
+                      (.setFocusTraversable pane false)
+                      (.setCenter borderpane pane)
+                      (f-set-to-parent borderpane)
+                      (.setFocusTraversable textfield true)
+                      (.requestFocus textfield))))
               (#{KeyCode/J KeyCode/K} kc)
-                ( pane-dialog-cursor-move [str-cursor h-cursor v-cursor]
+                ( pane-dialog-cursor-move (map #(:cursor %) rows)
                   (if (= kc KeyCode/J) 'down 'up))
               (#{KeyCode/H KeyCode/L} kc)
-                (let [cursor (first ( drop-while
-                                      #(= (.getFill %) Color/TRANSPARENT)
-                                      [h-cursor v-cursor]))]
-                  (when cursor
+                (let [row (first ( filter
+                                   #(not= (.getFill (:cursor %))
+                                          Color/TRANSPARENT)
+                                   rows))]
+                  (when (= (:type row) 'radio)
                     ( pane-dialog-radio-button-move
-                      (if (= cursor h-cursor) h-tgroup v-tgroup)
+                      (:togglegroup row)
                       (if (= kc KeyCode/H) 'left 'right))))
               )))))
 
 (defn pane-dialog [f-set-to-parent f-revert table lel-key]
-  (let [lel (@lel lel-key)
+  (let [lel (@lels lel-key)
         pane (VBox.)
         rows (map (fn [x]
                     ( conj
@@ -1072,17 +1079,17 @@
     (doseq [r rows]
       (.setFill (:cursor r) Color/TRANSPARENT)
       (.. (:flowpane r) getChildren (add (:cursor r)))
-      (.. (:flowpane r) getChildren (add (Label. (str (:label r))))
+      (.. (:flowpane r) getChildren (add (Label. (str (:label r)))))
       (case (:type r)
         edstr (.. (:flowpane r) getChildren (add (:str r)))
         radio (doseq [button (:buttons r)]
-                (.setToggleGroup (:togglegroup r) button)
+                (.setToggleGroup button (:togglegroup r))
                 (when (= (lel (symbol (:label r)))
                          (symbol (.getText button)))
                   (.selectToggle (:togglegroup r) button))
-                (.. (:flowpane r) getChildren (add button)))
+                (.. (:flowpane r) getChildren (add button))))
       (.. pane getChildren (add (:flowpane r))))
-    (.setFill (:cursur (first rows)) Color/BLACK)
+    (.setFill (:cursor (first rows)) Color/BLACK)
     (.setOnKeyPressed pane
                       (pane-dialog-key f-set-to-parent f-revert pane
                                        rows lel-key))
@@ -1112,7 +1119,8 @@
                 (let [borderpane (BorderPane.)
                       dialog
                         ( pane-dialog #(.setRight borderpane %)
-                          #(pane-schem-revert f-set-to-parent pane))]
+                          #(pane-schem-revert f-set-to-parent pane)
+                          dialog-name lel-key)]
                   (.setCenter borderpane pane)
                   (f-set-to-parent borderpane)
                   (.setFocusTraversable dialog true)
