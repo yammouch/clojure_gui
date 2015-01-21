@@ -1015,21 +1015,21 @@
                 (dosync
                   ( alter lels assoc lel-key
                     ( into (@lels lel-key)
-                      (map #(list (:label %)
-                      ;(map #(do (clojure.pprint/pprint %)
-                      ;      (list (:label %)
-                                  (case (:type %)
-                                    edstr (.getText (:str %))
-                                    radio (.. (:togglegroup %)
-                                              getSelectedToggle getText)))
-                                              ;getSelectedToggle getText))))
+                      (map (fn [r]
+                             [(:label r)
+                              (case (:type r)
+                                edstr (.getText (:str r))
+                                radio ( symbol
+                                        (.. (:togglegroup r)
+                                            getSelectedToggle getText)))])
                            rows)))
                   (f-revert))
               (= KeyCode/ESCAPE kc)
                 (f-revert)
               (= KeyCode/SPACE kc)
                 (let [row (first (filter #(not= (.getFill (:cursor %))
-                                                Color/TRANSPARENT)))]
+                                                Color/TRANSPARENT)
+                                         rows))]
                   (when (= (:type row) 'edstr)
                     (let [borderpane (BorderPane.)
                           textfield
