@@ -959,27 +959,15 @@
 
 ; for "and" and "or"
 (def dialog-and-or
-  '[ [label width ]
-     [label height]
+  '[ [edstr width ]
+     [edstr height]
      [radio direction dir right up left down]])
 
 ; for "name"
 (def dialog-name
-  '[ [label string]
+  '[ [edstr string]
      [radio h-align left   center right]
      [radio v-align bottom center top  ]])
-; str: "xxx"
-; h-align: left center right
-; v-align: bottom center top
-
-; for "and", "or"
-; dir: right up left down
-; height: 4
-; width: 4
-
-; for "inv"
-; dir: right up left down
-
 
 (defn prev-next [f list]
   (loop [prev nil l list]
@@ -1018,23 +1006,23 @@
   (.setFocusTraversable pane true)
   (.requestFocus pane))
 
-(defn pane-dialog-key [f-set-to-parent f-revert pane
-                       str-cursor h-cursor v-cursor
-                       str-label h-tgroup v-tgroup]
+(defn pane-dialog-key [f-set-to-parent f-revert pane rows lel-key]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (let [kc (.getCode keyEvent)]
         (cond (= KeyCode/ENTER kc)
                 (dosync
-                  ( alter lels assoc @selected-name
-                    ( conj (@lels @selected-name)
-                      { 'string (.getText str-label)
-                        'h-align ( symbol
-                                   (.. h-tgroup getSelectedToggle getText))
-                        'v-align ( symbol
-                                   (.. v-tgroup getSelectedToggle getText)
-                                   )}))
+                  ( alter lels assoc lel-key
+                    ( into (@lels lel-key)
+                      (map #(list (:label %)
+                                  (case (:type %)
+                                    edstr (.getText (:str %))
+                                    radio (.. (:togglegroup %)
+                                              getSelectedToggle getText))])
+                           rows)))
                   (f-revert))
+              (= KeyCode/ESCAPE kc)
+                (f-revert)
               (and (= KeyCode/SPACE kc)
                    (not= (.getFill str-cursor) Color/TRANSPARENT))
                 (let [borderpane (BorderPane.)
@@ -1063,50 +1051,43 @@
                       (if (= kc KeyCode/H) 'left 'right))))
               )))))
 
-(defn pane-dialog [f-set-to-parent f-revert]
-  (let [name (@lels @selected-name)
-        vbox (VBox.)
-        str-flow-pane (FlowPane.)
-        str-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
-        str-label (Label. (name 'string))
-        h-flow-pane (FlowPane.)
-        h-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
-        h-label (Label. "H Align")
-        h-buttons (map #(RadioButton. %) ["left" "center" "right"])
-        h-tgroup (ToggleGroup.)
-        v-flow-pane (FlowPane.)
-        v-cursor (Polygon. (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
-        v-label (Label. "V Align")
-        v-buttons (map #(RadioButton. %) ["top" "center" "bottom"])
-        v-tgroup (ToggleGroup.)
-        okcancel-flow-pane (FlowPane.)
-        ok-button (Button. "OK")
-        cancel-button (Button. "Cancel")]
-    (doseq [b h-buttons] (.setToggleGroup b h-tgroup))
-    ( .selectToggle h-tgroup
-      (nth h-buttons ('{left 0, center 1, right 2} (name 'h-align))))
-    (doseq [b v-buttons] (.setToggleGroup b v-tgroup))
-    ( .selectToggle v-tgroup
-      (nth v-buttons ('{left 0, center 1, bottom 2} (name 'v-align))))
-    (doseq [x [str-cursor str-label]]
-      (.add (.getChildren str-flow-pane) x))
-    (doseq [x (concat [h-cursor h-label] h-buttons)]
-      (.add (.getChildren h-flow-pane) x))
-    (doseq [x (concat [v-cursor v-label] v-buttons)]
-      (.add (.getChildren v-flow-pane) x))
-    (doseq [b [ok-button cancel-button]]
-      (.add (.getChildren okcancel-flow-pane) b))
-    (doseq [x [str-flow-pane h-flow-pane v-flow-pane okcancel-flow-pane]]
-      (.add (.getChildren vbox) x))
-    (.setFill str-cursor Color/BLACK)
-    (.setFill h-cursor Color/TRANSPARENT)
-    (.setFill v-cursor Color/TRANSPARENT)
-    (.setOnKeyPressed vbox
-                      (pane-dialog-key f-set-to-parent f-revert vbox
-                                       str-cursor h-cursor v-cursor
-                                       str-label h-tgroup v-tgroup))
-    (f-set-to-parent vbox)
-    vbox))
+(defn pane-dialog [f-set-to-parent f-revert table lel-key]
+  (let [lel (@lel lel-key)
+        pane (VBox.)
+        rows (map (fn [x]
+                    ( conj
+                      {:type (first x)
+                       :cursor ( Polygon.
+                                 (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
+                       :flowpane (FlowPane.)
+                       :label (second x)}
+                      ( case (first x)
+                        edstr {:str (Label. (str (lel (second x))))}
+                        radio {:togglegroup (ToggleGroup.)
+                               :buttons
+                                 (map (fn [y] (RadioButton. (str y)))
+                                      (drop 2 x)
+                                      )})))
+                  table)]
+    (doseq [r rows]
+      (.setFill (:cursor r) Color/TRANSPARENT)
+      (.. (:flowpane r) getChildren (add (:cursor r)))
+      (.. (:flowpane r) getChildren (add (Label. (str (:label r))))
+      (case (:type r)
+        edstr (.. (:flowpane r) getChildren (add (:str r)))
+        radio (doseq [button (:buttons r)]
+                (.setToggleGroup (:togglegroup r) button)
+                (when (= (lel (symbol (:label r)))
+                         (symbol (.getText button)))
+                  (.selectToggle (:togglegroup r) button))
+                (.. (:flowpane r) getChildren (add button)))
+      (.. pane getChildren (add (:flowpane r))))
+    (.setFill (:cursur (first rows)) Color/BLACK)
+    (.setOnKeyPressed pane
+                      (pane-dialog-key f-set-to-parent f-revert pane
+                                       rows lel-key))
+    (f-set-to-parent pane)
+    pane))
 
 ;--------------------------------------------------
 ; schematic pane
