@@ -953,21 +953,16 @@
 ; dialog box
 ;--------------------------------------------------
 
-; for "inv"
-(def dialog-inv
-  '[ [radio direction right up left down]])
-
-; for "and" and "or"
-(def dialog-and-or
-  '[ [edstr width ]
-     [edstr height]
-     [radio direction dir right up left down]])
-
-; for "name"
-(def dialog-name
-  '[ [edstr string]
-     [radio h-align left   center right]
-     [radio v-align bottom center top  ]])
+(defn dialog-table [type]
+  (case type
+    inv      '[ [radio direction right up left down]]
+    (and or) '[ [edstr width ]
+                [edstr height]
+                [radio direction dir right up left down]]
+    name     '[ [edstr string]
+                [radio h-align left   center right]
+                [radio v-align bottom center top  ]]
+    nil))
 
 (defn prev-next [f list]
   (loop [prev nil l list]
@@ -1112,15 +1107,17 @@
     (handle [keyEvent]
       (cond (and (= KeyCode/D (.getCode keyEvent))
                  (= (:mode @mode) 'cursor))
-            (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
-              (when (= (:type (@lels lel-key)) 'name)
+            (let [lel-key (find-lel-by-pos @lels @cursor-pos)
+                  dt (when lel-key
+                       (dialog-table (get-in @lels [lel-key :type])))]
+              (when dt
                 (.setFocusTraversable pane false)
                 (dosync (ref-set selected-name lel-key))
                 (let [borderpane (BorderPane.)
                       dialog
                         ( pane-dialog #(.setRight borderpane %)
                           #(pane-schem-revert f-set-to-parent pane)
-                          dialog-name lel-key)]
+                          dt lel-key)]
                   (.setCenter borderpane pane)
                   (f-set-to-parent borderpane)
                   (.setFocusTraversable dialog true)
