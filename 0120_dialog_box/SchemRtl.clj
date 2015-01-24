@@ -42,20 +42,22 @@
 
 (def lels
   (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
-               '[{:y 20, :type name , :x 5 ,
+               '[{:type name , :x 5 , :y 20,
                   string "hoge", v-align bottom, h-align left}
-                 {:y 28, :type in   , :x 25}
-                 {:y 22, :type in   , :x 25}
-                 {:y 28, :type and  , :x 32}
-                 {:y 23, :type or   , :x 40}
-                 {:y 30, :type in   , :x 25}
-                 {:y 36, :type in   , :x 25}
-                 {:y 26, :type out  , :x 62}
-                 {:y 34, :type in   , :x 25}
-                 {:y 22, :type and  , :x 32}
-                 {:y 29, :type dot  , :x 30}
-                 {:y 26, :type dff  , :x 55}
-                 {:y 24, :type mux21, :x 48}
+                 {:type in   , :x 25, :y 28, direction right}
+                 {:type in   , :x 25, :y 22, direction right}
+                 {:type and  , :x 32, :y 28, direction right,
+                  width 4, height 4}
+                 {:type or   , :x 40, :y 23, direction right,
+                  width 4, height 4}
+                 {:type in   , :x 25, :y 30, direction right}
+                 {:type in   , :x 25, :y 36, direction right}
+                 {:type out  , :x 62, :y 26, direction right}
+                 {:type in   , :x 25, :y 34, direction right}
+                 {:type and  , :x 32, :y 22, direction right}
+                 {:type dot  , :x 30, :y 29}
+                 {:type dff  , :x 55, :y 26}
+                 {:type mux21, :x 48, :y 24}
                  ])))
 
 (def wires
@@ -103,8 +105,8 @@
 
 (defn draw-dot [pos size color]
   (Circle. (* (:x pos) pix-per-grid)
-            (* (:y pos) pix-per-grid)
-            (* 0.5 size) color))
+           (* (:y pos) pix-per-grid)
+           (* 0.5 size) color))
 
 (defn draw-wire [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
   (let [line (Line. (* x0 pix-per-grid)
@@ -158,15 +160,15 @@
 
 (defn lel-init [type]
   (case type
-    in    {:type 'in    :x 0 :y 0}
-    out   {:type 'out   :x 0 :y 0}
-    inout {:type 'inout :x 0 :y 0}
+    in    {:type 'in    :x 0 :y 0 'direction 'right}
+    out   {:type 'out   :x 0 :y 0 'direction 'right}
+    inout {:type 'inout :x 0 :y 0 'direction 'horizontal}
     dot   {:type 'dot   :x 0 :y 0}
     name  {:type 'name  :x 0 :y 0
            'string "blah" 'v-align 'bottom 'h-align 'left}
-    not   {:type 'not   :x 0 :y 0}
-    and   {:type 'and   :x 0 :y 0}
-    or    {:type 'or    :x 0 :y 0}
+    not   {:type 'not   :x 0 :y 0 'direction 'right}
+    and   {:type 'and   :x 0 :y 0 'direction 'right 'width 4 'height 4}
+    or    {:type 'or    :x 0 :y 0 'direction 'right 'width 4 'height 4}
     dff   {:type 'dff   :x 0 :y 0}
     mux21 {:type 'mux21 :x 0 :y 0}
     plus  {:type 'plus  :x 0 :y 0}
@@ -187,8 +189,10 @@
 ; features.
 
 ; for "in"
-(defmethod lel-width  'in [lel] 3)
-(defmethod lel-height 'in [lel] 2)
+(defmethod lel-width  'in [lel]
+  (case (lel 'direction) (right left) 3, (up down) 2))
+(defmethod lel-height 'in [lel]
+  (case (lel 'direction) (right left) 2, (up down) 3))
 (defmethod lel-x-min  'in [lel] (:x lel))
 (defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'in [lel] (:y lel))
@@ -197,10 +201,13 @@
   (let [symbol ( Polygon.
                  ( double-array
                    (apply concat
-                          (map #(list (* pix-per-grid (+ (:x lel) %1))
-                                      (* pix-per-grid (+ (:y lel) %2)))
-                               [0 2 3 2 0]
-                               [0 0 1 2 2]))))]
+                          (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
+                                      (* pix-per-grid (+ (:y lel) (% 1))))
+                               (case (lel 'direction)
+                                 right [[0 0] [2 0] [3 1] [2 2] [0 2]]
+                                 up    [[0 3] [0 1] [1 0] [2 1] [2 3]]
+                                 left  [[3 0] [1 0] [0 1] [1 2] [3 2]]
+                                 down  [[0 0] [0 2] [1 3] [2 2] [2 0]])))))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
@@ -208,7 +215,10 @@
      symbol]))
 
 ; for "out"
-(defmethod lel-width  'out [lel] 3)
+(defmethod lel-width  'out [lel]
+  (case (lel 'direction) (right left) 3, (up down) 2))
+(defmethod lel-height 'out [lel]
+  (case (lel 'direction) (right left) 2, (up down) 3))
 (defmethod lel-height 'out [lel] 2)
 (defmethod lel-x-min  'out [lel] (:x lel))
 (defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
@@ -218,10 +228,13 @@
   (let [symbol ( Polygon.
                  ( double-array
                    (apply concat
-                          (map #(list (* pix-per-grid (+ (:x lel) %1))
-                                      (* pix-per-grid (+ (:y lel) %2)))
-                               [0 2 3 2 0]
-                               [0 0 1 2 2]))))]
+                          (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
+                                      (* pix-per-grid (+ (:y lel) (% 1))))
+                               (case (lel 'direction)
+                                 right [[0 0] [2 0] [3 1] [2 2] [0 2]]
+                                 up    [[0 3] [0 1] [1 0] [2 1] [2 3]]
+                                 left  [[3 0] [1 0] [0 1] [1 2] [3 2]]
+                                 down  [[0 0] [0 2] [1 3] [2 2] [2 0]])))))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
@@ -229,20 +242,25 @@
      symbol]))
 
 ; for "inout"
-(defmethod lel-width  'inout [lel] 3.0)
-(defmethod lel-height 'inout [lel] 2.0)
+(defmethod lel-width  'inout [lel]
+  (case (lel 'direction) horizontal 3, vertical 2))
+(defmethod lel-height 'inout [lel]
+  (case (lel 'direction) horizontal 2, vertical 3))
 (defmethod lel-x-min  'inout [lel] (:x lel))
 (defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'inout [lel] (:y lel))
 (defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'inout [lel color]
-  (let [symbol ( Polygon.
-                 ( double-array
-                   (apply concat
-                          (map #(list (* pix-per-grid (+ (:x lel) %1))
-                                      (* pix-per-grid (+ (:y lel) %2)))
-                               [0 1 2 3 2 1]
-                               [1 0 0 1 2 2]))))]
+  (let [symbol
+          ( Polygon.
+            ( double-array
+              (apply concat
+                     (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
+                                 (* pix-per-grid (+ (:y lel) (% 1))))
+                          (case (lel 'direction)
+                            horizontal [[0 1] [1 0] [2 0] [3 1] [2 2] [1 2]]
+                            vertical   [[1 0] [0 1] [0 2] [1 3] [2 2] [2 1]]
+                            )))))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
@@ -278,8 +296,10 @@
      line-h line-v]))
 
 ; for "not"
-(defmethod lel-width  'not [lel] 3)
-(defmethod lel-height 'not [lel] 4)
+(defmethod lel-width  'not [lel]
+  (case (lel 'direction) (right left) 3, (up down) 4))
+(defmethod lel-height 'not [lel]
+  (case (lel 'direction) (right left) 4, (up down) 3))
 (defmethod lel-x-min  'not [lel] (:x lel))
 (defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'not [lel] (:y lel))
@@ -289,15 +309,23 @@
           ( Polygon.
             ( double-array
               (apply concat
-                     (map #(list (* pix-per-grid (+ (lel :x) %1))
-                                 (* pix-per-grid (+ (lel :y) %2)))
-                          [0 2 0]
-                          [0 2 4]))))
+                     (map #(list (* pix-per-grid (+ (lel :x) (% 0)))
+                                 (* pix-per-grid (+ (lel :y) (% 1))))
+                          (case (lel 'direction)
+                            right [[0 0] [2 2] [0 4]]
+                            up    [[2 1] [0 3] [4 3]]
+                            left  [[1 2] [3 0] [3 4]]
+                            down  [[0 0] [2 2] [4 0]])))))
         circle
-          (Ellipse. (* pix-per-grid (+ (lel :x) 2.5))
-                    (* pix-per-grid (+ (lel :y) 2  ))
-                    (* 0.5 pix-per-grid)
-                    (* 0.5 pix-per-grid))]
+          (Circle. (* pix-per-grid
+                      (+ (lel :x)
+                         (case (lel 'direction)
+                           right 2.5, up 2.0, left 0.5, down 2.0)))
+                   (* pix-per-grid
+                      (+ (lel :y)
+                         (case (lel 'direction)
+                           right 2.0, up 0.5, left 2.0, down 2.5)))
+                   (* 0.5 pix-per-grid))]
     (doto triangle (.setStroke color) (.setFill Color/TRANSPARENT))
     (doto circle   (.setStroke color) (.setFill Color/TRANSPARENT))
     [triangle circle]))
@@ -955,13 +983,16 @@
 
 (defn dialog-table [type]
   (case type
-    inv      '[ [radio direction right up left down]]
-    (and or) '[ [edstr width ]
-                [edstr height]
-                [radio direction dir right up left down]]
-    name     '[ [edstr string]
-                [radio h-align left   center right]
-                [radio v-align bottom center top  ]]
+    (in out) '[[radio direction right up left down]]
+    inout    '[[radio direction horizontal vertical]]
+    inv      '[[radio direction right up left down]]
+    (and or) '[[edstr width ]
+               [edstr height]
+               [radio direction right up left down]]
+    not      '[[radio direction right up left down]]
+    name     '[[edstr string]
+               [radio h-align left   center right]
+               [radio v-align bottom center top  ]]
     nil))
 
 (defn prev-next [f list]
