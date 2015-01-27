@@ -54,7 +54,8 @@
                  {:type in   , :x 25, :y 36, direction right}
                  {:type out  , :x 62, :y 26, direction right}
                  {:type in   , :x 25, :y 34, direction right}
-                 {:type and  , :x 32, :y 22, direction right}
+                 {:type and  , :x 32, :y 22, direction right,
+                  width 4, height 4}
                  {:type dot  , :x 30, :y 29}
                  {:type dff  , :x 55, :y 26}
                  {:type mux21, :x 48, :y 24}
@@ -342,8 +343,8 @@
 
 ; for "and"
 ; "and" should be extended according to needed inputs.
-(defmethod lel-width  'and [lel] 4)
-(defmethod lel-height 'and [lel] 4)
+(defmethod lel-width  'and [lel] (lel 'width))
+(defmethod lel-height 'and [lel] (lel 'height))
 (defmethod lel-x-min  'and [lel] (:x lel))
 (defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'and [lel] (:y lel))
@@ -382,8 +383,8 @@
 
 ; for "or"
 ; "or" should be extended according to needed inputs.
-(defmethod lel-width  'or [lel] 4)
-(defmethod lel-height 'or [lel] 4)
+(defmethod lel-width  'or [lel] (lel 'width))
+(defmethod lel-height 'or [lel] (lel 'height))
 (defmethod lel-x-min  'or [lel] (:x lel))
 (defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'or [lel] (:y lel))
