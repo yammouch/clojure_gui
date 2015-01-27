@@ -86,7 +86,7 @@
 ;--------------------------------------------------
 ; rotate
 ;--------------------------------------------------
-(defn rotate [[x y] degree]
+(defn rotate [[x y] degree] ; clockwise, because y gets larger downward
   (case degree
     0   [   x     y ]
     90  [(- y)    x ]
@@ -350,18 +350,18 @@
 (defmethod lel-y-min  'and [lel] (:y lel))
 (defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'and [lel color]
-  (let [x0 (* (:x lel) pix-per-grid)
-        y0 (* (:y lel) pix-per-grid)
+  (let [xorg (* (:x lel) pix-per-grid)
+        yorg (* (:y lel) pix-per-grid)
         [angle [xofs yofs]] (case (lel 'direction)
-                              right  [  0 [0  0]]
-                              top    [ 90 [0 -1]]
-                              left   [180 [1 -1]]
-                              bottom [270 [1  0]])
-        [[x1 y1] [x2 y2] [x3 y3]]
+                              right [  0 [0 0]]
+                              up    [270 [0 1]]
+                              left  [180 [1 1]]
+                              down  [ 90 [1 0]])
+        [[x0 y0] [x1 y1] [x2 y2] [x3 y3]]
           (map #(let [[x y] (rotate % angle)]
-                  [(* (+ x xofs) (lel 'width ) pix-per-grid)
-                   (* (+ y yofs) (lel 'height) pix-per-grid)])
-               [[0.5 0.0] [0.5 1.0] [0.0 1.0]])
+                  [(+ xorg (* (+ x xofs) (lel 'width ) pix-per-grid))
+                   (+ yorg (* (+ y yofs) (lel 'height) pix-per-grid))])
+               [[0.0 0.0] [0.5 0.0] [0.5 1.0] [0.0 1.0]])
         rx (* 0.5 pix-per-grid (lel 'width))
         ry (* 0.5 pix-per-grid (lel 'height))
         symbol ( Path.
@@ -390,16 +390,18 @@
 (defmethod lel-y-min  'or [lel] (:y lel))
 (defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'or [lel color]
-  (let [x0 (* (:x lel) pix-per-grid)
-        y0 (* (:y lel) pix-per-grid)
+  (let [xorg (* (:x lel) pix-per-grid)
+        yorg (* (:y lel) pix-per-grid)
         [angle [xofs yofs]] (case (lel 'direction)
-                              right  [  0 [0  0]]
-                              top    [ 90 [0 -1]]
-                              left   [180 [1 -1]]
-                              bottom [270 [1  0]])
-        [x1 y1] (let [[x y] (rotate [0 1] angle)]
-                  [(* pix-per-grid (lel 'width ) (+ x xofs))
-                   (* pix-per-grid (lel 'height) (+ y yofs))])
+                              right [  0 [0 0]]
+                              up    [270 [0 1]]
+                              left  [180 [1 1]]
+                              down  [ 90 [1 0]])
+        [[x0 y0] [x1 y1]]
+          (map #(let [[x y] (rotate % angle)]
+                  [(+ xorg (* pix-per-grid (lel 'width ) (+ x xofs)))
+                   (+ yorg (* pix-per-grid (lel 'height) (+ y yofs)))])
+               [[0.0 0.0] [0.0 1.0]])
         [rx0 ry0 rx1 ry1]
           (let [w (* (lel 'width ) pix-per-grid)
                 h (* (lel 'height) pix-per-grid)]
@@ -1017,16 +1019,16 @@
 
 (defn dialog-table [type]
   (case type
-    (in out) '[[radio direction right up left down]]
-    inout    '[[radio direction horizontal vertical]]
-    inv      '[[radio direction right up left down]]
-    (and or) '[[edstr width ]
-               [edstr height]
-               [radio direction right up left down]]
-    not      '[[radio direction right up left down]]
-    name     '[[edstr string]
-               [radio h-align left   center right]
-               [radio v-align bottom center top  ]]
+    (in out) [['radio 'direction 'right 'up 'left 'down]]
+    inout    [['radio 'direction 'horizontal 'vertical]]
+    inv      [['radio 'direction 'right 'up 'left 'down]]
+    (and or) [['edstr 'width  #(read-string %)]
+              ['edstr 'height #(read-string %)]
+              ['radio 'direction 'right 'up 'left 'down]]
+    not      [['radio 'direction 'right 'up 'left 'down]]
+    name     [['edstr 'string identity]
+              ['radio 'h-align 'left   'center 'right]
+              ['radio 'v-align 'bottom 'center 'top  ]]
     nil))
 
 (defn prev-next [f list]
@@ -1078,7 +1080,7 @@
                       (map (fn [r]
                              [(:label r)
                               (case (:type r)
-                                edstr (.getText (:str r))
+                                edstr ((:cast r) (.getText (:str r)))
                                 radio ( symbol
                                         (.. (:togglegroup r)
                                             getSelectedToggle getText)))])
@@ -1123,13 +1125,14 @@
         pane (VBox.)
         rows (map (fn [x]
                     ( conj
-                      {:type (first x)
+                      {:type (x 0)
                        :cursor ( Polygon.
                                  (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
                        :flowpane (FlowPane.)
-                       :label (second x)}
+                       :label (x 1)}
                       ( case (first x)
-                        edstr {:str (Label. (str (lel (second x))))}
+                        edstr {:str (Label. (str (lel (x 1))))
+                               :cast (x 2)}
                         radio {:togglegroup (ToggleGroup.)
                                :buttons
                                  (map (fn [y] (RadioButton. (str y)))
