@@ -15,7 +15,7 @@
   '(javafx.scene.paint    Color)
   '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
                           Path PathElement MoveTo ArcTo ClosePath
-                          HLineTo VLineTo)
+                          LineTo)
   '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button)
   '(javafx.stage          Stage))
@@ -81,6 +81,16 @@
                 {:x0 30, :y0 25, :x1 32, :y1 25}
                 {:x0 38, :y0 26, :x1 41, :y1 26}
                 ])))
+
+;--------------------------------------------------
+; rotate
+;--------------------------------------------------
+(defn rotate [[x y] degree]
+  (case degree
+    0   [   x     y ]
+    90  [(- y)    x ]
+    180 [(- x) (- y)]
+    270 [   y  (- x)]))
 
 ;--------------------------------------------------
 ; draw-*
@@ -339,21 +349,33 @@
 (defmethod lel-y-min  'and [lel] (:y lel))
 (defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'and [lel color]
-  (let [x (* (:x lel) pix-per-grid)
-        y (* (:y lel) pix-per-grid)
+  (let [x0 (* (:x lel) pix-per-grid)
+        y0 (* (:y lel) pix-per-grid)
+        [angle [xofs yofs]] (case (lel 'direction)
+                              right  [  0 [0  0]]
+                              top    [ 90 [0 -1]]
+                              left   [180 [1 -1]]
+                              bottom [270 [1  0]])
+        [[x1 y1] [x2 y2] [x3 y3]]
+          (map #(let [[x y] (rotate % angle)]
+                  [(* (+ x xofs) (lel 'width ) pix-per-grid)
+                   (* (+ y yofs) (lel 'height) pix-per-grid)])
+               [[0.5 0.0] [0.5 1.0] [0.0 1.0]])
+        rx (* 0.5 pix-per-grid (lel 'width))
+        ry (* 0.5 pix-per-grid (lel 'height))
         symbol ( Path.
                  ( into-array PathElement
-                   [ (MoveTo. x y)
-                     (HLineTo. (+ x (* 2 pix-per-grid)))
-                     (ArcTo. (* 2 pix-per-grid) ; radiusX
-                             (* 2 pix-per-grid) ; radiusY
-                             0.0 ; AxisRotation
-                             (+ x (* 2 pix-per-grid)) ; x
-                             (+ y (* 4 pix-per-grid)) ; y
+                   [ (MoveTo. x0 y0)
+                     (LineTo. x1 y1)
+                     (ArcTo. rx    ; radiusX
+                             ry    ; radiusY
+                             0.0   ; AxisRotation
+                             x2    ; x
+                             y2    ; y
                              false ; largeArcFlag
-                             true ; sweepFlag (true -> counter clockwise)
+                             true  ; sweepFlag (true -> counter clockwise)
                              )
-                     (HLineTo. x)
+                     (LineTo. x3 y3)
                      (ClosePath.)]))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [symbol]))
@@ -367,17 +389,28 @@
 (defmethod lel-y-min  'or [lel] (:y lel))
 (defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'or [lel color]
-  (let [x (* (:x lel) pix-per-grid)
-        y (* (:y lel) pix-per-grid)
+  (let [x0 (* (:x lel) pix-per-grid)
+        y0 (* (:y lel) pix-per-grid)
+        [angle [xofs yofs]] (case (lel 'direction)
+                              right  [  0 [0  0]]
+                              top    [ 90 [0 -1]]
+                              left   [180 [1 -1]]
+                              bottom [270 [1  0]])
+        [x1 y1] (let [[x y] (rotate [0 1] angle)]
+                  [(* pix-per-grid (lel 'width ) (+ x xofs))
+                   (* pix-per-grid (lel 'height) (+ y yofs))])
+        [rx0 ry0 rx1 ry1]
+          (let [w (* (lel 'width ) pix-per-grid)
+                h (* (lel 'height) pix-per-grid)]
+            (if ('#{right left} (lel 'direction))
+              [w         (* 0.5 h) (* 0.25 w) (* 0.5  h)]
+              [(* 0.5 w) h         (* 0.5  w) (* 0.25 h)]))
         symbol ( Path.
                  ( into-array PathElement
-                   [ (MoveTo. x y)
-                     (ArcTo. (* 4 pix-per-grid) (* 2 pix-per-grid)
-                             0.0 x (+ y (* 4 pix-per-grid))
-                             false true)
-                     (ArcTo. pix-per-grid (* 2 pix-per-grid)
-                             0.0 x y
-                             false false)]))]
+                   [ (MoveTo. x0 y0)
+                     (ArcTo. rx0 ry0 0.0 x1 y1 false true)
+                     (ArcTo. rx1 ry1 0.0 x0 y0 false false)
+                     (ClosePath.)]))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [symbol]))
 
