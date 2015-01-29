@@ -18,7 +18,7 @@
                           LineTo)
   '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button
-                          MenuBar Menu)
+                          MenuBar Menu MenuItem)
   '(javafx.stage          Stage))
 (require 'clojure.set)
 
@@ -1224,8 +1224,8 @@
         help (Menu. "help")
         about (MenuItem. "About")]
     (doseq [x [open save-as exit]]
-      (.. file getMenuItems (add x)))
-    (.. help getMenuItems (add about))
+      (.. file getItems (add x)))
+    (.. help getItems (add about))
     (doseq [x [file help]]
       (.. menu getMenus (add x)))
     menu))
