@@ -1069,7 +1069,6 @@
   (.setFocusTraversable pane true)
   (.requestFocus pane))
 
-(require 'clojure.pprint)
 (defn pane-dialog-key [f-set-to-parent f-revert pane rows lel-key]
   (proxy [EventHandler] []
     (handle [keyEvent]
@@ -1140,8 +1139,11 @@
                                       (drop 2 x)
                                       )})))
                   table)]
+    (.setSpacing pane 12.0)
     (doseq [r rows]
       (.setFill (:cursor r) Color/TRANSPARENT)
+      (.setVgap (:flowpane r) 12.0)
+      (.setHgap (:flowpane r) 12.0)
       (.. (:flowpane r) getChildren (add (:cursor r)))
       (.. (:flowpane r) getChildren (add (Label. (str (:label r)))))
       (case (:type r)
