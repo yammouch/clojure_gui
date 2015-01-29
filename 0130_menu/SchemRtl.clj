@@ -17,7 +17,8 @@
                           Path PathElement MoveTo ArcTo ClosePath
                           LineTo)
   '(javafx.scene.text     Font Text TextAlignment)
-  '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button)
+  '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button
+                          MenuBar Menu)
   '(javafx.stage          Stage))
 (require 'clojure.set)
 
@@ -1212,19 +1213,25 @@
 ;--------------------------------------------------
 ; JavaFX main routine
 ;--------------------------------------------------
+(defn menu-top []
+  (let [menu (MenuBar.)]
+    (doseq [x [(Menu. "File") (Menu. "Help")]]
+      (.. menu getMenus (add x)))
+    menu))
 
 (defn -start [self stage]
   (let [topgroup (BorderPane.)
+        menu (menu-top)
         pane ( pane-schem
                (fn [pane]
-                 (.setTop menu)
-                 (.setCenter pane)
-                 (.setBottom *label-debug*)))]
+                 (doto topgroup
+                   (.setTop menu)
+                   (.setCenter pane)
+                   (.setBottom *label-debug*))))]
     (.setText *label-debug* (state-text))
     (.setAll (.getChildren pane) (draw-mode))
-    (.setAll (.getChildren topgroup)
-             (into-array Node [pane *label-debug*]))
     (doto stage
+      (.setWidth 1024) (.setHeight 768)
       (.setScene (Scene. topgroup))
       (.setTitle "Shows Some Gates")
       (.show))))
