@@ -1228,6 +1228,7 @@
     (.. help getItems (add about))
     (doseq [x [file help]]
       (.. menu getMenus (add x)))
+    (.setFocusTraversable menu true)
     menu))
 
 (defn -start [self stage]
@@ -1245,7 +1246,8 @@
       (.setWidth 1024) (.setHeight 768)
       (.setScene (Scene. topgroup))
       (.setTitle "Shows Some Gates")
-      (.show))))
+      (.show))
+    (.requestFocus pane)))
 
 (defn -main [& args]
   (Application/launch (Class/forName "SchemRtl")
