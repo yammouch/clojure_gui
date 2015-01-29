@@ -19,7 +19,7 @@
   '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button
                           MenuBar Menu MenuItem)
-  '(javafx.stage          Stage))
+  '(javafx.stage          Stage FileChooser))
 (require 'clojure.set)
 
 (def pix-per-grid 8.0)
@@ -1215,7 +1215,58 @@
 ;--------------------------------------------------
 ; JavaFX main routine
 ;--------------------------------------------------
-(defn menu-top []
+(defn my-file-chooser [main-stage title]
+  (let [fileChooser (FileChooser.)]
+    (.setTitle fileChooser title)
+    ( .. fileChooser getExtensionFilters
+      ( addAll
+        ( into-array javafx.stage.FileChooser$ExtensionFilter
+          [ ( javafx.stage.FileChooser$ExtensionFilter. "RTL Schematica"
+              ( into-array String ["*.rtc"] ))
+            ( javafx.stage.FileChooser$ExtensionFilter. "All Files"
+              ( into-array String ["*.*"]))])))
+    (.showOpenDialog fileChooser main-stage)))
+
+
+(defn action-open [main-stage]
+  (proxy [EventHandler] []
+    (handle [_]
+      (println (my-file-chooser main-stage "Open File"))
+      )))
+
+(defn action-save-as [main-stage]
+  (proxy [EventHandler] []
+    (handle [_]
+      (println (my-file-chooser main-stage "Save File As"))
+      )))
+
+(defn action-exit []
+  (proxy [EventHandler] []
+    (handle [_]
+      (System/exit 0))))
+
+(defn pane-about [f-revert]
+  (let [label (Label. (str "RTL Schematica ver. 0.0.0\n"
+                           "Authored by Tackya Yammouch"))
+        ok-button (Button. "OK")
+        pane (VBox.)]
+    (.setDefaultButton ok-button true)
+    ( .setOnAction ok-button
+      (proxy [EventHandler] []
+        (handle [_] (f-revert))))
+    ( .. pane getChildren
+      ( setAll
+        (into-array Node [label ok-button])
+        ))
+    pane))
+
+(defn action-about [f-set-to-parent f-revert]
+  (proxy [EventHandler] []
+    (handle [_]
+      (f-set-to-parent (pane-about f-revert))
+      )))
+
+(defn menu-top [main-stage f-set-to-parent f-revert]
   (let [menu (MenuBar.)
         file (Menu. "File")
         open (MenuItem. "Open")
@@ -1223,6 +1274,10 @@
         exit (MenuItem. "Exit")
         help (Menu. "help")
         about (MenuItem. "About")]
+    (.setOnAction open (action-open main-stage))
+    (.setOnAction save-as (action-save-as main-stage))
+    (.setOnAction exit (action-exit))
+    (.setOnAction about (action-about f-set-to-parent f-revert))
     (doseq [x [open save-as exit]]
       (.. file getItems (add x)))
     (.. help getItems (add about))
@@ -1233,13 +1288,12 @@
 
 (defn -start [self stage]
   (let [topgroup (BorderPane.)
-        menu (menu-top)
-        pane ( pane-schem
-               (fn [pane]
-                 (doto topgroup
-                   (.setTop menu)
-                   (.setCenter pane)
-                   (.setBottom *label-debug*))))]
+        pane (pane-schem #(.setCenter topgroup %))
+        menu (menu-top stage
+                       #(.setCenter topgroup %)
+                       #(.setCenter topgroup pane))]
+    (.setTop topgroup menu)
+    (.setBottom topgroup *label-debug*)
     (.setText *label-debug* (state-text))
     (.setAll (.getChildren pane) (draw-mode))
     (doto stage
