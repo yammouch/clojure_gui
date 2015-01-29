@@ -1139,11 +1139,11 @@
                                       (drop 2 x)
                                       )})))
                   table)]
-    (.setSpacing pane 12.0)
+    (.setSpacing pane 8.0)
     (doseq [r rows]
       (.setFill (:cursor r) Color/TRANSPARENT)
       (.setVgap (:flowpane r) 12.0)
-      (.setHgap (:flowpane r) 12.0)
+      (.setHgap (:flowpane r)  8.0)
       (.. (:flowpane r) getChildren (add (:cursor r)))
       (.. (:flowpane r) getChildren (add (Label. (str (:label r)))))
       (case (:type r)
@@ -1216,8 +1216,17 @@
 ; JavaFX main routine
 ;--------------------------------------------------
 (defn menu-top []
-  (let [menu (MenuBar.)]
-    (doseq [x [(Menu. "File") (Menu. "Help")]]
+  (let [menu (MenuBar.)
+        file (Menu. "File")
+        open (MenuItem. "Open")
+        save-as (MenuItem. "Save As")
+        exit (MenuItem. "Exit")
+        help (Menu. "help")
+        about (MenuItem. "About")]
+    (doseq [x [open save-as exit]]
+      (.. file getMenuItems (add x)))
+    (.. help getMenuItems (add about))
+    (doseq [x [file help]]
       (.. menu getMenus (add x)))
     menu))
 
