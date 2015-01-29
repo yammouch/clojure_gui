@@ -19,7 +19,7 @@
   '(javafx.scene.text     Font Text TextAlignment)
   '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button
                           MenuBar Menu MenuItem)
-  '(javafx.stage          Stage FileChooser))
+  '(javafx.stage          Stage FileChooser FileChooser$ExtensionFilter))
 (require 'clojure.set)
 
 (def pix-per-grid 8.0)
@@ -1213,17 +1213,17 @@
     pane))
 
 ;--------------------------------------------------
-; JavaFX main routine
+; Menus
 ;--------------------------------------------------
 (defn my-file-chooser [main-stage title]
   (let [fileChooser (FileChooser.)]
     (.setTitle fileChooser title)
     ( .. fileChooser getExtensionFilters
       ( addAll
-        ( into-array javafx.stage.FileChooser$ExtensionFilter
-          [ ( javafx.stage.FileChooser$ExtensionFilter. "RTL Schematica"
+        ( into-array FileChooser$ExtensionFilter
+          [ ( FileChooser$ExtensionFilter. "RTL Schematica"
               ( into-array String ["*.rtc"] ))
-            ( javafx.stage.FileChooser$ExtensionFilter. "All Files"
+            ( FileChooser$ExtensionFilter. "All Files"
               ( into-array String ["*.*"]))])))
     (.showOpenDialog fileChooser main-stage)))
 
@@ -1256,8 +1256,7 @@
         (handle [_] (f-revert))))
     ( .. pane getChildren
       ( setAll
-        (into-array Node [label ok-button])
-        ))
+        (into-array Node [label ok-button])))
     pane))
 
 (defn action-about [f-set-to-parent f-revert]
@@ -1286,6 +1285,9 @@
     (.setFocusTraversable menu true)
     menu))
 
+;--------------------------------------------------
+; JavaFX main routine
+;--------------------------------------------------
 (defn -start [self stage]
   (let [topgroup (BorderPane.)
         pane (pane-schem #(.setCenter topgroup %))
@@ -1295,7 +1297,6 @@
     (.setTop topgroup menu)
     (.setBottom topgroup *label-debug*)
     (.setText *label-debug* (state-text))
-    (.setAll (.getChildren pane) (draw-mode))
     (doto stage
       (.setWidth 1024) (.setHeight 768)
       (.setScene (Scene. topgroup))
