@@ -6,7 +6,7 @@
   :extends javafx.application.Application)
 
 (import
-  '(java.io              File)
+  '(java.io              File PushbackReader)
   '(javafx.application   Application)
   '(javafx.event         EventHandler)
   '(javafx.geometry      VPos)
@@ -1238,9 +1238,13 @@
   (defn action-open [main-stage]
     (proxy [EventHandler] []
       (handle [_]
-        (println (my-file-chooser main-stage "Open File"
-                                  @prev-path false)
-                                  )))))
+        (let [file (my-file-chooser main-stage "Open File" @prev-path false)
+              rd (when file (PushbackReader. (clojure.java.io/reader file)))]
+          (when rd
+            (dosync (doseq [r [lels wires]] (ref-set r (read rd))))
+            (reset! prev-path (.getParentFile file))
+            (.close rd)
+            ))))))
 
 (let [prev-path (atom nil)]
   (defn action-save-as [main-stage]
