@@ -21,6 +21,8 @@
                           MenuBar Menu MenuItem)
   '(javafx.stage          Stage FileChooser FileChooser$ExtensionFilter))
 (require 'clojure.set)
+(require 'clojure.java.io)
+(require 'clojure.pprint)
 
 (def pix-per-grid 8.0)
 
@@ -1237,8 +1239,12 @@
 (defn action-save-as [main-stage]
   (proxy [EventHandler] []
     (handle [_]
-      (println (my-file-chooser main-stage "Save File As"))
-      )))
+      (with-open [wr
+                  (clojure.java.io/writer
+                   (my-file-chooser main-stage "Save File As"))]
+        (doseq [x [@lels @wires]]
+          (clojure.pprint/pprint x wr)
+          )))))
 
 (defn action-exit []
   (proxy [EventHandler] []
