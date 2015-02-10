@@ -1218,10 +1218,9 @@
 ;--------------------------------------------------
 ; Menus
 ;--------------------------------------------------
-(defn my-file-chooser [main-stage title default-dir]
+(defn my-file-chooser [main-stage title default-dir is-save]
   (let [fileChooser (FileChooser.)]
     (.setTitle fileChooser title)
-    ;(.setInitialDirectory fileChooser (File. "C:\\Users\\tackya"))
     (when (and default-dir (.exists default-dir) (.isDirectory default-dir))
       (.setInitialDirectory fileChooser default-dir))
     ( .. fileChooser getExtensionFilters
@@ -1231,20 +1230,24 @@
               ( into-array String ["*.rtc"] ))
             ( FileChooser$ExtensionFilter. "All Files"
               ( into-array String ["*.*"]))])))
-    (.showOpenDialog fileChooser main-stage)))
+    (if is-save
+      (.showSaveDialog fileChooser main-stage)
+      (.showOpenDialog fileChooser main-stage))))
 
 (let [prev-path (atom nil)]
   (defn action-open [main-stage]
     (proxy [EventHandler] []
       (handle [_]
-        (println (my-file-chooser main-stage "Open File" @prev-path))
-        ))))
+        (println (my-file-chooser main-stage "Open File"
+                                  @prev-path false)
+                                  )))))
 
 (let [prev-path (atom nil)]
   (defn action-save-as [main-stage]
     (proxy [EventHandler] []
       (handle [_]
-        (let [file (my-file-chooser main-stage "Save File As" @prev-path)
+        (let [file (my-file-chooser main-stage "Save File As"
+                                    @prev-path true)
               wr (when file (clojure.java.io/writer file))]
           (when wr
             (doseq [x [@lels @wires]]
