@@ -6,21 +6,21 @@
   :extends javafx.application.Application)
 
 (import
-  '(java.io               File)
-  '(javafx.application    Application)
-  '(javafx.event          EventHandler)
-  '(javafx.geometry       VPos)
-  '(javafx.scene          Group Node Scene)
-  '(javafx.scene.input    KeyCode KeyEvent)
-  '(javafx.scene.layout   BorderPane Pane VBox FlowPane)
-  '(javafx.scene.paint    Color)
-  '(javafx.scene.shape    Rectangle Polygon Polyline Ellipse Line Circle
-                          Path PathElement MoveTo ArcTo ClosePath
-                          LineTo)
-  '(javafx.scene.text     Font Text TextAlignment)
-  '(javafx.scene.control  Label TextField RadioButton ToggleGroup Button
-                          MenuBar Menu MenuItem)
-  '(javafx.stage          Stage FileChooser FileChooser$ExtensionFilter))
+  '(java.io              File)
+  '(javafx.application   Application)
+  '(javafx.event         EventHandler)
+  '(javafx.geometry      VPos)
+  '(javafx.scene         Group Node Scene)
+  '(javafx.scene.input   KeyCode KeyEvent)
+  '(javafx.scene.layout  BorderPane Pane VBox FlowPane)
+  '(javafx.scene.paint   Color)
+  '(javafx.scene.shape   Rectangle Polygon Polyline Ellipse Line Circle
+                         Path PathElement MoveTo ArcTo ClosePath
+                         LineTo)
+  '(javafx.scene.text    Font Text TextAlignment)
+  '(javafx.scene.control Label TextField RadioButton ToggleGroup Button
+                         MenuBar Menu MenuItem)
+  '(javafx.stage         Stage FileChooser FileChooser$ExtensionFilter))
 (require 'clojure.set)
 (require 'clojure.java.io)
 (require 'clojure.pprint)
@@ -213,16 +213,16 @@
 (defmethod lel-y-min  'in [lel] (:y lel))
 (defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'in [lel color]
-  (let [symbol ( Polygon.
-                 ( double-array
-                   (apply concat
-                          (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
-                                      (* pix-per-grid (+ (:y lel) (% 1))))
-                               (case (lel 'direction)
-                                 right [[0 0] [2 0] [3 1] [2 2] [0 2]]
-                                 up    [[0 3] [0 1] [1 0] [2 1] [2 3]]
-                                 left  [[3 0] [1 0] [0 1] [1 2] [3 2]]
-                                 down  [[0 0] [0 2] [1 3] [2 2] [2 0]])))))]
+  (let [symbol (Polygon.
+                (double-array
+                 (apply concat
+                        (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
+                                    (* pix-per-grid (+ (:y lel) (% 1))))
+                             (case (lel 'direction)
+                               right [[0 0] [2 0] [3 1] [2 2] [0 2]]
+                               up    [[0 3] [0 1] [1 0] [2 1] [2 3]]
+                               left  [[3 0] [1 0] [0 1] [1 2] [3 2]]
+                               down  [[0 0] [0 2] [1 3] [2 2] [2 0]])))))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
@@ -240,16 +240,16 @@
 (defmethod lel-y-min  'out [lel] (:y lel))
 (defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'out [lel color]
-  (let [symbol ( Polygon.
-                 ( double-array
-                   (apply concat
-                          (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
-                                      (* pix-per-grid (+ (:y lel) (% 1))))
-                               (case (lel 'direction)
-                                 right [[0 0] [2 0] [3 1] [2 2] [0 2]]
-                                 up    [[0 3] [0 1] [1 0] [2 1] [2 3]]
-                                 left  [[3 0] [1 0] [0 1] [1 2] [3 2]]
-                                 down  [[0 0] [0 2] [1 3] [2 2] [2 0]])))))]
+  (let [symbol (Polygon.
+                (double-array
+                 (apply concat
+                        (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
+                                    (* pix-per-grid (+ (:y lel) (% 1))))
+                             (case (lel 'direction)
+                               right [[0 0] [2 0] [3 1] [2 2] [0 2]]
+                               up    [[0 3] [0 1] [1 0] [2 1] [2 3]]
+                               left  [[3 0] [1 0] [0 1] [1 2] [3 2]]
+                               down  [[0 0] [0 2] [1 3] [2 2] [2 0]])))))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
@@ -267,15 +267,15 @@
 (defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'inout [lel color]
   (let [symbol
-          ( Polygon.
-            ( double-array
-              (apply concat
-                     (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
-                                 (* pix-per-grid (+ (:y lel) (% 1))))
-                          (case (lel 'direction)
-                            horizontal [[0 1] [1 0] [2 0] [3 1] [2 2] [1 2]]
-                            vertical   [[1 0] [0 1] [0 2] [1 3] [2 2] [2 1]]
-                            )))))]
+          (Polygon.
+           (double-array
+            (apply concat
+                   (map #(list (* pix-per-grid (+ (:x lel) (% 0)))
+                               (* pix-per-grid (+ (:y lel) (% 1))))
+                        (case (lel 'direction)
+                          horizontal [[0 1] [1 0] [2 0] [3 1] [2 2] [1 2]]
+                          vertical   [[1 0] [0 1] [0 2] [1 3] [2 2] [2 1]]
+                          )))))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [(draw-text {:x (+ (:x lel) (* 0.5 (lel-width  lel)))
                  :y (+ (:y lel) (* 0.5 (lel-height lel)))}
@@ -321,16 +321,16 @@
 (defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'not [lel color]
   (let [triangle
-          ( Polygon.
-            ( double-array
-              (apply concat
-                     (map #(list (* pix-per-grid (+ (lel :x) (% 0)))
-                                 (* pix-per-grid (+ (lel :y) (% 1))))
-                          (case (lel 'direction)
-                            right [[0 0] [2 2] [0 4]]
-                            up    [[2 1] [0 3] [4 3]]
-                            left  [[1 2] [3 0] [3 4]]
-                            down  [[0 0] [2 2] [4 0]])))))
+          (Polygon.
+           (double-array
+            (apply concat
+                   (map #(list (* pix-per-grid (+ (lel :x) (% 0)))
+                               (* pix-per-grid (+ (lel :y) (% 1))))
+                        (case (lel 'direction)
+                          right [[0 0] [2 2] [0 4]]
+                          up    [[2 1] [0 3] [4 3]]
+                          left  [[1 2] [3 0] [3 4]]
+                          down  [[0 0] [2 2] [4 0]])))))
         circle
           (Circle. (* pix-per-grid
                       (+ (lel :x)
@@ -368,20 +368,20 @@
                [[0.0 0.0] [0.5 0.0] [0.5 1.0] [0.0 1.0]])
         rx (* 0.5 pix-per-grid (lel 'width))
         ry (* 0.5 pix-per-grid (lel 'height))
-        symbol ( Path.
-                 ( into-array PathElement
-                   [ (MoveTo. x0 y0)
-                     (LineTo. x1 y1)
-                     (ArcTo. rx    ; radiusX
-                             ry    ; radiusY
-                             0.0   ; AxisRotation
-                             x2    ; x
-                             y2    ; y
-                             false ; largeArcFlag
-                             true  ; sweepFlag (true -> counter clockwise)
-                             )
-                     (LineTo. x3 y3)
-                     (ClosePath.)]))]
+        symbol (Path.
+                (into-array PathElement
+                 [(MoveTo. x0 y0)
+                  (LineTo. x1 y1)
+                  (ArcTo. rx    ; radiusX
+                          ry    ; radiusY
+                          0.0   ; AxisRotation
+                          x2    ; x
+                          y2    ; y
+                          false ; largeArcFlag
+                          true  ; sweepFlag (true -> counter clockwise)
+                          )
+                  (LineTo. x3 y3)
+                  (ClosePath.)]))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [symbol]))
 
@@ -412,12 +412,12 @@
             (if ('#{right left} (lel 'direction))
               [w         (* 0.5 h) (* 0.25 w) (* 0.5  h)]
               [(* 0.5 w) h         (* 0.5  w) (* 0.25 h)]))
-        symbol ( Path.
-                 ( into-array PathElement
-                   [ (MoveTo. x0 y0)
-                     (ArcTo. rx0 ry0 0.0 x1 y1 false true)
-                     (ArcTo. rx1 ry1 0.0 x0 y0 false false)
-                     (ClosePath.)]))]
+        symbol (Path.
+                (into-array PathElement
+                 [(MoveTo. x0 y0)
+                  (ArcTo. rx0 ry0 0.0 x1 y1 false true)
+                  (ArcTo. rx1 ry1 0.0 x0 y0 false false)
+                  (ClosePath.)]))]
     (doto symbol (.setStroke color) (.setFill Color/TRANSPARENT))
     [symbol]))
 
@@ -451,19 +451,19 @@
 (defmethod lel-y-min  'mux21 [lel] (:y lel))
 (defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'mux21 [lel color]
-  (let [trapezoid ( Polygon.
-                    ( double-array
-                      (apply concat
-                        (map #(list (* pix-per-grid (+ (:x lel) %1))
-                                    (* pix-per-grid (+ (:y lel) %2)))
-                             [0 2 2 0]
-                             [0 2 4 6]))))]
+  (let [trapezoid (Polygon.
+                   (double-array
+                    (apply concat
+                      (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                  (* pix-per-grid (+ (:y lel) %2)))
+                           [0 2 2 0]
+                           [0 2 4 6]))))]
     (doto trapezoid (.setStroke color) (.setFill Color/TRANSPARENT))
-    [ (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 2)}
-                 "0" color 'center 'center)
-      (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 4)}
-                 "1" color 'center 'center)
-      trapezoid]))
+    [(draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 2)}
+                "0" color 'center 'center)
+     (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 4)}
+                "1" color 'center 'center)
+     trapezoid]))
 
 ; for "plus"
 (defmethod lel-width  'plus [lel] 4)
@@ -494,71 +494,71 @@
         y (* (:y lel) pix-per-grid)
         rect ( Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
-    [ (draw-text {:x (+ (lel :x) (* 0.5 (lel-width  lel)))
-                  :y (+ (lel :y) (* 0.5 (lel-height lel)))}
-                 "-" color 'center 'center)
-      rect]))
+    [(draw-text {:x (+ (lel :x) (* 0.5 (lel-width  lel)))
+                 :y (+ (lel :y) (* 0.5 (lel-height lel)))}
+                "-" color 'center 'center)
+     rect]))
 
 ;--------------------------------------------------
 ; draw-mode-*
 ;--------------------------------------------------
 
 (defn draw-mode-cursor [cursor-pos lels wires]
-  ( into-array Node
-    ( concat
-      [(draw-dot cursor-pos 9 Color/BLUE)]
-      (apply concat
-             (map (fn [[k v]]
-                    (let [selected (@selected-wires k)]
-                      (if selected
-                        (draw-wire-selected v selected)
-                        [(draw-wire v Color/BLACK)])))
-                  wires))
-      (apply concat
-             (map (fn [[k v]]
-                    (lel-draw v (if (@selected-lels k)
-                                  Color/RED
-                                  Color/BLACK)))
-                  lels))
-      (when (@mode :rect-x0)
-        (let [x (Math/min (cursor-pos :x) (@mode :rect-x0))
-              y (Math/min (cursor-pos :y) (@mode :rect-y0))
-              width  (Math/abs (- (cursor-pos :x) (@mode :rect-x0)))
-              height (Math/abs (- (cursor-pos :y) (@mode :rect-y0)))
-              rect (Rectangle. (* x pix-per-grid)
-                               (* y pix-per-grid)
-                               (* width pix-per-grid)
-                               (* height pix-per-grid))]
-          (.setFill rect Color/TRANSPARENT)
-          (.setStroke rect Color/BLACK)
-          (.setAll (.getStrokeDashArray rect)
-                   ( into-array Double [2.0 2.0] ))
-          [rect])))))
+  (into-array Node
+   (concat
+    [(draw-dot cursor-pos 9 Color/BLUE)]
+    (apply concat
+           (map (fn [[k v]]
+                  (let [selected (@selected-wires k)]
+                    (if selected
+                      (draw-wire-selected v selected)
+                      [(draw-wire v Color/BLACK)])))
+                wires))
+    (apply concat
+           (map (fn [[k v]]
+                  (lel-draw v (if (@selected-lels k)
+                                Color/RED
+                                Color/BLACK)))
+                lels))
+    (when (@mode :rect-x0)
+      (let [x (Math/min (cursor-pos :x) (@mode :rect-x0))
+            y (Math/min (cursor-pos :y) (@mode :rect-y0))
+            width  (Math/abs (- (cursor-pos :x) (@mode :rect-x0)))
+            height (Math/abs (- (cursor-pos :y) (@mode :rect-y0)))
+            rect (Rectangle. (* x pix-per-grid)
+                             (* y pix-per-grid)
+                             (* width pix-per-grid)
+                             (* height pix-per-grid))]
+        (.setFill rect Color/TRANSPARENT)
+        (.setStroke rect Color/BLACK)
+        (.setAll (.getStrokeDashArray rect)
+                 ( into-array Double [2.0 2.0] ))
+        [rect])))))
 
 (defn draw-mode-add []
-  ( into-array Node
-    ( concat
-      (map (fn [[k v]] (draw-wire v Color/BLACK))
-           @wires)
-      (apply concat
-             (map (fn [[k v]] (lel-draw v Color/BLACK))
-                  @lels))
-      (lel-draw (conj (lel-init (:type @mode))
-                      @cursor-pos)
-                Color/RED))))
+  (into-array Node
+   (concat
+    (map (fn [[k v]] (draw-wire v Color/BLACK))
+         @wires)
+    (apply concat
+           (map (fn [[k v]] (lel-draw v Color/BLACK))
+                @lels))
+    (lel-draw (conj (lel-init (:type @mode))
+                    @cursor-pos)
+              Color/RED))))
 
 (defn draw-mode-wire []
-  ( into-array Node
-    ( concat
-      [(draw-dot @cursor-pos 9 Color/BLUE)]
-      (map (fn [[k v]] (draw-wire v Color/BLACK))
-           @wires)
-      (apply concat
-             (map (fn [[k v]] (lel-draw v Color/BLACK))
-                  @lels))
-      [(draw-wire {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
-                   :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
-                  Color/RED)])))
+  (into-array Node
+   (concat
+    [(draw-dot @cursor-pos 9 Color/BLUE)]
+    (map (fn [[k v]] (draw-wire v Color/BLACK))
+         @wires)
+    (apply concat
+           (map (fn [[k v]] (lel-draw v Color/BLACK))
+                @lels))
+    [(draw-wire {:x0 (@wire-p0 :x) :y0 (@wire-p0 :y)
+                 :x1 (@cursor-pos :x) :y1 (@cursor-pos :y)}
+                Color/RED)])))
 
 (def catalog-table
   '[[in   out inout dot name ]
@@ -579,20 +579,20 @@
     (.setStroke rect Color/RED)
     (.setStrokeWidth rect 2.0)
     (.setFill rect Color/TRANSPARENT)
-    ( into-array Node
-      ( concat
-        (apply concat
-               (map (fn [{idx0 :idx0 idx1 :idx1 part :part}]
-                      (let [lel (lel-init part)]
-                        (lel-draw (conj lel
-                                        {:x (- (+ (* 10 idx1) 6)
-                                               (int (/ (lel-width lel) 2)))
-                                         :y (- (+ (* 10 idx0) 6)
-                                               (int (/ (lel-height lel) 2))
-                                               )})
-                                  Color/BLACK)))
-                    parts))
-        [rect]))))
+    (into-array Node
+     (concat
+      (apply concat
+             (map (fn [{idx0 :idx0 idx1 :idx1 part :part}]
+                    (let [lel (lel-init part)]
+                      (lel-draw (conj lel
+                                      {:x (- (+ (* 10 idx1) 6)
+                                             (int (/ (lel-width lel) 2)))
+                                       :y (- (+ (* 10 idx0) 6)
+                                             (int (/ (lel-height lel) 2))
+                                             )})
+                                Color/BLACK)))
+                  parts))
+      [rect]))))
 
 (defn draw-mode []
   (case (@mode :mode)
@@ -1078,16 +1078,16 @@
       (let [kc (.getCode keyEvent)]
         (cond (= KeyCode/ENTER kc)
                 (dosync
-                  ( alter lels assoc lel-key
-                    ( into (@lels lel-key)
-                      (map (fn [r]
-                             [(:label r)
-                              (case (:type r)
-                                edstr ((:cast r) (.getText (:str r)))
-                                radio ( symbol
-                                        (.. (:togglegroup r)
-                                            getSelectedToggle getText)))])
-                           rows)))
+                  (alter lels assoc lel-key
+                   (into (@lels lel-key)
+                    (map (fn [r]
+                           [(:label r)
+                            (case (:type r)
+                              edstr ((:cast r) (.getText (:str r)))
+                              radio ( symbol
+                                      (.. (:togglegroup r)
+                                          getSelectedToggle getText)))])
+                         rows)))
                   (f-revert))
               (= KeyCode/ESCAPE kc)
                 (f-revert)
@@ -1100,47 +1100,47 @@
                           textfield
                             (pane-text #(.setBottom borderpane %)
                                        (.getText (:str row)))]
-                      ( .setOnKeyPressed textfield
-                        ( pane-text-key-dialog
-                          #(pane-dialog-revert f-set-to-parent pane)
-                          textfield (:str row)))
+                      (.setOnKeyPressed textfield
+                       (pane-text-key-dialog
+                        #(pane-dialog-revert f-set-to-parent pane)
+                        textfield (:str row)))
                       (.setFocusTraversable pane false)
                       (.setCenter borderpane pane)
                       (f-set-to-parent borderpane)
                       (.setFocusTraversable textfield true)
                       (.requestFocus textfield))))
               (#{KeyCode/J KeyCode/K} kc)
-                ( pane-dialog-cursor-move (map #(:cursor %) rows)
-                  (if (= kc KeyCode/J) 'down 'up))
+                (pane-dialog-cursor-move (map #(:cursor %) rows)
+                 (if (= kc KeyCode/J) 'down 'up))
               (#{KeyCode/H KeyCode/L} kc)
                 (let [row (first ( filter
                                    #(not= (.getFill (:cursor %))
                                           Color/TRANSPARENT)
                                    rows))]
                   (when (= (:type row) 'radio)
-                    ( pane-dialog-radio-button-move
-                      (:togglegroup row)
-                      (if (= kc KeyCode/H) 'left 'right))))
+                    (pane-dialog-radio-button-move
+                     (:togglegroup row)
+                     (if (= kc KeyCode/H) 'left 'right))))
               )))))
 
 (defn pane-dialog [f-set-to-parent f-revert table lel-key]
   (let [lel (@lels lel-key)
         pane (VBox.)
         rows (map (fn [x]
-                    ( conj
-                      {:type (x 0)
-                       :cursor ( Polygon.
-                                 (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
-                       :flowpane (FlowPane.)
-                       :label (x 1)}
-                      ( case (first x)
-                        edstr {:str (Label. (str (lel (x 1))))
-                               :cast (x 2)}
-                        radio {:togglegroup (ToggleGroup.)
-                               :buttons
-                                 (map (fn [y] (RadioButton. (str y)))
-                                      (drop 2 x)
-                                      )})))
+                    (conj
+                     {:type (x 0)
+                      :cursor ( Polygon.
+                                (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
+                      :flowpane (FlowPane.)
+                      :label (x 1)}
+                     (case (first x)
+                      edstr {:str (Label. (str (lel (x 1))))
+                             :cast (x 2)}
+                      radio {:togglegroup (ToggleGroup.)
+                             :buttons
+                               (map (fn [y] (RadioButton. (str y)))
+                                    (drop 2 x)
+                                    )})))
                   table)]
     (.setSpacing pane 8.0)
     (doseq [r rows]
@@ -1223,13 +1223,13 @@
     (.setTitle fileChooser title)
     (when (and default-dir (.exists default-dir) (.isDirectory default-dir))
       (.setInitialDirectory fileChooser default-dir))
-    ( .. fileChooser getExtensionFilters
-      ( addAll
-        ( into-array FileChooser$ExtensionFilter
-          [ ( FileChooser$ExtensionFilter. "RTL Schematica"
-              ( into-array String ["*.rtc"] ))
-            ( FileChooser$ExtensionFilter. "All Files"
-              ( into-array String ["*.*"]))])))
+    (.. fileChooser getExtensionFilters
+     (addAll
+      (into-array FileChooser$ExtensionFilter
+       [(FileChooser$ExtensionFilter. "RTL Schematica"
+         (into-array String ["*.rtc"] ))
+        (FileChooser$ExtensionFilter. "All Files"
+         (into-array String ["*.*"]))])))
     (if is-save
       (.showSaveDialog fileChooser main-stage)
       (.showOpenDialog fileChooser main-stage))))
@@ -1267,12 +1267,12 @@
         ok-button (Button. "OK")
         pane (VBox.)]
     (.setDefaultButton ok-button true)
-    ( .setOnAction ok-button
-      (proxy [EventHandler] []
-        (handle [_] (f-revert))))
-    ( .. pane getChildren
-      ( setAll
-        (into-array Node [label ok-button])))
+    (.setOnAction ok-button
+     (proxy [EventHandler] []
+       (handle [_] (f-revert))))
+    (.. pane getChildren
+     (setAll
+      (into-array Node [label ok-button])))
     pane))
 
 (defn action-about [f-set-to-parent f-revert]
