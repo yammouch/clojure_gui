@@ -6,6 +6,7 @@
   :extends javafx.application.Application)
 
 (import
+  '(java.io               File)
   '(javafx.application    Application)
   '(javafx.event          EventHandler)
   '(javafx.geometry       VPos)
@@ -1217,9 +1218,12 @@
 ;--------------------------------------------------
 ; Menus
 ;--------------------------------------------------
-(defn my-file-chooser [main-stage title]
+(defn my-file-chooser [main-stage title default-dir]
   (let [fileChooser (FileChooser.)]
     (.setTitle fileChooser title)
+    ;(.setInitialDirectory fileChooser (File. "C:\\Users\\tackya"))
+    (when (and default-dir (.exists default-dir) (.isDirectory default-dir))
+      (.setInitialDirectory fileChooser default-dir))
     ( .. fileChooser getExtensionFilters
       ( addAll
         ( into-array FileChooser$ExtensionFilter
@@ -1229,22 +1233,25 @@
               ( into-array String ["*.*"]))])))
     (.showOpenDialog fileChooser main-stage)))
 
+(let [prev-path (atom nil)]
+  (defn action-open [main-stage]
+    (proxy [EventHandler] []
+      (handle [_]
+        (println (my-file-chooser main-stage "Open File" @prev-path))
+        ))))
 
-(defn action-open [main-stage]
-  (proxy [EventHandler] []
-    (handle [_]
-      (println (my-file-chooser main-stage "Open File"))
-      )))
-
-(defn action-save-as [main-stage]
-  (proxy [EventHandler] []
-    (handle [_]
-      (with-open [wr
-                  (clojure.java.io/writer
-                   (my-file-chooser main-stage "Save File As"))]
-        (doseq [x [@lels @wires]]
-          (clojure.pprint/pprint x wr)
-          )))))
+(let [prev-path (atom nil)]
+  (defn action-save-as [main-stage]
+    (proxy [EventHandler] []
+      (handle [_]
+        (let [file (my-file-chooser main-stage "Save File As" @prev-path)
+              wr (when file (clojure.java.io/writer file))]
+          (when wr
+            (doseq [x [@lels @wires]]
+              (clojure.pprint/pprint x wr))
+            (reset! prev-path (.getParentFile file))
+            (.close wr)
+            ))))))
 
 (defn action-exit []
   (proxy [EventHandler] []
