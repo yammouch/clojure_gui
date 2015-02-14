@@ -443,6 +443,31 @@
     (doto line (.setStroke color))
     [rect line]))
 
+; for "dffr"
+(defmethod lel-width  'dffr [lel] 4)
+(defmethod lel-height 'dffr [lel] 5)
+(defmethod lel-x-min  'dffr [lel] (:x lel))
+(defmethod lel-x-max  'dffr [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'dffr [lel] (:y lel))
+(defmethod lel-y-max  'dffr [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'dffr [lel color]
+  (let [x (* (:x lel) pix-per-grid)
+        y (* (:y lel) pix-per-grid)
+        rect ( Rectangle. x y (* 4 pix-per-grid) (* 5 pix-per-grid))
+        line ( Polyline. 
+               ( double-array
+                 (apply concat
+                        (map #(list (* pix-per-grid (+ (:x lel) %1))
+                                    (* pix-per-grid (+ (:y lel) %2)))
+                             [1 2 3]
+                             [5 4 5]))))]
+    (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
+    (doto line (.setStroke color))
+    [rect line
+     (draw-text {:x (+ (:x lel) 2) :y (:y lel)}
+                "R" color 'top 'center
+                )]))
+
 ; for "mux21"
 (defmethod lel-width  'mux21 [lel] 2)
 (defmethod lel-height 'mux21 [lel] 6)
@@ -451,7 +476,8 @@
 (defmethod lel-y-min  'mux21 [lel] (:y lel))
 (defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'mux21 [lel color]
-  (let [trapezoid (Polygon.
+  (let [h (lel 'height) w (lel 'width)
+        trapezoid (Polygon.
                    (double-array
                     (apply concat
                       (map #(list (* pix-per-grid (+ (:x lel) %1))
@@ -464,6 +490,54 @@
      (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 4)}
                 "1" color 'center 'center)
      trapezoid]))
+
+
+; for "mux-n"
+(defmethod lel-width  'mux-n [lel]
+  (if ('#{up down} (lel 'direction))
+    (lel 'width) (lel 'height)))
+(defmethod lel-height 'mux-n [lel]
+  (if ('#{up down} (lel 'direction))
+    (lel 'height) (lel 'width)))
+(defmethod lel-x-min  'mux-n [lel] (:x lel))
+(defmethod lel-x-max  'mux-n [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  'mux-n [lel] (:y lel))
+(defmethod lel-y-max  'mux-n [lel] (+ (:y lel) (lel-height lel)))
+(defmethod lel-draw   'mux-n [lel color]
+  (let [h (lel 'height) w (lel 'width)
+        [xorg yorg] (map #(* (% lel) pix-per-grid) [:x :y])
+        [angle xofs yofs] (case (lel 'direction)
+                            right [  0 0 0]
+                            up    [270 0 w]
+                            left  [180 w h]
+                            down  [ 90 h 0])
+        trapezoid (Polygon.
+                   (double-array
+                    (apply concat
+                      (map #(let [[x y] (rotate % angle)]
+                              [(+
+list (* pix-per-grid (+ (:x lel) %1))
+                                  (* pix-per-grid (+ (:y lel) %2)))
+                           [0 2 2 0]
+                           [0 2 4 6]))))]
+    (doto trapezoid (.setStroke color) (.setFill Color/TRANSPARENT))
+    [(draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 2)}
+                "0" color 'center 'center)
+     (draw-text {:x (+ (:x lel) 1) :y (+ (:y lel) 4)}
+                "1" color 'center 'center)
+     trapezoid]))
+
+;        [angle [xofs yofs]] (case (lel 'direction)
+;                              right [  0 [0 0]]
+;                              up    [270 [0 1]]
+;                              left  [180 [1 1]]
+;                              down  [ 90 [1 0]])
+;        [[x0 y0] [x1 y1] [x2 y2] [x3 y3]]
+;          (map #(let [[x y] (rotate % angle)]
+;                  [(+ xorg (* (+ x xofs) (lel 'width ) pix-per-grid))
+;                   (+ yorg (* (+ y yofs) (lel 'height) pix-per-grid))])
+;               [[0.0 0.0] [0.5 0.0] [0.5 1.0] [0.0 1.0]])
+
 
 ; for "plus"
 (defmethod lel-width  'plus [lel] 4)
@@ -561,9 +635,9 @@
                 Color/RED)])))
 
 (def catalog-table
-  '[[in   out inout dot name ]
-    [not  and or    dff mux21]
-    [plus minus]])
+  '[[in    out   inout dot   name]
+    [not   and   or    dff   dffr]
+    [mux21 mux-n plus  minus     ]])
 
 (defn draw-mode-catalog []
   (let [parts (apply concat
