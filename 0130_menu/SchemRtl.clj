@@ -396,8 +396,8 @@
   (let [xorg (* (:x lel) pix-per-grid)
         yorg (* (:y lel) pix-per-grid)
         [angle xofs yofs] (case (lel 'direction)
-                            right [  0 0 0]], up   [270 0 1],
-                            left  [180 1 1]], down [ 90 1 0])
+                            right [  0 0 0], up   [270 0 1],
+                            left  [180 1 1], down [ 90 1 0])
         [[x0 y0] [x1 y1]]
           (map #(let [[x y] (rotate % angle)]
                   [(+ xorg (* pix-per-grid (lel 'width ) (+ x xofs)))
@@ -478,16 +478,17 @@
   (concat
    (lel-draw (assoc lel :type 'mux-n) color)
    (let [w (lel 'width) h (lel 'height)
-         [angle xofs yofs] (case (lel 'direction
-                                   right [  0 0 0], up   [270 0 w],
-                                   left  [180 w h], down [ 90 h 0]))
+         [angle xofs yofs] (case (lel 'direction)
+                             right [  0 0 0], up   [270 0 w],
+                             left  [180 w h], down [ 90 h 0])
          [[ax ay] [bx by]] (map #(map + (rotate % angle)
                                         [xofs yofs]
                                         [(:x lel) (:y lel)])
-                                [[(* 0.5 w) 1] [(* 0.5 w) (- h 1)]])
-     [(draw-text {:x ax :y ay (if (= (lel 'order01) :0->1) "0" "1")
+                                [[(* 0.5 w) 2] [(* 0.5 w) (- h 2)]]
+                                )]
+     [(draw-text {:x ax :y ay} (if (= (lel 'order01) :0->1) "0" "1")
                  color 'center 'center)
-      (draw-text {:x bx :y by (if (= (lel 'order01) :0->1) "1" "0")
+      (draw-text {:x bx :y by} (if (= (lel 'order01) :0->1) "1" "0")
                  color 'center 'center
                  )])))
 
@@ -1085,7 +1086,9 @@
     name     [['edstr 'string identity]
               ['radio 'h-align 'left   'center 'right]
               ['radio 'v-align 'bottom 'center 'top  ]]
-    mux21    [['radio 'direction 'right 'up 'left 'down]
+    mux21    [['edstr 'width  #(read-string %)]
+              ['edstr 'height #(read-string %)]
+              ['radio 'direction 'right 'up 'left 'down]
               ['radio 'order01 :0->1 :1->0]]
     nil))
 
@@ -1368,6 +1371,7 @@
         menu (menu-top stage
                        #(.setCenter topgroup %)
                        #(.setCenter topgroup pane))]
+    (.setWrapText *label-debug* true)
     (.setTop topgroup menu)
     (.setBottom topgroup *label-debug*)
     (.setText *label-debug* (state-text))
