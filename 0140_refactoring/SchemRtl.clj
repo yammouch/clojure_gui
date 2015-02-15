@@ -210,6 +210,12 @@
 (defmulti lel-y-max  (fn [lel] (:type lel)))
 (defmulti lel-draw   (fn [lel color & xs] (:type lel)))
 
+(defmethod lel-width  :default [lel] (lel 'width))
+(defmethod lel-height :default [lel] (lel 'height))
+(defmethod lel-x-min  :default [lel] (:x lel))
+(defmethod lel-x-max  :default [lel] (+ (:x lel) (lel-width lel)))
+(defmethod lel-y-min  :default [lel] (:y lel))
+(defmethod lel-y-max  :default [lel] (+ (:y lel) (lel-height lel)))
 
 ; Following declarations look redundant at this commit.
 ; But width and height will be variables after adding some size change
@@ -234,35 +240,20 @@
   (case (lel 'direction) (right left) 3, (up down) 2))
 (defmethod lel-height 'in [lel]
   (case (lel 'direction) (right left) 2, (up down) 3))
-(defmethod lel-x-min  'in [lel] (:x lel))
-(defmethod lel-x-max  'in [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'in [lel] (:y lel))
-(defmethod lel-y-max  'in [lel] (+ (:y lel) (lel-height lel)))
-(defmethod lel-draw   'in [lel color]
-  (unidirectional-port-symbol lel color))
+(defmethod lel-draw   'in [lel color] (unidirectional-port-symbol lel color))
 
 ; for "out"
 (defmethod lel-width  'out [lel]
   (case (lel 'direction) (right left) 3, (up down) 2))
 (defmethod lel-height 'out [lel]
   (case (lel 'direction) (right left) 2, (up down) 3))
-(defmethod lel-height 'out [lel] 2)
-(defmethod lel-x-min  'out [lel] (:x lel))
-(defmethod lel-x-max  'out [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'out [lel] (:y lel))
-(defmethod lel-y-max  'out [lel] (+ (:y lel) (lel-height lel)))
-(defmethod lel-draw   'out [lel color]
-  (unidirectional-port-symbol lel color))
+(defmethod lel-draw   'out [lel color] (unidirectional-port-symbol lel color))
 
 ; for "inout"
 (defmethod lel-width  'inout [lel]
   (case (lel 'direction) horizontal 3, vertical 2))
 (defmethod lel-height 'inout [lel]
   (case (lel 'direction) horizontal 2, vertical 3))
-(defmethod lel-x-min  'inout [lel] (:x lel))
-(defmethod lel-x-max  'inout [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'inout [lel] (:y lel))
-(defmethod lel-y-max  'inout [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'inout [lel color]
   (let [symbol (Polygon. (double-array (apply concat
                 (map #(grid2screen (map + (rotate-ofs % 3 2 (lel 'direction))
@@ -278,21 +269,12 @@
 ; for "dot"
 (defmethod lel-width  'dot [lel] 0)
 (defmethod lel-height 'dot [lel] 0)
-(defmethod lel-x-min  'dot [lel] (:x lel))
-(defmethod lel-x-max  'dot [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'dot [lel] (:y lel))
-(defmethod lel-y-max  'dot [lel] (+ (:y lel) (lel-height lel)))
-(defmethod lel-draw   'dot [lel color]
-  [(draw-dot lel 7 color)])
+(defmethod lel-draw   'dot [lel color] [(draw-dot lel 7 color)])
 
 ; for "name"
 ; 0 of size is feasible?
 (defmethod lel-width  'name [lel] 0)
 (defmethod lel-height 'name [lel] 0)
-(defmethod lel-x-min  'name [lel] (:x lel))
-(defmethod lel-x-max  'name [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'name [lel] (:y lel))
-(defmethod lel-y-max  'name [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'name [lel color]
   (let [[x y] (grid2screen [(:x lel) (:y lel)])
         line-h (Line. (- x 1.0) y (+ x 1.0) y)
@@ -307,10 +289,6 @@
   (case (lel 'direction) (right left) 3, (up down) 4))
 (defmethod lel-height 'not [lel]
   (case (lel 'direction) (right left) 4, (up down) 3))
-(defmethod lel-x-min  'not [lel] (:x lel))
-(defmethod lel-x-max  'not [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'not [lel] (:y lel))
-(defmethod lel-y-max  'not [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'not [lel color]
   (let [[[x0 y0] [x1 y1] [x2 y2] [cx cy]]
           (map #(grid2screen (map + (rotate-ofs % 3 4 (lel 'direction))
@@ -330,10 +308,6 @@
 (defmethod lel-height 'and [lel]
   (if ('#{up down} (lel 'direction))
     (lel 'width) (lel 'height)))
-(defmethod lel-x-min  'and [lel] (:x lel))
-(defmethod lel-x-max  'and [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'and [lel] (:y lel))
-(defmethod lel-y-max  'and [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'and [lel color]
   (let [w (lel 'width) h (lel 'height)
         [[x0 y0] [x1 y1] [x2 y2] [x3 y3]]
@@ -368,10 +342,6 @@
 (defmethod lel-height 'or [lel]
   (if ('#{up down} (lel 'direction))
     (lel 'width) (lel 'height)))
-(defmethod lel-x-min  'or [lel] (:x lel))
-(defmethod lel-x-max  'or [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'or [lel] (:y lel))
-(defmethod lel-y-max  'or [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'or [lel color]
   (let [w (lel 'width) h (lel 'height)
         [[x0 y0] [x1 y1]]
@@ -383,7 +353,7 @@
           (map #(* pix-per-grid %)
            (if ('#{right left} (lel 'direction))
              [w         (* 0.5 h) (* 0.25 w) (* 0.5  h)]
-             [(* 0.5 w) h         (* 0.5  w) (* 0.25 h)]))
+             [(* 0.5 h) w         (* 0.5  h) (* 0.25 w)]))
         symbol (Path. (into-array PathElement
                 [(MoveTo. x0 y0)
                  (ArcTo. rx0 ry0 0.0 x1 y1 false true)
@@ -396,10 +366,6 @@
 ; for "dff"
 (defmethod lel-width  'dff [lel] 4)
 (defmethod lel-height 'dff [lel] 5)
-(defmethod lel-x-min  'dff [lel] (:x lel))
-(defmethod lel-x-max  'dff [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'dff [lel] (:y lel))
-(defmethod lel-y-max  'dff [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'dff [lel color]
   (let [[x y] (grid2screen [(:x lel) (:y lel)])
         rect (Rectangle. x y (* 4 pix-per-grid) (* 5 pix-per-grid))
@@ -413,10 +379,6 @@
 ; for "dffr"
 (defmethod lel-width  'dffr [lel] 4)
 (defmethod lel-height 'dffr [lel] 5)
-(defmethod lel-x-min  'dffr [lel] (:x lel))
-(defmethod lel-x-max  'dffr [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'dffr [lel] (:y lel))
-(defmethod lel-y-max  'dffr [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'dffr [lel color]
   (let [x (* (:x lel) pix-per-grid)
         y (* (:y lel) pix-per-grid)
@@ -441,10 +403,6 @@
 (defmethod lel-height 'mux21 [lel] 
   (if ('#{up down} (lel 'direction))
     (lel 'width) (lel 'height)))
-(defmethod lel-x-min  'mux21 [lel] (:x lel))
-(defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'mux21 [lel] (:y lel))
-(defmethod lel-y-max  'mux21 [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'mux21 [lel color]
   (concat
    (lel-draw (assoc lel :type 'mux-n) color)
@@ -466,10 +424,6 @@
 (defmethod lel-height 'mux-n [lel]
   (if ('#{up down} (lel 'direction))
     (lel 'width) (lel 'height)))
-(defmethod lel-x-min  'mux-n [lel] (:x lel))
-(defmethod lel-x-max  'mux-n [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'mux-n [lel] (:y lel))
-(defmethod lel-y-max  'mux-n [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'mux-n [lel color]
   (let [h (lel 'height) w (lel 'width)
         trapezoid (Polygon. (double-array (apply concat
@@ -495,19 +449,11 @@
 ; for "plus"
 (defmethod lel-width  'plus [lel] 4)
 (defmethod lel-height 'plus [lel] 4)
-(defmethod lel-x-min  'plus [lel] (:x lel))
-(defmethod lel-x-max  'plus [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'plus [lel] (:y lel))
-(defmethod lel-y-max  'plus [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'plus [lel color] (arith-symbol lel color))
 
 ; for "minus"
 (defmethod lel-width  'minus [lel] 4)
 (defmethod lel-height 'minus [lel] 4)
-(defmethod lel-x-min  'minus [lel] (:x lel))
-(defmethod lel-x-max  'minus [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  'minus [lel] (:y lel))
-(defmethod lel-y-max  'minus [lel] (+ (:y lel) (lel-height lel)))
 (defmethod lel-draw   'minus [lel color] (arith-symbol lel color))
 
 ;--------------------------------------------------
