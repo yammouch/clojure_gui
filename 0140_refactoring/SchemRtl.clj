@@ -716,24 +716,19 @@
                          )))))]
     (rec add base)))
 
+; An edge of a line should be selected by surrounding it.
 (defn rectangular-select [lels wires x0 y0 x1 y1]
-  (let [xmin (Math/min x0 x1) xmax (Math/max x0 x1)
-        ymin (Math/min y0 y1) ymax (Math/max y0 y1)
-        lels (filter (fn [[k v]] (<= xmin (lel-x-min v))) lels)
-        lels (filter (fn [[k v]] (<= ymin (lel-y-min v))) lels)
-        lels (filter (fn [[k v]] (<= (lel-x-max v) xmax)) lels)
-        lels (filter (fn [[k v]] (<= (lel-y-max v) ymax)) lels)
+  (let [xmin (min x0 x1) xmax (max x0 x1)
+        ymin (min y0 y1) ymax (max y0 y1)
+        lels (filter (fn [[k v]]
+                       (and (<= xmin (lel-x-min v)) (<= (lel-x-max v) xmax)
+                            (<= ymin (lel-y-min v)) (<= (lel-y-max v) ymax)))
+                     lels)
         wires (filter (fn [[k v]]
-                        (<= xmin (Math/min (:x0 v) (:x1 v))))
-                      wires)
-        wires (filter (fn [[k v]]
-                        (<= ymin (Math/min (:y0 v) (:y1 v))))
-                      wires)
-        wires (filter (fn [[k v]]
-                        (<= (Math/max (:x0 v) (:x1 v)) xmax))
-                      wires)
-        wires (filter (fn [[k v]]
-                        (<= (Math/max (:y0 v) (:y1 v)) ymax))
+                        (and (<= xmin (min (:x0 v) (:x1 v)))
+                             (<= (max (:x0 v) (:x1 v)) xmax)
+                             (<= ymin (min (:y0 v) (:y1 v)))
+                             (<= (max (:y0 v) (:y1 v)) ymax)))
                       wires)]
     {:lels (set (keys lels))
      :wires (zipmap (keys wires) (repeat 'p0p1))
@@ -764,15 +759,7 @@
 ;--------------------------------------------------
 
 (def key-command-cursor-mode
-  {KeyCode/LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
-   KeyCode/RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
-   KeyCode/UP     (fn [_] (move-cursor 'up    @cursor-speed))
-   KeyCode/DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
-   KeyCode/H      (fn [_] (move-cursor 'left  @cursor-speed))
-   KeyCode/L      (fn [_] (move-cursor 'right @cursor-speed))
-   KeyCode/K      (fn [_] (move-cursor 'up    @cursor-speed))
-   KeyCode/J      (fn [_] (move-cursor 'down  @cursor-speed))
-   KeyCode/I      (fn [_] (dosync
+  {KeyCode/I      (fn [_] (dosync
                             (ref-set cursor-speed
                               (if (< @cursor-speed 64)
                                 (* 2 @cursor-speed)
@@ -828,15 +815,7 @@
 ; add mode can be merged into move mode
 ; if continuous addition is not necessary.
 (def key-command-add-mode
-  {KeyCode/LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
-   KeyCode/RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
-   KeyCode/UP     (fn [_] (move-cursor 'up    @cursor-speed))
-   KeyCode/DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
-   KeyCode/H      (fn [_] (move-cursor 'left  @cursor-speed))
-   KeyCode/L      (fn [_] (move-cursor 'right @cursor-speed))
-   KeyCode/K      (fn [_] (move-cursor 'up    @cursor-speed))
-   KeyCode/J      (fn [_] (move-cursor 'down  @cursor-speed))
-   KeyCode/I      (fn [_] (dosync
+  {KeyCode/I      (fn [_] (dosync
                                 (ref-set cursor-speed
                                   (if (< @cursor-speed 64)
                                     (* 2 @cursor-speed)
@@ -859,23 +838,7 @@
    })
 
 (def key-command-move-mode
-  {KeyCode/LEFT   (fn [_] (move-cursor   'left  @cursor-speed)
-                          (move-selected 'left  @cursor-speed))
-   KeyCode/RIGHT  (fn [_] (move-cursor   'right @cursor-speed)
-                          (move-selected 'right @cursor-speed))
-   KeyCode/UP     (fn [_] (move-cursor   'up    @cursor-speed)
-                          (move-selected 'up    @cursor-speed))
-   KeyCode/DOWN   (fn [_] (move-cursor   'down  @cursor-speed)
-                          (move-selected 'down  @cursor-speed))
-   KeyCode/H      (fn [_] (move-cursor   'left  @cursor-speed)
-                          (move-selected 'left  @cursor-speed))
-   KeyCode/L      (fn [_] (move-cursor   'right @cursor-speed)
-                          (move-selected 'right @cursor-speed))
-   KeyCode/K      (fn [_] (move-cursor   'up    @cursor-speed)
-                          (move-selected 'up    @cursor-speed))
-   KeyCode/J      (fn [_] (move-cursor   'down  @cursor-speed)
-                          (move-selected 'down  @cursor-speed))
-   KeyCode/I      (fn [_] (dosync
+  {KeyCode/I      (fn [_] (dosync
                             (ref-set cursor-speed
                               (if (< @cursor-speed 64)
                                 (* 2 @cursor-speed)
@@ -892,15 +855,7 @@
                             })
 
 (def key-command-wire-mode
-  {KeyCode/LEFT   (fn [_] (move-cursor 'left  @cursor-speed))
-   KeyCode/RIGHT  (fn [_] (move-cursor 'right @cursor-speed))
-   KeyCode/UP     (fn [_] (move-cursor 'up    @cursor-speed))
-   KeyCode/DOWN   (fn [_] (move-cursor 'down  @cursor-speed))
-   KeyCode/H      (fn [_] (move-cursor 'left  @cursor-speed))
-   KeyCode/L      (fn [_] (move-cursor 'right @cursor-speed))
-   KeyCode/K      (fn [_] (move-cursor 'up    @cursor-speed))
-   KeyCode/J      (fn [_] (move-cursor 'down  @cursor-speed))
-   KeyCode/I      (fn [_] (dosync
+  {KeyCode/I      (fn [_] (dosync
                             (ref-set cursor-speed
                               (if (< @cursor-speed 64)
                                 (* 2 @cursor-speed)
@@ -923,15 +878,7 @@
                             })
 
 (def key-command-catalog-mode
-  {KeyCode/LEFT   (fn [_] (move-catalog 'left))
-   KeyCode/RIGHT  (fn [_] (move-catalog 'right))
-   KeyCode/UP     (fn [_] (move-catalog 'up))
-   KeyCode/DOWN   (fn [_] (move-catalog 'down))
-   KeyCode/H      (fn [_] (move-catalog 'left))
-   KeyCode/L      (fn [_] (move-catalog 'right))
-   KeyCode/K      (fn [_] (move-catalog 'up))
-   KeyCode/J      (fn [_] (move-catalog 'down))
-   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+  {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
 
    KeyCode/ENTER
    (fn [_]
@@ -1001,8 +948,8 @@
   (loop [prev nil l list]
     (cond (empty? l) [prev prev]
           (f (first l))
-            [ (if prev prev (first l))
-              (if (empty? (next l)) (first l) (fnext l))]
+            [(if prev prev (first l))
+             (if (empty? (next l)) (first l) (fnext l))]
           :else (recur (first l) (next l))
           )))
 
@@ -1131,6 +1078,26 @@
 ; schematic pane
 ;--------------------------------------------------
 
+(defn pane-schem-cursor-move [keyEvent pane]
+  (let [kc (.getCode keyEvent)
+        direction (cond (#{KeyCode/LEFT  KeyCode/H} kc) 'left
+                        (#{KeyCode/RIGHT KeyCode/L} kc) 'right
+                        (#{KeyCode/UP    KeyCode/K} kc) 'up
+                        (#{KeyCode/DOWN  KeyCode/J} kc) 'down
+                        :else                           nil)
+        operation (case (:mode @mode)
+                    (cursor add wire) #(move-cursor % @cursor-speed)
+                    move              #(do (move-cursor   % @cursor-speed)
+                                           (move-selected % @cursor-speed))
+                    catalog           #(move-catalog %)
+                    nil)]
+    (when (and direction operation)
+      (operation direction)
+      (.consume keyEvent)
+      (.setText *label-debug* (state-text))
+      (.setAll (.getChildren pane) (draw-mode))
+      true)))
+
 (defn pane-schem-revert [f-set-to-parent pane]
   (.setText *label-debug* (state-text))
   (f-set-to-parent pane)
@@ -1138,36 +1105,38 @@
   (.setFocusTraversable pane true)
   (.requestFocus pane))
 
+(defn pane-schem-goto-dialog [keyEvent pane f-set-to-parent]
+  (when (and (= KeyCode/D (.getCode keyEvent))
+             (= (:mode @mode) 'cursor))
+    (let [lel-key (find-lel-by-pos @lels @cursor-pos)
+          dt (when lel-key
+               (dialog-table (get-in @lels [lel-key :type])))]
+      (when dt
+        (.setFocusTraversable pane false)
+        (dosync (ref-set selected-name lel-key))
+        (let [borderpane (BorderPane.)
+              dialog
+                (pane-dialog #(.setRight borderpane %)
+                 #(pane-schem-revert f-set-to-parent pane)
+                 dt lel-key)]
+          (.setCenter borderpane pane)
+          (f-set-to-parent borderpane)
+          (.setFocusTraversable dialog true)
+          (.requestFocus dialog)
+          true)))))
+
 (defn pane-schem-key [f-set-to-parent pane]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (cond (and (= KeyCode/D (.getCode keyEvent))
-                 (= (:mode @mode) 'cursor))
-            (let [lel-key (find-lel-by-pos @lels @cursor-pos)
-                  dt (when lel-key
-                       (dialog-table (get-in @lels [lel-key :type])))]
-              (when dt
-                (.setFocusTraversable pane false)
-                (dosync (ref-set selected-name lel-key))
-                (let [borderpane (BorderPane.)
-                      dialog
-                        ( pane-dialog #(.setRight borderpane %)
-                          #(pane-schem-revert f-set-to-parent pane)
-                          dt lel-key)]
-                  (.setCenter borderpane pane)
-                  (f-set-to-parent borderpane)
-                  (.setFocusTraversable dialog true)
-                  (.requestFocus dialog)
-                  )))
-
-            :else
-            (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
-              (when f
-                (f 'dummy)
-                (.consume keyEvent)
-                (.setText *label-debug* (state-text))
-                (.setAll (.getChildren pane) (draw-mode))
-                ))))))
+      (or (pane-schem-goto-dialog keyEvent pane f-set-to-parent)
+          (pane-schem-cursor-move keyEvent pane)
+          (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
+            (when f
+              (f 'dummy)
+              (.consume keyEvent)
+              (.setText *label-debug* (state-text))
+              (.setAll (.getChildren pane) (draw-mode))
+              ))))))
 
 (defn pane-schem [f-set-to-parent]
   (let [pane (Pane.)]
