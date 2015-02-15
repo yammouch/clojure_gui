@@ -66,7 +66,7 @@
                  {:type dot  , :x 30, :y 29}
                  {:type dff  , :x 55, :y 26}
                  {:type mux21, :x 48, :y 24, direction right,
-                  width 2, height 6, order01 :1->0}
+                  width 2, height 6, order01 ->1-0}
                  ])))
 
 (def wires
@@ -117,9 +117,11 @@
                         top    VPos/TOP))
       (.setStroke color))
     (let [width (.. text getLayoutBounds getWidth)]
-      (.setX text (- (* (:x pos) pix-per-grid)
+      (.setX text (+ (* (:x pos) pix-per-grid)
                      (case h-align
-                       left 1.0, center (* 0.5 width), right (- width 1.0)
+                       left   (* 0.5 pix-per-grid)
+                       center (- (* 0.5 width))
+                       right  (- (* 0.5 pix-per-grid) width)
                        ))))
     text))
 
@@ -192,7 +194,7 @@
     dff   {:type 'dff   :x 0 :y 0}
     dffr  {:type 'dffr  :x 0 :y 0}
     mux21 {:type 'mux21 :x 0 :y 0 'direction 'right 'width 2 'height 6
-           'order01 :0->1}
+           'order01 '->0-1}
     mux-n {:type 'mux-n :x 0 :y 0 'direction 'right 'width 2 'height 6}
     plus  {:type 'plus  :x 0 :y 0}
     minus {:type 'minus :x 0 :y 0}
@@ -466,10 +468,10 @@
 ; for "mux21"
 (defmethod lel-width  'mux21 [lel]
   (if ('#{up down} (lel 'direction))
-    (lel 'width) (lel 'height)))
+    (lel 'height) (lel 'width)))
 (defmethod lel-height 'mux21 [lel] 
   (if ('#{up down} (lel 'direction))
-    (lel 'height) (lel 'width)))
+    (lel 'width) (lel 'height)))
 (defmethod lel-x-min  'mux21 [lel] (:x lel))
 (defmethod lel-x-max  'mux21 [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'mux21 [lel] (:y lel))
@@ -486,19 +488,19 @@
                                         [(:x lel) (:y lel)])
                                 [[(* 0.5 w) 2] [(* 0.5 w) (- h 2)]]
                                 )]
-     [(draw-text {:x ax :y ay} (if (= (lel 'order01) :0->1) "0" "1")
+     [(draw-text {:x ax :y ay} (if (= (lel 'order01) '->0-1) "0" "1")
                  color 'center 'center)
-      (draw-text {:x bx :y by} (if (= (lel 'order01) :0->1) "1" "0")
+      (draw-text {:x bx :y by} (if (= (lel 'order01) '->0-1) "1" "0")
                  color 'center 'center
                  )])))
 
 ; for "mux-n"
 (defmethod lel-width  'mux-n [lel]
   (if ('#{up down} (lel 'direction))
-    (lel 'width) (lel 'height)))
+    (lel 'height) (lel 'width)))
 (defmethod lel-height 'mux-n [lel]
   (if ('#{up down} (lel 'direction))
-    (lel 'height) (lel 'width)))
+    (lel 'width) (lel 'height)))
 (defmethod lel-x-min  'mux-n [lel] (:x lel))
 (defmethod lel-x-max  'mux-n [lel] (+ (:x lel) (lel-width lel)))
 (defmethod lel-y-min  'mux-n [lel] (:y lel))
@@ -1089,7 +1091,7 @@
     mux21    [['edstr 'width  #(read-string %)]
               ['edstr 'height #(read-string %)]
               ['radio 'direction 'right 'up 'left 'down]
-              ['radio 'order01 :0->1 :1->0]]
+              ['radio 'order01 '->0-1 '->1-0]]
     nil))
 
 (defn prev-next [f list]
@@ -1186,8 +1188,8 @@
         rows (map (fn [x]
                     (conj
                      {:type (x 0)
-                      :cursor ( Polygon.
-                                (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
+                      :cursor (Polygon.
+                               (double-array [0.0 0.0 10.0 5.0 0.0 10.0]))
                       :flowpane (FlowPane.)
                       :label (x 1)}
                      (case (first x)
@@ -1283,9 +1285,9 @@
     (.. fileChooser getExtensionFilters
      (addAll
       (into-array FileChooser$ExtensionFilter
-       [(FileChooser$ExtensionFilter. "RTL Schematica"
+       [(FileChooser$ExtensionFilter. "RTL Schematica (*.rtc)"
          (into-array String ["*.rtc"] ))
-        (FileChooser$ExtensionFilter. "All Files"
+        (FileChooser$ExtensionFilter. "All Files (*.*)"
          (into-array String ["*.*"]))])))
     (if is-save
       (.showSaveDialog fileChooser main-stage)
