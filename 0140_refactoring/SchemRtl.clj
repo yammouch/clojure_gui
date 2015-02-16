@@ -37,7 +37,7 @@
 (def *label-debug* (Label.))
 
 (def cursor-pos (ref {:x 5 :y 5}))
-(def cursor-speed (ref 1))
+(def cursor-speed (ref 0))
 
 (def selected-lels (ref #{}))
 (def selected-wires (ref {}))
@@ -748,17 +748,7 @@
 ;--------------------------------------------------
 
 (def key-command-cursor-mode
-  {KeyCode/I      (fn [_] (dosync
-                            (ref-set cursor-speed
-                              (if (< @cursor-speed 64)
-                                (* 2 @cursor-speed)
-                                64))))
-   KeyCode/U      (fn [_] (dosync
-                            (ref-set cursor-speed
-                              (if (< 1 @cursor-speed)
-                                (/ @cursor-speed 2)
-                                1))))
-   ;KeyCode/VK_Q      (fn [{frame :frame}] (close-window frame))
+  {;KeyCode/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyCode/C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
    KeyCode/M      (fn [_] (dosync
                             (ref-set mode {:mode 'move})))
@@ -804,17 +794,7 @@
 ; add mode can be merged into move mode
 ; if continuous addition is not necessary.
 (def key-command-add-mode
-  {KeyCode/I      (fn [_] (dosync
-                                (ref-set cursor-speed
-                                  (if (< @cursor-speed 64)
-                                    (* 2 @cursor-speed)
-                                    64))))
-   KeyCode/U      (fn [_] (dosync
-                                (ref-set cursor-speed
-                                  (if (< 1 @cursor-speed)
-                                    (/ @cursor-speed 2)
-                                    1))))
-   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+  {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
    KeyCode/C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
    KeyCode/ENTER
    (fn [_]
@@ -827,34 +807,14 @@
    })
 
 (def key-command-move-mode
-  {KeyCode/I      (fn [_] (dosync
-                            (ref-set cursor-speed
-                              (if (< @cursor-speed 64)
-                                (* 2 @cursor-speed)
-                                64))))
-   KeyCode/U      (fn [_] (dosync
-                            (ref-set cursor-speed
-                              (if (< 1 @cursor-speed)
-                                (/ @cursor-speed 2)
-                                1))))
-   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+  {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
    KeyCode/ESCAPE (fn [_] (dosync
                             (release-selection)
                             (ref-set mode {:mode 'cursor})))
                             })
 
 (def key-command-wire-mode
-  {KeyCode/I      (fn [_] (dosync
-                            (ref-set cursor-speed
-                              (if (< @cursor-speed 64)
-                                (* 2 @cursor-speed)
-                                64))))
-   KeyCode/U      (fn [_] (dosync
-                            (ref-set cursor-speed
-                              (if (< 1 @cursor-speed)
-                                (/ @cursor-speed 2)
-                                1))))
-   ;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+  {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
    KeyCode/ESCAPE (fn [_] (dosync
                             (ref-set mode {:mode 'cursor})))
    KeyCode/ENTER  (fn [_] (dosync
@@ -1067,6 +1027,18 @@
 ; schematic pane
 ;--------------------------------------------------
 
+(defn pane-schem-cursor-speed [keyEvent]
+  (let [num ({KeyCode/DIGIT0 0, KeyCode/DIGIT1 1, KeyCode/DIGIT2 2,
+              KeyCode/DIGIT3 3, KeyCode/DIGIT4 4, KeyCode/DIGIT5 5,
+              KeyCode/DIGIT6 6, KeyCode/DIGIT7 7, KeyCode/DIGIT8 8,
+              KeyCode/DIGIT9 9, KeyCode/MINUS '-}
+             (.getCode keyEvent))]
+    (when (and num ('#{cursor add wire move} (:mode @mode)))
+      (dosync (ref-set cursor-speed
+               (if (= num '-) 0 (+ (* @cursor-speed 10) num))))
+      (.setText *label-debug* (state-text))
+      true)))
+
 (defn pane-schem-cursor-move [keyEvent pane]
   (let [kc (.getCode keyEvent)
         direction (cond (#{KeyCode/LEFT  KeyCode/H} kc) 'left
@@ -1074,10 +1046,11 @@
                         (#{KeyCode/UP    KeyCode/K} kc) 'up
                         (#{KeyCode/DOWN  KeyCode/J} kc) 'down
                         :else                           nil)
+        speed (if (<= @cursor-speed 0) 1 @cursor-speed)
         operation (case (:mode @mode)
-                    (cursor add wire) #(move-cursor % @cursor-speed)
-                    move              #(do (move-cursor   % @cursor-speed)
-                                           (move-selected % @cursor-speed))
+                    (cursor add wire) #(move-cursor % speed)
+                    move              #(do (move-cursor   % speed)
+                                           (move-selected % speed))
                     catalog           #(move-catalog %)
                     nil)]
     (when (and direction operation)
@@ -1119,6 +1092,7 @@
     (handle [keyEvent]
       (or (pane-schem-goto-dialog keyEvent pane f-set-to-parent)
           (pane-schem-cursor-move keyEvent pane)
+          (pane-schem-cursor-speed keyEvent)
           (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
             (when f
               (f 'dummy)
