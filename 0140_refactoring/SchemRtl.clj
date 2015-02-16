@@ -380,21 +380,10 @@
 (defmethod lel-width  'dffr [lel] 4)
 (defmethod lel-height 'dffr [lel] 5)
 (defmethod lel-draw   'dffr [lel color]
-  (let [x (* (:x lel) pix-per-grid)
-        y (* (:y lel) pix-per-grid)
-        rect (Rectangle. x y (* 4 pix-per-grid) (* 5 pix-per-grid))
-        line (Polyline. (double-array (apply concat
-              (map #(list (* pix-per-grid (+ (:x lel) %1))
-                          (* pix-per-grid (+ (:y lel) %2)))
-                   [1 2 3]
-                   [5 4 5]
-                   ))))]
-    (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
-    (doto line (.setStroke color))
-    (conj (lel-draw (assoc lel :type 'dff) color)
-          (draw-text {:x (+ (:x lel) 2) :y (:y lel)}
-                     "R" color 'top 'center
-                     ))))
+  (conj (lel-draw (assoc lel :type 'dff) color)
+        (draw-text {:x (+ (:x lel) 2) :y (:y lel)}
+                   "R" color 'top 'center
+                   )))
 
 ; for "mux21"
 (defmethod lel-width  'mux21 [lel]
