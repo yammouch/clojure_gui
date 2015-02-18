@@ -542,10 +542,8 @@
 
 (defn draw-mode []
   (case (@mode :mode)
-    cursor  (draw-mode-cursor @cursor-pos
-                              @lels @wires)
-    move    (draw-mode-cursor @cursor-pos
-                              @lels @wires)
+    cursor  (draw-mode-cursor @cursor-pos @lels @wires)
+    move    (draw-mode-cursor @cursor-pos @lels @wires)
     add     (draw-mode-add)
     wire    (draw-mode-wire)
     catalog (draw-mode-catalog)
@@ -1060,6 +1058,24 @@
       (.setAll (.getChildren pane) (draw-mode))
       true)))
 
+(defn pane-schem-cursor-jump [keyEvent pane]
+  (let [[fil pick lelc wirec0 wirec1]
+          ({KeyCode/Y [#(< % (:x @cursor-pos)) #(apply max %) :x :x0 :x1]
+            KeyCode/O [#(< (:x @cursor-pos) %) #(apply min %) :x :x0 :x1]
+            KeyCode/I [#(< % (:y @cursor-pos)) #(apply max %) :y :y0 :y1]
+            KeyCode/U [#(< (:y @cursor-pos) %) #(apply min %) :y :y0 :y1]}
+           (.getCode keyEvent))
+        filtered (filter fil
+                         (concat (map #(lelc   %) (vals @lels ))
+                                 (map #(wirec0 %) (vals @wires))
+                                 (map #(wirec1 %) (vals @wires))))]
+    (when (and fil (not (empty? filtered)))
+      (dosync (alter cursor-pos #(assoc % lelc (pick filtered))))
+      (.consume keyEvent)
+      (.setText *label-debug* (state-text))
+      (.setAll (.getChildren pane) (draw-mode))
+      true)))
+
 (defn pane-schem-revert [f-set-to-parent pane]
   (.setText *label-debug* (state-text))
   (f-set-to-parent pane)
@@ -1090,9 +1106,10 @@
 (defn pane-schem-key [f-set-to-parent pane]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (or (pane-schem-goto-dialog keyEvent pane f-set-to-parent)
-          (pane-schem-cursor-move keyEvent pane)
+      (or (pane-schem-goto-dialog  keyEvent pane f-set-to-parent)
+          (pane-schem-cursor-move  keyEvent pane)
           (pane-schem-cursor-speed keyEvent)
+          (pane-schem-cursor-jump  keyEvent pane)
           (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
             (when f
               (f 'dummy)
