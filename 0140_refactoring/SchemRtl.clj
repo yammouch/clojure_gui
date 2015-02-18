@@ -1059,18 +1059,24 @@
       true)))
 
 (defn pane-schem-cursor-jump [keyEvent pane]
-  (let [[fil pick lelc wirec0 wirec1]
-          ({KeyCode/Y [#(< % (:x @cursor-pos)) #(apply max %) :x :x0 :x1]
-            KeyCode/O [#(< (:x @cursor-pos) %) #(apply min %) :x :x0 :x1]
-            KeyCode/I [#(< % (:y @cursor-pos)) #(apply max %) :y :y0 :y1]
-            KeyCode/U [#(< (:y @cursor-pos) %) #(apply min %) :y :y0 :y1]}
+  (let [[fil pick move-dir]
+          ({KeyCode/Y [#(< % (:x @cursor-pos)) #(apply max %) :x]
+            KeyCode/O [#(< (:x @cursor-pos) %) #(apply min %) :x]
+            KeyCode/I [#(< % (:y @cursor-pos)) #(apply max %) :y]
+            KeyCode/U [#(< (:y @cursor-pos) %) #(apply min %) :y]}
            (.getCode keyEvent))
+        [lelc0 lelc1 wirec0 wirec1]
+          (case move-dir
+            :x [lel-x-min lel-x-max :x0 :x1]
+            :y [lel-y-min lel-y-max :y0 :y1]
+            nil)
         filtered (filter fil
-                         (concat (map #(lelc   %) (vals @lels ))
-                                 (map #(wirec0 %) (vals @wires))
-                                 (map #(wirec1 %) (vals @wires))))]
+                         (concat (map lelc0  (vals @lels))
+                                 (map lelc1  (vals @lels))
+                                 (map wirec0 (vals @wires))
+                                 (map wirec1 (vals @wires))))]
     (when (and fil (not (empty? filtered)))
-      (dosync (alter cursor-pos #(assoc % lelc (pick filtered))))
+      (dosync (alter cursor-pos #(assoc % move-dir (pick filtered))))
       (.consume keyEvent)
       (.setText *label-debug* (state-text))
       (.setAll (.getChildren pane) (draw-mode))
