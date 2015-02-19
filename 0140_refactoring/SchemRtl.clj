@@ -555,28 +555,20 @@
 
 (defn move-cursor [dir speed]
   (dosync
-    (ref-set cursor-pos
-             (case dir
-               left  (assoc @cursor-pos :x (- (@cursor-pos :x) speed))
-               right (assoc @cursor-pos :x (+ (@cursor-pos :x) speed))
-               up    (assoc @cursor-pos :y (- (@cursor-pos :y) speed))
-               down  (assoc @cursor-pos :y (+ (@cursor-pos :y) speed))
-               ))))
+    (alter cursor-pos
+           (case dir
+             (left right) #(assoc % :x (+ (@cursor-pos :x) speed))
+             (up   down ) #(assoc % :y (+ (@cursor-pos :y) speed))
+             ))))
 
 (defn move-selected-lels [dir speed]
   (dosync
     (ref-set lels
              (reduce (fn [lels sel]
-                       (assoc lels sel
-                              (assoc (lels sel)
-                                     (cond (#{'left 'right} dir) :x
-                                           (#{'up 'down} dir)    :y)
-                                     (case dir
-                                       left  (- ((lels sel) :x) speed)
-                                       right (+ ((lels sel) :x) speed)
-                                       up    (- ((lels sel) :y) speed)
-                                       down  (+ ((lels sel) :y) speed)
-                                       ))))
+                       (let [xy (case dir (left right) :x, :y)]
+                         (assoc-in lels [sel xy]
+                                   (+ (get-in lels [sel xy]) speed)
+                                   )))
                      @lels
                      @selected-lels))))
 
@@ -817,10 +809,10 @@
                             (ref-set mode {:mode 'cursor})))
    KeyCode/ENTER  (fn [_] (dosync
                             (alter wires conj
-                                  {(gensym) {:x0 (@wire-p0 :x)
-                                             :y0 (@wire-p0 :y)
-                                             :x1 (@cursor-pos :x)
-                                             :y1 (@cursor-pos :y)}})
+                                   {(gensym) {:x0 (@wire-p0 :x)
+                                              :y0 (@wire-p0 :y)
+                                              :x1 (@cursor-pos :x)
+                                              :y1 (@cursor-pos :y)}})
                             (ref-set mode {:mode 'cursor})))
                             })
 
@@ -1025,6 +1017,28 @@
 ; schematic pane
 ;--------------------------------------------------
 
+(defn jump-amount [dir]
+  (let [[fil pick move-dir]
+          (case dir
+            left  [#(< % (:x @cursor-pos)) #(apply max %) :x]
+            right [#(< (:x @cursor-pos) %) #(apply min %) :x]
+            up    [#(< % (:y @cursor-pos)) #(apply max %) :y]
+            down  [#(< (:y @cursor-pos) %) #(apply min %) :y])
+        [lelc0 lelc1 wirec0 wirec1]
+          (case move-dir
+            :x [lel-x-min lel-x-max :x0 :x1]
+            :y [lel-y-min lel-y-max :y0 :y1]
+            nil)
+        filtered (filter fil
+                         (concat (map lelc0  (vals @lels))
+                                 (map lelc1  (vals @lels))
+                                 (map wirec0 (vals @wires))
+                                 (map wirec1 (vals @wires))))]
+    (if (empty? filtered)
+      0
+      (- (pick filtered) (move-dir @cursor-pos))
+      )))
+
 (defn pane-schem-cursor-speed [keyEvent]
   (let [num ({KeyCode/DIGIT0 0, KeyCode/DIGIT1 1, KeyCode/DIGIT2 2,
               KeyCode/DIGIT3 3, KeyCode/DIGIT4 4, KeyCode/DIGIT5 5,
@@ -1039,44 +1053,23 @@
 
 (defn pane-schem-cursor-move [keyEvent pane]
   (let [kc (.getCode keyEvent)
-        direction (cond (#{KeyCode/LEFT  KeyCode/H} kc) 'left
-                        (#{KeyCode/RIGHT KeyCode/L} kc) 'right
-                        (#{KeyCode/UP    KeyCode/K} kc) 'up
-                        (#{KeyCode/DOWN  KeyCode/J} kc) 'down
-                        :else                           nil)
-        speed (if (<= @cursor-speed 0) 1 @cursor-speed)
-        operation (case (:mode @mode)
-                    (cursor add wire) #(move-cursor % speed)
-                    move              #(do (move-cursor   % speed)
-                                           (move-selected % speed))
-                    catalog           #(move-catalog %)
-                    nil)]
-    (when (and direction operation)
-      (operation direction)
-      (.consume keyEvent)
-      (.setText *label-debug* (state-text))
-      (.setAll (.getChildren pane) (draw-mode))
-      true)))
-
-(defn pane-schem-cursor-jump [keyEvent pane]
-  (let [[fil pick move-dir]
-          ({KeyCode/Y [#(< % (:x @cursor-pos)) #(apply max %) :x]
-            KeyCode/O [#(< (:x @cursor-pos) %) #(apply min %) :x]
-            KeyCode/I [#(< % (:y @cursor-pos)) #(apply max %) :y]
-            KeyCode/U [#(< (:y @cursor-pos) %) #(apply min %) :y]}
-           (.getCode keyEvent))
-        [lelc0 lelc1 wirec0 wirec1]
-          (case move-dir
-            :x [lel-x-min lel-x-max :x0 :x1]
-            :y [lel-y-min lel-y-max :y0 :y1]
-            nil)
-        filtered (filter fil
-                         (concat (map lelc0  (vals @lels))
-                                 (map lelc1  (vals @lels))
-                                 (map wirec0 (vals @wires))
-                                 (map wirec1 (vals @wires))))]
-    (when (and fil (not (empty? filtered)))
-      (dosync (alter cursor-pos #(assoc % move-dir (pick filtered))))
+        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) 'left
+                  (#{KeyCode/RIGHT KeyCode/L} kc) 'right
+                  (#{KeyCode/UP    KeyCode/K} kc) 'up
+                  (#{KeyCode/DOWN  KeyCode/J} kc) 'down
+                  :else                           nil)
+        speed (cond (not dir)            1
+                    (<= @cursor-speed 0) (jump-amount dir)
+                    ('#{left up} dir)    (- @cursor-speed)
+                    :else                @cursor-speed)
+        op (case (:mode @mode)
+             (cursor add wire) #(move-cursor % speed)
+             move              #(do (move-cursor   % speed)
+                                    (move-selected % speed))
+             catalog           #(move-catalog %)
+             nil)]
+    (when (and dir op)
+      (op dir)
       (.consume keyEvent)
       (.setText *label-debug* (state-text))
       (.setAll (.getChildren pane) (draw-mode))
@@ -1115,7 +1108,6 @@
       (or (pane-schem-goto-dialog  keyEvent pane f-set-to-parent)
           (pane-schem-cursor-move  keyEvent pane)
           (pane-schem-cursor-speed keyEvent)
-          (pane-schem-cursor-jump  keyEvent pane)
           (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
             (when f
               (f 'dummy)
