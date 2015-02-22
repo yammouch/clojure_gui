@@ -43,6 +43,13 @@
 (def selected-wires (ref {}))
 (def selected-name (ref nil))
 
+(def moving-lels (ref {}))
+(def moving-wires (ref {}))
+(def moving-vertices (ref {}))
+
+(def old-lels (ref {}))
+(def old-wires (ref {}))
+
 (def mode (ref {:mode 'cursor}))
 (def wire-p0 (ref {:x 0 :y 0}))
 (def catalog-pos (ref {:x 0 :y 0}))
@@ -481,6 +488,21 @@
                  ( into-array Double [2.0 2.0] ))
         [rect])))))
 
+(defn draw-mode-move []
+  (into-array Node
+   (concat
+    [(draw-dot @cursor-pos 9 Color/BLUE)]
+    (mapcat (fn [[k v]]
+              (let [vertices (@moving-vertices k)]
+                (if vertices
+                  (draw-wire-selected v vertices)
+                  [(draw-wire v Color/BLACK)])))
+            @wires)
+    (mapcat (fn [[k v]] (lel-draw v Color/BLACK)) @lels)
+    (mapcat (fn [[k v]] [(draw-wire v Color/RED)]) @moving-wires)
+    (mapcat (fn [[k v]] (lel-draw v Color/RED)) @moving-lels)
+    )))
+
 (defn draw-mode-add []
   (into-array Node
    (concat
@@ -543,7 +565,7 @@
 (defn draw-mode []
   (case (@mode :mode)
     cursor  (draw-mode-cursor @cursor-pos @lels @wires)
-    move    (draw-mode-cursor @cursor-pos @lels @wires)
+    move    (draw-mode-move)
     add     (draw-mode-add)
     wire    (draw-mode-wire)
     catalog (draw-mode-catalog)
@@ -561,30 +583,26 @@
              (up   down ) #(assoc % :y (+ (@cursor-pos :y) speed))
              ))))
 
-(defn move-selected-lels [dir speed]
-  (dosync
-    (ref-set lels
-             (reduce (fn [lels sel]
-                       (let [xy (case dir (left right) :x, :y)]
-                         (assoc-in lels [sel xy]
-                                   (+ (get-in lels [sel xy]) speed)
-                                   )))
-                     @lels
-                     @selected-lels))))
+(defn move-lels [lels dir speed]
+  (apply hash-map
+   (mapcat (fn [[k v]]
+             (let [xy (case dir (left right) :x, :y)]
+               [k (update-in v [xy] (partial + speed))]))
+           lels)))
 
 (defn move-wire [wire dir speed points]
   (let [[f & keys] (case [points dir]
-                     [p0   left ] [#(- % speed) :x0]
+                     [p0   left ] [#(+ % speed) :x0]
                      [p0   right] [#(+ % speed) :x0]
-                     [p0   up   ] [#(- % speed) :y0]
+                     [p0   up   ] [#(+ % speed) :y0]
                      [p0   down ] [#(+ % speed) :y0]
-                     [p1   left ] [#(- % speed) :x1]
+                     [p1   left ] [#(+ % speed) :x1]
                      [p1   right] [#(+ % speed) :x1]
-                     [p1   up   ] [#(- % speed) :y1]
+                     [p1   up   ] [#(+ % speed) :y1]
                      [p1   down ] [#(+ % speed) :y1]
-                     [p0p1 left ] [#(- % speed) :x0 :x1]
+                     [p0p1 left ] [#(+ % speed) :x0 :x1]
                      [p0p1 right] [#(+ % speed) :x0 :x1]
-                     [p0p1 up   ] [#(- % speed) :y0 :y1]
+                     [p0p1 up   ] [#(+ % speed) :y0 :y1]
                      [p0p1 down ] [#(+ % speed) :y0 :y1])]
     (reduce (fn [wire k] (assoc wire k (f (wire k))))
             wire keys)))
@@ -594,13 +612,18 @@
                         (assoc wires sel
                                (move-wire (wires sel) dir speed points)))
                       @wires
-                      @selected-wires)]
+                      @moving-vertices)]
     (dosync
+      (alter moving-wires
+             #(apply hash-map
+               (mapcat (fn [[k v]] [k (move-wire v dir speed 'p0p1)])
+                       %)))
       (ref-set wires moved)
       )))
 
 (defn move-selected [dir speed]
-  (move-selected-lels dir speed)
+  (dosync
+    (alter moving-lels move-lels dir speed))
   (move-selected-wires dir speed))
 
 (defn move-catalog [dir]
@@ -740,8 +763,28 @@
 (def key-command-cursor-mode
   {;KeyCode/VK_Q      (fn [{frame :frame}] (close-window frame))
    KeyCode/C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
-   KeyCode/M      (fn [_] (dosync
-                            (ref-set mode {:mode 'move})))
+   KeyCode/M
+   (fn [_]
+     (dosync
+       (ref-set old-lels @lels)
+       (ref-set old-wires @wires))
+     (let [{:keys [s n]} (group-by (fn [[k _]] (if (selected-lels k) :s :n))
+                                   @lels)]
+       (dosync
+         (ref-set moving-lels (into {} s))
+         (ref-set        lels (into {} n))))
+     (let [{:keys [s n]} (group-by (fn [[k _]]
+                                     (if (= (selected-wires k) 'p0p1) :s :n))
+                                   @wires)]
+       (dosync
+         (ref-set moving-wires (into {} s))
+         (ref-set        wires (into {} n))))
+     (dosync
+       (ref-set moving-vertices
+                (into {} (filter (fn [[_ v]] ('#{p0 p1} v))
+                                 @selected-wires)))
+       (ref-set mode {:mode 'move}))
+     (release-selection))
    KeyCode/W      (fn [_] (dosync
                             (release-selection)
                             (ref-set wire-p0 @cursor-pos)
@@ -799,9 +842,14 @@
 (def key-command-move-mode
   {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
    KeyCode/ESCAPE (fn [_] (dosync
-                            (release-selection)
+                            (ref-set lels @old-lels)
+                            (ref-set wires @old-wires)
                             (ref-set mode {:mode 'cursor})))
-                            })
+   KeyCode/ENTER  (fn [_] (dosync
+                            (alter lels conj @moving-lels)
+                            (alter wires conj @moving-wires)
+                            (ref-set mode {:mode 'cursor})))
+   })
 
 (def key-command-wire-mode
   {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
