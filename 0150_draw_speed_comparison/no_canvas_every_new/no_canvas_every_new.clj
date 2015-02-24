@@ -1,7 +1,7 @@
-(ns SchemRtl)
+(ns no_canvas_every_new)
 
 (gen-class
-  :name "SchemRtl"
+  :name "no_canvas_every_new"
   :main true
   :extends javafx.application.Application)
 
@@ -1283,6 +1283,6 @@
     (.requestFocus pane)))
 
 (defn -main [& args]
-  (Application/launch (Class/forName "SchemRtl")
+  (Application/launch (Class/forName "no_canvas_every_new")
                       (into-array String [])))
 
