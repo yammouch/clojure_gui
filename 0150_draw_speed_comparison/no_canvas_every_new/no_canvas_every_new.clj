@@ -18,16 +18,17 @@
   '(javafx.stage         Stage))
 
 (def origin (ref [0 0]))
+(def grid 8.0)
 
 (defn make-square [[x y]]
-  (let [square (Rectangle. x y 4.0 4.0)]
+  (let [square (Rectangle. x y grid grid)]
     (doto square
       (.setStroke Color/BLACK)
       (.setFill Color/TRANSPARENT))
     square))
 
 (defn make-circle [[x y]]
-  (let [circle (Circle. (+ x 2.0) (+ y 2.0) 2.0)]
+  (let [circle (Circle. (+ x (* 0.5 grid)) (+ y (* 0.5 grid)) (* 0.5 grid))]
     (doto circle
       (.setStroke Color/BLACK)
       (.setFill Color/TRANSPARENT))
@@ -35,7 +36,7 @@
 
 (defn make-triangle [[x y]]
   (let [triangle (Polygon. (double-array
-                  [x y (+ x 4.0) (+ y 2.0) x (+ y 4.0)]
+                  [x y (+ x grid) (+ y (* 0.5 grid)) x (+ y grid)]
                   ))]
     (doto triangle
       (.setStroke Color/BLACK)
@@ -45,41 +46,42 @@
 (defn make-and [[x y]]
   (let [path (Path. (into-array PathElement
               [(MoveTo. x y)
-               (LineTo. (+ x 2.0) y)
-               (ArcTo. 2.0   ; radiusX
-                       2.0   ; radiusY
-                       0.0   ; AxisRotation
-                       (+ x 2.0) ; x
-                       (+ y 4.0) ; y
+               (LineTo. (+ x (* 0.5 grid)) y)
+               (ArcTo. (* 0.5 grid)       ; radiusX
+                       (* 0.5 grid)       ; radiusY
+                       0.0                ; AxisRotation
+                       (+ x (* 0.5 grid)) ; x
+                       (+ y grid) ; y
                        false ; largeArcFlag
                        true  ; sweepFlag (true -> counter clockwise)
                        )
-               (LineTo. x (+ y 4.0))
+               (LineTo. x (+ y grid))
                (ClosePath.)
                ]))]
     (doto path
-      (.setStroke Color/TRANSPARENT)
+      (.setStroke Color/BLACK)
       (.setFill Color/TRANSPARENT))
     path))
 
 (defn make-objects [[xorg yorg]]
-  (mapcat (fn [y]
-            (map (fn [x fobj] (fobj [x y]))
-                 (take 100 (iterate #(+ % 4.0) xorg))
-                 (drop (mod y 4)
-                       (cycle [make-square make-circle
-                               make-triangle make-and]))))
-          (take 100 (iterate #(+ % 4.0) yorg))))
+  (mapcat (fn [y-in-grid]
+            (let [y (+ (* y-in-grid grid) yorg)]
+              (map (fn [x fobj] (fobj [x y]))
+                   (take 100 (iterate #(+ % grid) xorg))
+                   (drop (mod y-in-grid 4)
+                         (cycle [make-square make-circle
+                                 make-triangle make-and])))))
+          (range 100)))
 
 ;--------------------------------------------------
 ; schematic pane
 ;--------------------------------------------------
 
 (def key-commands
-  {KeyCode/RIGHT #(alter origin assoc 0 (inc (@origin 0)))
-   KeyCode/LEFT  #(alter origin assoc 0 (dec (@origin 0)))
-   KeyCode/UP    #(alter origin assoc 1 (inc (@origin 1)))
-   KeyCode/DOWN  #(alter origin assoc 1 (dec (@origin 1)))})
+  {KeyCode/RIGHT (fn [] (alter origin update-in [0] #(+ grid %)))
+   KeyCode/LEFT  (fn [] (alter origin update-in [0] #(- grid %)))
+   KeyCode/UP    (fn [] (alter origin update-in [1] #(- grid %)))
+   KeyCode/DOWN  (fn [] (alter origin update-in [1] #(+ grid %)))})
 
 (defn pane-schem-key [f-set-to-parent pane]
   (proxy [EventHandler] []
