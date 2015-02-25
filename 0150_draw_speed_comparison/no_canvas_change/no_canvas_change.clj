@@ -25,14 +25,22 @@
     (doto square
       (.setStroke Color/BLACK)
       (.setFill Color/TRANSPARENT))
-    square))
+    [square
+     (fn [[x y]]
+       (.setX square x)
+       (.setY square y)
+       )]))
 
 (defn make-circle [[x y]]
   (let [circle (Circle. (+ x (* 0.5 grid)) (+ y (* 0.5 grid)) (* 0.5 grid))]
     (doto circle
       (.setStroke Color/BLACK)
       (.setFill Color/TRANSPARENT))
-    circle))
+    [circle
+     (fn [[x y]]
+       (.setCenterX circle (+ x (* 0.5 grid)))
+       (.setCenterY circle (+ y (* 0.5 grid)))
+       )]))
 
 (defn make-triangle [[x y]]
   (let [triangle (Polygon. (double-array
@@ -41,27 +49,48 @@
     (doto triangle
       (.setStroke Color/BLACK)
       (.setFill Color/TRANSPARENT))
-    triangle))
+    [triangle
+     (fn [[x y]]
+     ;  (.. triangle getPoints
+     ;      (setAll (double-array
+     ;               [x y (+ x grid) (+ y (* 0.5 grid)) x (+ y grid)]
+     ;               ))))]))
+       )]))
 
 (defn make-and [[x y]]
-  (let [path (Path. (into-array PathElement
-              [(MoveTo. x y)
-               (LineTo. (+ x (* 0.5 grid)) y)
-               (ArcTo. (* 0.5 grid)       ; radiusX
+  (let [move-to (MoveTo. x y)
+        line-to1 (LineTo. (+ x (* 0.5 grid)) y)
+        arc-to (ArcTo. (* 0.5 grid)       ; radiusX
                        (* 0.5 grid)       ; radiusY
                        0.0                ; AxisRotation
                        (+ x (* 0.5 grid)) ; x
-                       (+ y grid) ; y
-                       false ; largeArcFlag
-                       true  ; sweepFlag (true -> counter clockwise)
+                       (+ y grid)         ; y
+                       false              ; largeArcFlag
+                       true ; sweepFlag (true -> counter clockwise)
                        )
-               (LineTo. x (+ y grid))
-               (ClosePath.)
-               ]))]
+        line-to2 (LineTo. x (+ y grid))
+        path (Path. (into-array PathElement
+              [move-to line-to1 arc-to line-to2 (ClosePath.)]
+              ))]
     (doto path
       (.setStroke Color/BLACK)
       (.setFill Color/TRANSPARENT))
-    path))
+    [path
+     (fn [[x y]]
+       (doto move-to (.setX x) (.setY y))
+       (doto line-to1 (.setX (+ x (* 0.5 grid))) (.setY y))
+       (doto arc-to (.setX (+ x (* 0.5 grid))) (.setY (+ y grid)))
+       (doto line-to2 (.setX x) (.setY (+ y grid)))
+       )]))
+
+(defn change-position [ll [xorg yorg]]
+  (doseq [[f [x y]] (mapcat (fn [l y]
+                              (map (fn [f x] [f [x y]])
+                              l
+                              (iterate #(+ % grid) xorg)))
+                            (partition 100 ll)
+                            (iterate #(+ % grid) yorg))]
+    (f [x y])))
 
 (defn make-objects [[xorg yorg]]
   (mapcat (fn [y-in-grid]
@@ -83,23 +112,25 @@
    KeyCode/UP    (fn [] (alter origin update-in [1] #(- grid %)))
    KeyCode/DOWN  (fn [] (alter origin update-in [1] #(+ grid %)))})
 
-(defn pane-schem-key [f-set-to-parent pane]
+(defn pane-schem-key [f-set-to-parent ll]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (let [f (key-commands (.getCode keyEvent))]
         (when f
           (dosync (f))
-          (.setAll (.getChildren pane)
-                   (into-array Node (make-objects @origin)))
+          (change-position ll @origin)
           (.consume keyEvent)
           )))))
 
 (defn pane-schem [f-set-to-parent]
-  (let [pane (Pane.)]
-    (.setOnKeyPressed pane (pane-schem-key f-set-to-parent pane))
+  (let [objects (make-objects @origin)
+        pane (Pane.)]
+    (.setOnKeyPressed pane
+                      (pane-schem-key f-set-to-parent
+                                      (map #(% 1) objects)))
     (.setFocusTraversable pane true)
     (.setAll (.getChildren pane)
-             (into-array Node (make-objects @origin)))
+             (into-array Node (map #(% 0) objects)))
     (f-set-to-parent pane)
     pane))
 
@@ -119,4 +150,3 @@
 (defn -main [& args]
   (Application/launch (Class/forName "no_canvas_change")
                       (into-array String [])))
-
