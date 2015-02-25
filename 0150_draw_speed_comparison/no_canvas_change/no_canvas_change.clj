@@ -1,7 +1,7 @@
-(ns no_canvas_every_new)
+(ns no_canvas_change)
 
 (gen-class
-  :name "no_canvas_every_new"
+  :name "no_canvas_change"
   :main true
   :extends javafx.application.Application)
 
@@ -117,6 +117,6 @@
     (.requestFocus pane)))
 
 (defn -main [& args]
-  (Application/launch (Class/forName "no_canvas_every_new")
+  (Application/launch (Class/forName "no_canvas_change")
                       (into-array String [])))
 
