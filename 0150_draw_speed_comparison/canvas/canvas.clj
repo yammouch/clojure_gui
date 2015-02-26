@@ -46,15 +46,6 @@
   (.closePath gc)
   (.stroke gc))
 
-(defn change-position [ll [xorg yorg]]
-  (doseq [[f [x y]] (mapcat (fn [l y]
-                              (map (fn [f x] [f [x y]])
-                              l
-                              (iterate #(+ % grid) xorg)))
-                            (partition 100 ll)
-                            (iterate #(+ % grid) yorg))]
-    (f [x y])))
-
 (defn draw-objects [gc [xorg yorg]]
   (mapcat (fn [y-in-grid]
             (let [y (+ (* y-in-grid grid) yorg)]
@@ -75,12 +66,13 @@
    KeyCode/UP    (fn [] (alter origin update-in [1] #(- grid %)))
    KeyCode/DOWN  (fn [] (alter origin update-in [1] #(+ grid %)))})
 
-(defn pane-schem-key [f-set-to-parent gc]
+(defn pane-schem-key [f-set-to-parent gc canvas]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (let [f (key-commands (.getCode keyEvent))]
         (when f
           (dosync (f))
+          (.clearRect gc 0.0 0.0 (.getWidth canvas) (.getHeight canvas))
           (dorun (draw-objects gc @origin))
           (.consume keyEvent)
           )))))
@@ -91,12 +83,9 @@
     (.setStroke gc Color/BLACK)
     (.setFill gc Color/TRANSPARENT)
     (.setOnKeyPressed canvas
-                      (pane-schem-key f-set-to-parent gc))
+                      (pane-schem-key f-set-to-parent gc canvas))
     (.setFocusTraversable canvas true)
-    (draw-circle gc [10.0 10.0])
-    (draw-square gc [20.0 10.0])
-    ;(draw-and gc [30.0 10.0])
-    ;(dorun (draw-objects gc @origin))
+    (dorun (draw-objects gc @origin))
     (f-set-to-parent canvas)
     canvas))
 
