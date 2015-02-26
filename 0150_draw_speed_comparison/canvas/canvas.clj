@@ -9,6 +9,7 @@
   '(javafx.application   Application)
   '(javafx.event         EventHandler)
   '(javafx.scene         Group Node Scene)
+  '(javafx.scene.canvas  Canvas GraphicsContext)
   '(javafx.scene.input   KeyCode KeyEvent)
   '(javafx.scene.layout  BorderPane Pane)
   '(javafx.scene.paint   Color)
@@ -20,68 +21,30 @@
 (def origin (ref [0 0]))
 (def grid 8.0)
 
-(defn make-square [[x y]]
-  (let [square (Rectangle. x y grid grid)]
-    (doto square
-      (.setStroke Color/BLACK)
-      (.setFill Color/TRANSPARENT))
-    [square
-     (fn [[x y]]
-       (.setX square x)
-       (.setY square y)
-       )]))
+(defn draw-square [gc [x y]]
+  (.strokeRect gc x y grid grid))
 
-(defn make-circle [[x y]]
-  (let [circle (Circle. (+ x (* 0.5 grid)) (+ y (* 0.5 grid)) (* 0.5 grid))]
-    (doto circle
-      (.setStroke Color/BLACK)
-      (.setFill Color/TRANSPARENT))
-    [circle
-     (fn [[x y]]
-       (.setCenterX circle (+ x (* 0.5 grid)))
-       (.setCenterY circle (+ y (* 0.5 grid)))
-       )]))
+(defn draw-circle [gc [x y]]
+  (.strokeOval gc x y grid grid))
 
-(defn make-triangle [[x y]]
-  (let [triangle (Polygon. (double-array
-                  [x y (+ x grid) (+ y (* 0.5 grid)) x (+ y grid)]
-                  ))]
-    (doto triangle
-      (.setStroke Color/BLACK)
-      (.setFill Color/TRANSPARENT))
-    [triangle
-     (fn [[x y]]
-     ;  (.. triangle getPoints
-     ;      (setAll (double-array
-     ;               [x y (+ x grid) (+ y (* 0.5 grid)) x (+ y grid)]
-     ;               ))))]))
-       )]))
+(defn draw-triangle [gc [x y]]
+  (.strokePolygon gc
+   (double-array [x (+ x grid)         x])
+   (double-array [y (+ y (* 0.5 grid)) (+ y grid)])
+   3))
 
-(defn make-and [[x y]]
-  (let [move-to (MoveTo. x y)
-        line-to1 (LineTo. (+ x (* 0.5 grid)) y)
-        arc-to (ArcTo. (* 0.5 grid)       ; radiusX
-                       (* 0.5 grid)       ; radiusY
-                       0.0                ; AxisRotation
-                       (+ x (* 0.5 grid)) ; x
-                       (+ y grid)         ; y
-                       false              ; largeArcFlag
-                       true ; sweepFlag (true -> counter clockwise)
-                       )
-        line-to2 (LineTo. x (+ y grid))
-        path (Path. (into-array PathElement
-              [move-to line-to1 arc-to line-to2 (ClosePath.)]
-              ))]
-    (doto path
-      (.setStroke Color/BLACK)
-      (.setFill Color/TRANSPARENT))
-    [path
-     (fn [[x y]]
-       (doto move-to (.setX x) (.setY y))
-       (doto line-to1 (.setX (+ x (* 0.5 grid))) (.setY y))
-       (doto arc-to (.setX (+ x (* 0.5 grid))) (.setY (+ y grid)))
-       (doto line-to2 (.setX x) (.setY (+ y grid)))
-       )]))
+(defn draw-and [gc [x y]]
+  (.beginPath gc)
+  (.moveTo gc x y)
+  (.lineTo gc (+ x (* 0.5 grid)) y)
+  (.arcTo gc (+ x grid)
+             (+ y (* 0.5 grid))
+             (+ x (* 0.5 grid))
+             (+ y grid)
+             (* 0.5 grid))
+  (.lineTo gc x (+ y grid))
+  (.closePath gc)
+  (.stroke gc))
 
 (defn change-position [ll [xorg yorg]]
   (doseq [[f [x y]] (mapcat (fn [l y]
@@ -92,14 +55,14 @@
                             (iterate #(+ % grid) yorg))]
     (f [x y])))
 
-(defn make-objects [[xorg yorg]]
+(defn draw-objects [gc [xorg yorg]]
   (mapcat (fn [y-in-grid]
             (let [y (+ (* y-in-grid grid) yorg)]
-              (map (fn [x fobj] (fobj [x y]))
+              (map (fn [x fdraw] (fdraw gc [x y]))
                    (take 100 (iterate #(+ % grid) xorg))
                    (drop (mod y-in-grid 4)
-                         (cycle [make-square make-circle
-                                 make-triangle make-and])))))
+                         (cycle [draw-square draw-circle
+                                 draw-triangle draw-and])))))
           (range 100)))
 
 ;--------------------------------------------------
@@ -112,27 +75,30 @@
    KeyCode/UP    (fn [] (alter origin update-in [1] #(- grid %)))
    KeyCode/DOWN  (fn [] (alter origin update-in [1] #(+ grid %)))})
 
-(defn pane-schem-key [f-set-to-parent ll]
+(defn pane-schem-key [f-set-to-parent gc]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (let [f (key-commands (.getCode keyEvent))]
         (when f
           (dosync (f))
-          (change-position ll @origin)
+          (dorun (draw-objects gc @origin))
           (.consume keyEvent)
           )))))
 
 (defn pane-schem [f-set-to-parent]
-  (let [objects (make-objects @origin)
-        pane (Pane.)]
-    (.setOnKeyPressed pane
-                      (pane-schem-key f-set-to-parent
-                                      (map #(% 1) objects)))
-    (.setFocusTraversable pane true)
-    (.setAll (.getChildren pane)
-             (into-array Node (map #(% 0) objects)))
-    (f-set-to-parent pane)
-    pane))
+  (let [canvas (Canvas. 1024.0 768.0)
+        gc (.getGraphicsContext2D canvas)]
+    (.setStroke gc Color/BLACK)
+    (.setFill gc Color/TRANSPARENT)
+    (.setOnKeyPressed canvas
+                      (pane-schem-key f-set-to-parent gc))
+    (.setFocusTraversable canvas true)
+    (draw-circle gc [10.0 10.0])
+    (draw-square gc [20.0 10.0])
+    ;(draw-and gc [30.0 10.0])
+    ;(dorun (draw-objects gc @origin))
+    (f-set-to-parent canvas)
+    canvas))
 
 ;--------------------------------------------------
 ; JavaFX main routine
