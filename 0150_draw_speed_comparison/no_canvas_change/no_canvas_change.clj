@@ -17,7 +17,7 @@
                          LineTo)
   '(javafx.stage         Stage))
 
-(def origin (ref [0 0]))
+(def origin (ref [0.0 0.0]))
 (def grid 8.0)
 
 (defn make-square [[x y]]
@@ -51,11 +51,11 @@
       (.setFill Color/TRANSPARENT))
     [triangle
      (fn [[x y]]
-     ;  (.. triangle getPoints
-     ;      (setAll (double-array
-     ;               [x y (+ x grid) (+ y (* 0.5 grid)) x (+ y grid)]
-     ;               ))))]))
-       )]))
+       (.. triangle getPoints
+           (setAll (into-array Double
+                    (map #(Double. %)
+                         [x y (+ x grid) (+ y (* 0.5 grid)) x (+ y grid)])
+                    ))))]))
 
 (defn make-and [[x y]]
   (let [move-to (MoveTo. x y)
