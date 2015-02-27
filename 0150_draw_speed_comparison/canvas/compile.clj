@@ -6,5 +6,5 @@
 ; > java -cp classes;\path\to\clojure-1.6.0.jar no_canvas_change
 
 (def force-toolkit-init (javafx.embed.swing.JFXPanel.))
-(compile 'no_canvas_change)
+(compile 'canvas)
 (System/exit 0)
