@@ -577,48 +577,29 @@
 ;--------------------------------------------------
 
 (defn move-cursor [dir speed]
-  (dosync
-    (alter cursor-pos
-           (case dir
-             (left right) #(assoc % :x (+ (@cursor-pos :x) speed))
-             (up   down ) #(assoc % :y (+ (@cursor-pos :y) speed))
-             ))))
+  (dosync (alter cursor-pos #(update-in % [dir] (partial + speed)))))
 
 (defn move-lels [lels dir speed]
-  (apply hash-map
-   (mapcat (fn [[k v]]
-             (let [xy (case dir (left right) :x, :y)]
-               [k (update-in v [xy] (partial + speed))]))
-           lels)))
+  (reduce #(update-in %1 [%2 dir] (partial + speed)) lels (keys lels)))
 
 (defn move-wire [wire dir speed points]
-  (let [[& keys] (case [points dir]
-                     [#{p0}    left ] [:x0]
-                     [#{p0}    right] [:x0]
-                     [#{p0}    up   ] [:y0]
-                     [#{p0}    down ] [:y0]
-                     [#{p1}    left ] [:x1]
-                     [#{p1}    right] [:x1]
-                     [#{p1}    up   ] [:y1]
-                     [#{p1}    down ] [:y1]
-                     [#{p0 p1} left ] [:x0 :x1]
-                     [#{p0 p1} right] [:x0 :x1]
-                     [#{p0 p1} up   ] [:y0 :y1]
-                     [#{p0 p1} down ] [:y0 :y1])]
-    (reduce (fn [wire k] (assoc wire k (+ (wire k) speed)))
-            wire keys)))
+  (let [[& coords] (case points
+                     #{p0}    (case dir :x [:x0    ] :y [:y0    ])
+                     #{p1}    (case dir :x [    :x1] :y [    :y1])
+                     #{p0 p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
+    (reduce #(update-in %1 [%2] (partial + speed))
+            wire coords)))
 
 (defn move-selected-wires [dir speed]
   (let [moved (reduce (fn [wires [sel points]]
-                        (assoc wires sel
-                               (move-wire (wires sel) dir speed points)))
-                      @wires
-                      @moving-vertices)]
+                        (update-in wires [sel] #(move-wire % dir speed points))
+                      @wires @moving-vertices)]
     (dosync
       (alter moving-wires
-             #(apply hash-map
-               (mapcat (fn [[k v]] [k (move-wire v dir speed '#{p0 p1})])
-                       %)))
+             #(reduce (fn [wires k]
+                        (update-in wires [k]
+                         (fn [wb] (move-wire wb dir speed points)
+                      % (keys %)))
       (ref-set wires moved)
       )))
 
@@ -627,15 +608,10 @@
     (alter moving-lels move-lels dir speed))
   (move-selected-wires dir speed))
 
-(defn move-catalog [dir]
-  (dosync
-    (ref-set catalog-pos
-             (case dir
-               left  (assoc @catalog-pos :x (dec (@catalog-pos :x)))
-               right (assoc @catalog-pos :x (inc (@catalog-pos :x)))
-               up    (assoc @catalog-pos :y (dec (@catalog-pos :y)))
-               down  (assoc @catalog-pos :y (inc (@catalog-pos :y)))
-               ))))
+(defn move-catalog [dir speed]
+  (dosync (alter catalog-pos
+           #(update-in % [dir] (if (neg? speed) dec inc))
+           )))
 
 ;--------------------------------------------------
 ; sub functions for key commands
@@ -1064,14 +1040,14 @@
 
 (defn pane-schem-cursor-move [keyEvent pane]
   (let [kc (.getCode keyEvent)
-        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) 'left
-                  (#{KeyCode/RIGHT KeyCode/L} kc) 'right
-                  (#{KeyCode/UP    KeyCode/K} kc) 'up
-                  (#{KeyCode/DOWN  KeyCode/J} kc) 'down
+        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) :left
+                  (#{KeyCode/RIGHT KeyCode/L} kc) :right
+                  (#{KeyCode/UP    KeyCode/K} kc) :up
+                  (#{KeyCode/DOWN  KeyCode/J} kc) :down
                   :else                           nil)
         speed (cond (not dir)            1
                     (<= @cursor-speed 0) (jump-amount dir)
-                    ('#{left up} dir)    (- @cursor-speed)
+                    ('#{:left :up} dir)  (- @cursor-speed)
                     :else                @cursor-speed)
         op (case (:mode @mode)
              (cursor add wire) #(move-cursor % speed)
@@ -1080,7 +1056,7 @@
              catalog           #(move-catalog %)
              nil)]
     (when (and dir op)
-      (op dir)
+      (op (case dir (:left :right) :x :y))
       (.consume keyEvent)
       (.setText *label-debug* (state-text))
       (.setAll (.getChildren pane) (draw-mode))
