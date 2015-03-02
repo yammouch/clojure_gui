@@ -153,7 +153,7 @@
     line))
 
 (defn draw-wire-selected [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} selected]
-  (if (= selected 'p0p1)
+  (if (= selected '#{p0 p1})
     (let [line (apply #(Line. %1 %2 %3 %4) (apply concat
                 (map grid2screen [[x0 y0] [x1 y1]])))]
       (.setStroke line Color/RED)
@@ -162,14 +162,15 @@
           len (Math/sqrt (+ (* x- x-) (* y- y-)))
 
           [xorg xhl yorg yhl] ; hl: highlight
-          (if (= selected 'p0)
+          (if (= selected #{'p0})
             [x0 (+ x0 (/ x- len)) y0 (+ y0 (/ y- len))]
             [x1 (- x1 (/ x- len)) y1 (- y1 (/ y- len))])
           shortline (apply #(Line. %1 %2 %3 %4) (apply concat
                      (map grid2screen [[xorg yorg] [xhl yhl]])))
           longline (apply #(Line. %1 %2 %3 %4) (apply concat
                     (map grid2screen
-                         [[xhl yhl] (if (= selected 'p0) [x1 y1] [x0 y0])])))]
+                         [[xhl yhl] (if (= selected #{'p0})
+                                      [x1 y1] [x0 y0])])))]
       (.setStroke shortline Color/RED)
       [shortline longline])))
 
@@ -591,20 +592,20 @@
            lels)))
 
 (defn move-wire [wire dir speed points]
-  (let [[f & keys] (case [points dir]
-                     [p0   left ] [#(+ % speed) :x0]
-                     [p0   right] [#(+ % speed) :x0]
-                     [p0   up   ] [#(+ % speed) :y0]
-                     [p0   down ] [#(+ % speed) :y0]
-                     [p1   left ] [#(+ % speed) :x1]
-                     [p1   right] [#(+ % speed) :x1]
-                     [p1   up   ] [#(+ % speed) :y1]
-                     [p1   down ] [#(+ % speed) :y1]
-                     [p0p1 left ] [#(+ % speed) :x0 :x1]
-                     [p0p1 right] [#(+ % speed) :x0 :x1]
-                     [p0p1 up   ] [#(+ % speed) :y0 :y1]
-                     [p0p1 down ] [#(+ % speed) :y0 :y1])]
-    (reduce (fn [wire k] (assoc wire k (f (wire k))))
+  (let [[& keys] (case [points dir]
+                     [#{p0}    left ] [:x0]
+                     [#{p0}    right] [:x0]
+                     [#{p0}    up   ] [:y0]
+                     [#{p0}    down ] [:y0]
+                     [#{p1}    left ] [:x1]
+                     [#{p1}    right] [:x1]
+                     [#{p1}    up   ] [:y1]
+                     [#{p1}    down ] [:y1]
+                     [#{p0 p1} left ] [:x0 :x1]
+                     [#{p0 p1} right] [:x0 :x1]
+                     [#{p0 p1} up   ] [:y0 :y1]
+                     [#{p0 p1} down ] [:y0 :y1])]
+    (reduce (fn [wire k] (assoc wire k (+ (wire k) speed)))
             wire keys)))
 
 (defn move-selected-wires [dir speed]
@@ -616,7 +617,7 @@
     (dosync
       (alter moving-wires
              #(apply hash-map
-               (mapcat (fn [[k v]] [k (move-wire v dir speed 'p0p1)])
+               (mapcat (fn [[k v]] [k (move-wire v dir speed '#{p0 p1})])
                        %)))
       (ref-set wires moved)
       )))
@@ -647,9 +648,7 @@
 
 (defn find-lel-by-pos [lels pos]
   (some (fn [[k v]]
-          (when (and (= (pos :x) (v :x))
-                     (= (pos :y) (v :y)))
-            k))
+          (when (= (map #(pos %) [:x :y]) (map #(v %) [:x :y])) k))
         lels))
 
 (defn wire-vs-cursor [wire cur]
@@ -661,18 +660,16 @@
                         (< q1 qc) nil
 
                         (< (- q1 q0) 4)
-                        (cond (= qc q0) (if inv 'p1 'p0)
-                              (= qc q1) (if inv 'p0 'p1)
-                              :else     'p0p1)
+                        (cond (= qc q0) (if inv #{'p1} #{'p0})
+                              (= qc q1) (if inv #{'p0} #{'p1})
+                              :else     #{'p0 'p1})
 
-                        (<= qc (+ q0 1)) (if inv 'p1 'p0)
-                        (<= (- q1 1) qc) (if inv 'p0 'p1)
-                        :else 'p0p1
+                        (<= qc (+ q0 1)) (if inv #{'p1} #{'p0})
+                        (<= (- q1 1) qc) (if inv #{'p0} #{'p1})
+                        :else #{'p0 'p1}
                         )))]
-    (cond (and (= (:x cur) (:x0 wire))
-               (= (:y cur) (:y0 wire))) 'p0
-          (and (= (:x cur) (:x1 wire))
-               (= (:y cur) (:y1 wire))) 'p1
+    (cond (= (map #(cur %) [:x :y]) (map #(wire %) [:x0 :y0])) #{'p0}
+          (= (map #(cur %) [:x :y]) (map #(wire %) [:x1 :y1])) #{'p1}
 
           (= (:x cur) (:x0 wire) (:x1 wire))
           (fcomp (:y cur) (:y0 wire) (:y1 wire))
@@ -683,40 +680,16 @@
           :else nil)))
 
 (defn find-wires-by-pos [wires pos]
-  (let [rec (fn [ws acc]
-              (if (empty? ws)
-                acc
-                (let [[k v] (first ws)
-                      p (wire-vs-cursor v pos)]
-                  (recur (rest ws)
-                         (if p (conj acc {k p}) acc)
-                         ))))]
-    (rec wires {})))
+  (reduce-kv (fn [acc k v] (if-let [p (wire-vs-cursor v pos)]
+                             (conj acc {k p}) acc))
+             {} wires))
 
 (defn merge-selected-wire [base add]
-  (letfn [(rec [xs acc]
-            (if (empty? xs)
-              acc
-              (let [picked (base (ffirst xs))]
-                (if picked
-                  (recur (rest xs)
-                         (conj acc
-                               {(ffirst xs)
-                                (case [picked (second (first xs))]
-                                  [p0   p0  ] 'p0
-                                  [p0   p1  ] 'p0p1
-                                  [p0   p0p1] 'p0p1
-                                  [p1   p0  ] 'p0p1
-                                  [p1   p1  ] 'p1
-                                  [p1   p0p1] 'p0p1
-                                  [p0p1 p0  ] 'p0p1
-                                  [p0p1 p1  ] 'p0p1
-                                  [p0p1 p0p1] 'p0p1
-                                  )}))
-                  (recur (rest xs)
-                         (conj acc (first xs))
-                         )))))]
-    (rec add base)))
+  (reduce-kv (fn [acc k points]
+               (if (base k)
+                 (update-in acc [k] #(into % points))
+                 (conj acc {k points})))
+             base add))
 
 ; An edge of a line should be selected by surrounding it.
 (defn rectangular-select [lels wires x0 y0 x1 y1]
@@ -733,7 +706,7 @@
                              (<= (max (:y0 v) (:y1 v)) ymax)))
                       wires)]
     {:lels (set (keys lels))
-     :wires (zipmap (keys wires) (repeat 'p0p1))
+     :wires (zipmap (keys wires) (repeat '#{p0 p1}))
      }))
 
 (defn remove-lel-by-key [lels keys]
