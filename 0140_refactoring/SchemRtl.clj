@@ -592,13 +592,12 @@
 
 (defn move-selected-wires [dir speed]
   (let [moved (reduce (fn [wires [sel points]]
-                        (update-in wires [sel] #(move-wire % dir speed points))
+                        (update-in wires [sel] move-wire dir speed points))
                       @wires @moving-vertices)]
     (dosync
       (alter moving-wires
              #(reduce (fn [wires k]
-                        (update-in wires [k]
-                         (fn [wb] (move-wire wb dir speed points)
+                        (update-in wires [k] move-wire dir speed '#{p0 p1}))
                       % (keys %)))
       (ref-set wires moved)
       )))
@@ -1007,10 +1006,10 @@
 (defn jump-amount [dir]
   (let [[fil pick move-dir]
           (case dir
-            left  [#(< % (:x @cursor-pos)) #(apply max %) :x]
-            right [#(< (:x @cursor-pos) %) #(apply min %) :x]
-            up    [#(< % (:y @cursor-pos)) #(apply max %) :y]
-            down  [#(< (:y @cursor-pos) %) #(apply min %) :y])
+            :left  [#(< % (:x @cursor-pos)) #(apply max %) :x]
+            :right [#(< (:x @cursor-pos) %) #(apply min %) :x]
+            :up    [#(< % (:y @cursor-pos)) #(apply max %) :y]
+            :down  [#(< (:y @cursor-pos) %) #(apply min %) :y])
         [lelc0 lelc1 wirec0 wirec1]
           (case move-dir
             :x [lel-x-min lel-x-max :x0 :x1]
@@ -1053,7 +1052,7 @@
              (cursor add wire) #(move-cursor % speed)
              move              #(do (move-cursor   % speed)
                                     (move-selected % speed))
-             catalog           #(move-catalog %)
+             catalog           #(move-catalog % (case dir (:left :up) -1 1))
              nil)]
     (when (and dir op)
       (op (case dir (:left :right) :x :y))
