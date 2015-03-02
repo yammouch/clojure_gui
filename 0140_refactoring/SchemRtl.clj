@@ -739,13 +739,13 @@
                                      @lels)]
          (ref-set moving-lels (into {} s))
          (ref-set        lels (into {} n)))
-       (let [{:keys [s n]} (group-by #(if (= (selected-wires (% 0)) 'p0p1)
+       (let [{:keys [s n]} (group-by #(if (= (selected-wires (% 0)) '#{p0 p1})
                                         :s :n)
                                      @wires)]
          (ref-set moving-wires (into {} s))
          (ref-set        wires (into {} n)))
        (ref-set moving-vertices
-                (into {} (filter (fn [[_ v]] ('#{p0 p1} v))
+                (into {} (filter (fn [[_ v]] (not= '#{p0 p1} v))
                                  @selected-wires)))
        (ref-set mode {:mode 'move})
        (release-selection)))
