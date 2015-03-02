@@ -737,18 +737,10 @@
      }))
 
 (defn remove-lel-by-key [lels keys]
-  (apply hash-map
-         (apply concat
-                (remove (fn [[k v]] (keys k))
-                        lels))))
+  (into {} (remove (fn [[k _]] (keys k)) lels)))
 
 (defn remove-wire-by-key [wires keys]
-  (apply hash-map
-         (apply concat
-                (remove (fn [[k v]]
-                          (let [points (keys k)]
-                            (= points 'p0p1)))
-                        wires))))
+  (into {} (remove (fn [[k _]] (= (keys k) 'p0p1)) wires)))
 
 ;;(defn close-window [frame]
 ;;  (let [yn (JOptionPane/showConfirmDialog
@@ -762,33 +754,34 @@
 
 (def key-command-cursor-mode
   {;KeyCode/VK_Q      (fn [{frame :frame}] (close-window frame))
+   ; cursor -> catalog
    KeyCode/C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
+   ; cursor -> move
    KeyCode/M
    (fn [_]
      (dosync
        (ref-set old-lels @lels)
-       (ref-set old-wires @wires))
-     (let [{:keys [s n]} (group-by (fn [[k _]] (if (selected-lels k) :s :n))
-                                   @lels)]
-       (dosync
+       (ref-set old-wires @wires)
+       (let [{:keys [s n]} (group-by #(if (selected-lels (% 0)) :s :n)
+                                     @lels)]
          (ref-set moving-lels (into {} s))
-         (ref-set        lels (into {} n))))
-     (let [{:keys [s n]} (group-by (fn [[k _]]
-                                     (if (= (selected-wires k) 'p0p1) :s :n))
-                                   @wires)]
-       (dosync
+         (ref-set        lels (into {} n)))
+       (let [{:keys [s n]} (group-by #(if (= (selected-wires (% 0)) 'p0p1)
+                                        :s :n)
+                                     @wires)]
          (ref-set moving-wires (into {} s))
-         (ref-set        wires (into {} n))))
-     (dosync
+         (ref-set        wires (into {} n)))
        (ref-set moving-vertices
                 (into {} (filter (fn [[_ v]] ('#{p0 p1} v))
                                  @selected-wires)))
-       (ref-set mode {:mode 'move}))
-     (release-selection))
+       (ref-set mode {:mode 'move})
+       (release-selection)))
+   ; cursor -> wire
    KeyCode/W      (fn [_] (dosync
                             (release-selection)
                             (ref-set wire-p0 @cursor-pos)
                             (ref-set mode {:mode 'wire})))
+   ; no mode change
    KeyCode/R
    (fn [_]
      (if (:rect-x0 @mode)
@@ -828,7 +821,11 @@
 ; if continuous addition is not necessary.
 (def key-command-add-mode
   {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+   ; add -> catalog
    KeyCode/C      (fn [_] (dosync (ref-set mode {:mode 'catalog})))
+   ; add -> cursor
+   KeyCode/ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
+   ; no mode change
    KeyCode/ENTER
    (fn [_]
      (dosync
@@ -836,11 +833,11 @@
               {(gensym)
                (conj (lel-init (:type @mode))
                      @cursor-pos)})))
-   KeyCode/ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
 (def key-command-move-mode
   {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+   ; move -> cursor
    KeyCode/ESCAPE (fn [_] (dosync
                             (ref-set lels @old-lels)
                             (ref-set wires @old-wires)
@@ -853,6 +850,7 @@
 
 (def key-command-wire-mode
   {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
+   ; wire -> cursor
    KeyCode/ESCAPE (fn [_] (dosync
                             (ref-set mode {:mode 'cursor})))
    KeyCode/ENTER  (fn [_] (dosync
@@ -866,20 +864,12 @@
 
 (def key-command-catalog-mode
   {;KeyCode/Q      (fn [{frame :frame}] (close-window frame))
-
+   ; catalog -> add
    KeyCode/ENTER
    (fn [_]
-     (let [type (try
-                  (nth (nth catalog-table
-                            (:y @catalog-pos))
-                       (:x @catalog-pos))
-                  (catch IndexOutOfBoundsException e nil))]
-       (dosync
-         (ref-set mode
-                  (if type
-                    {:mode 'add :type type}
-                    {:mode 'cursor})))))
-
+     (when-let [type (get-in catalog-table (map @catalog-pos [:y :x]))]
+       (dosync (ref-set mode {:mode 'add :type type}))))
+   ; catalog -> cursor
    KeyCode/ESCAPE (fn [_] (dosync (ref-set mode {:mode 'cursor})))
    })
 
@@ -1133,10 +1123,8 @@
 (defn pane-schem-goto-dialog [keyEvent pane f-set-to-parent]
   (when (and (= KeyCode/D (.getCode keyEvent))
              (= (:mode @mode) 'cursor))
-    (let [lel-key (find-lel-by-pos @lels @cursor-pos)
-          dt (when lel-key
-               (dialog-table (get-in @lels [lel-key :type])))]
-      (when dt
+    (let [lel-key (find-lel-by-pos @lels @cursor-pos)]
+      (when-let [dt (dialog-table (get-in @lels [lel-key :type]))]
         (.setFocusTraversable pane false)
         (dosync (ref-set selected-name lel-key))
         (let [borderpane (BorderPane.)
