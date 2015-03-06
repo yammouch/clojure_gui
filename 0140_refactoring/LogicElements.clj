@@ -111,22 +111,14 @@
     (reduce #(update-in %1 [%2] (partial + speed))
             wire coords)))
 
-(defn move-selected-wires [dir speed]
-  (let [moved (reduce (fn [wires [sel points]]
-                        (update-in wires [sel] move-wire dir speed points))
-                      @wires @moving-vertices)]
-    (dosync
-      (alter moving-wires
-             #(reduce (fn [wires k]
-                        (update-in wires [k] move-wire dir speed '#{p0 p1}))
-                      % (keys %)))
-      (ref-set wires moved)
-      )))
+(defn move-wires [wires dir speed points]
+  (into {} (map (fn [[k v]] [k (move-wire v dir speed #'{p0 p1})])
+                wires)))
 
-(defn move-selected [dir speed]
-  (dosync
-    (alter moving-lels move-lels dir speed))
-  (move-selected-wires dir speed))
+(defn move-wires-by-vertices [wires moving-vertices dir speed]
+  (reduce-kv (fn [wires k v]
+               (update-in wires [k] move-wire dir speed v))
+             wires moving-vertices))
 
 (defn find-lel-by-pos [lels pos]
   (some (fn [[k v]]
