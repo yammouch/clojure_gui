@@ -50,6 +50,7 @@
         label (Label. "Press D key to open dialog")]
     (.setOnKeyPressed label
                       (label-key #(.setCenter toppane %) label))
+    (.setCenter toppane label)
     (.setFocusTraversable label true)
     (doto stage
       (.setWidth 640) (.setHeight 480)
