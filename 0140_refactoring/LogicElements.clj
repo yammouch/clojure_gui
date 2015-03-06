@@ -189,49 +189,25 @@
 (defn remove-wire-by-key [wires keys]
   (into {} (remove (fn [[k _]] (= (keys k) 'p0p1)) wires)))
 
-(defn jump-amount [dir]
+(defn jump-amount [dir cursor-pos lels wires]
   (let [[fil pick move-dir]
           (case dir
-            :left  [#(< % (:x @cursor-pos)) #(apply max %) :x]
-            :right [#(< (:x @cursor-pos) %) #(apply min %) :x]
-            :up    [#(< % (:y @cursor-pos)) #(apply max %) :y]
-            :down  [#(< (:y @cursor-pos) %) #(apply min %) :y])
+            :left  [#(< % (:x cursor-pos)) #(apply max %) :x]
+            :right [#(< (:x cursor-pos) %) #(apply min %) :x]
+            :up    [#(< % (:y cursor-pos)) #(apply max %) :y]
+            :down  [#(< (:y cursor-pos) %) #(apply min %) :y])
         [lelc0 lelc1 wirec0 wirec1]
           (case move-dir
             :x [lel-x-min lel-x-max :x0 :x1]
             :y [lel-y-min lel-y-max :y0 :y1]
             nil)
         filtered (filter fil
-                         (concat (map lelc0  (vals @lels))
-                                 (map lelc1  (vals @lels))
-                                 (map wirec0 (vals @wires))
-                                 (map wirec1 (vals @wires))))]
+                         (concat (map lelc0  (vals lels))
+                                 (map lelc1  (vals lels))
+                                 (map wirec0 (vals wires))
+                                 (map wirec1 (vals wires))))]
     (if (empty? filtered)
       0
-      (- (pick filtered) (move-dir @cursor-pos))
+      (- (pick filtered) (move-dir cursor-pos))
       )))
-
-(defn pane-schem-cursor-move [keyEvent pane]
-  (let [kc (.getCode keyEvent)
-        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) :left
-                  (#{KeyCode/RIGHT KeyCode/L} kc) :right
-                  (#{KeyCode/UP    KeyCode/K} kc) :up
-                  (#{KeyCode/DOWN  KeyCode/J} kc) :down
-                  :else                           nil)
-        speed (cond (not dir)            1
-                    (<= @cursor-speed 0) (jump-amount dir)
-                    ('#{:left :up} dir)  (- @cursor-speed)
-                    :else                @cursor-speed)
-        op (case (:mode @mode)
-             (:cursor :add :wire) #(move-cursor % speed)
-             :move                #(do (move-cursor   % speed)
-                                      (move-selected % speed))
-             :catalog             #(move-catalog % (case dir (:left :up) -1 1))
-             nil)]
-    (when (and dir op)
-      (op (case dir (:left :right) :x :y))
-      (.consume keyEvent)
-      (.setText *label-debug* (state-text))
-      (.setAll (.getChildren pane) (draw-mode))
-      true)))
 
