@@ -166,7 +166,7 @@
              base add))
 
 ; An edge of a line should be selected by surrounding it.
-(defn rectangular-select [lels wires x0 y0 x1 y1]
+(defn rectangular-select [lels wires {x0 :x y0 :y} {x1 :x y1 :y}]
   (let [xmin (min x0 x1) xmax (max x0 x1)
         ymin (min y0 y1) ymax (max y0 y1)
         lels (filter (fn [[k v]]
