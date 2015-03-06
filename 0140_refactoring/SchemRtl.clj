@@ -98,23 +98,6 @@
                 ])))
 
 ;--------------------------------------------------
-; rotate
-;--------------------------------------------------
-;(defn rotate [[x y] degree] ; clockwise, because y gets larger downward
-;  (case degree
-;    0   [   x     y ]
-;    90  [(- y)    x ]
-;    180 [(- x) (- y)]
-;    270 [   y  (- x)]))
-(defn rotate-ofs [[x y] width height degree]
-  (case degree
-    (  0  :right :horizontal) [             x                y  ]
-    ( 90  :down  :vertical  ) [(+ height (- y))              x  ]
-    (180  :left             ) [(+ width  (- x)) (+ height (- y))]
-    (270  :up               ) [             y   (+ width  (- x))]
-    ))
-
-;--------------------------------------------------
 ; draw-*
 ;--------------------------------------------------
 
