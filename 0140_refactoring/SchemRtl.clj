@@ -182,137 +182,136 @@
 ; key commands for each mode on schematic panel
 ;--------------------------------------------------
 
-(def key-command-cursor-mode
-  {; cursor -> catalog
-   KeyCode/C
-   (fn [_] (dosync (ref-set mode {:mode :catalog, :catalog-pos {:x 0 :y 0}})))
+(defn key-command-cursor-mode [keyEvent]
+  (cond
+   ; cursor -> catalog
+   (= (.getCode keyEvent) KeyCode/C)
+   (dosync (ref-set mode {:mode :catalog, :catalog-pos {:x 0 :y 0}}))
    ; cursor -> move
-   KeyCode/M
-   (fn [_]
-     (when-not (and (empty? (@mode :selected-lels))
-                    (empty? (@mode :selected-wires)))
-       (dosync
-         (let [sl (@mode :selected-lels) sw (@mode :selected-wires)
-               {:keys [ml nl]}
-                (group-by #(if (sl (% 0)) :ml :nl) @lels)
-               {:keys [mw nw]}
-                (group-by #(if (= (sw (% 0)) '#{p0 p1}) :mw :nw)
-                          @wires)]
-           (ref-set mode
-            {:mode            :move
-             :moving-lels     (into {} ml)
-             :moving-wires    (into {} mw)
-             :moving-vertices (into {} (filter (fn [[_ v]] (not= '#{p0 p1} v))
-                                               sw))
-             :revert-lels     @lels
-             :revert-wires    @wires})
-           (ref-set lels (into {} nl)) (ref-set wires (into {} nw))
-           ))))
+   (= (.getCode keyEvent) KeyCode/M)
+   (when-not (and (empty? (@mode :selected-lels))
+                  (empty? (@mode :selected-wires)))
+     (dosync
+       (let [sl (@mode :selected-lels) sw (@mode :selected-wires)
+             {:keys [ml nl]}
+              (group-by #(if (sl (% 0)) :ml :nl) @lels)
+             {:keys [mw nw]}
+              (group-by #(if (= (sw (% 0)) '#{p0 p1}) :mw :nw)
+                        @wires)]
+         (ref-set mode
+          {:mode            :move
+           :moving-lels     (into {} ml)
+           :moving-wires    (into {} mw)
+           :moving-vertices (into {} (filter (fn [[_ v]] (not= '#{p0 p1} v))
+                                             sw))
+           :revert-lels     @lels
+           :revert-wires    @wires})
+         (ref-set lels (into {} nl)) (ref-set wires (into {} nw))
+         )))
    ; cursor -> wire
-   KeyCode/W
-   (fn [_] (dosync (ref-set mode {:mode :wire, :wire-p0 @cursor-pos})))
+   (= (.getCode keyEvent) KeyCode/W)
+   (dosync (ref-set mode {:mode :wire, :wire-p0 @cursor-pos}))
    ; no mode change
-   KeyCode/R
-   (fn [_]
-     (if (:rect-p0 @mode)
-       (dosync (alter mode dissoc :rect-p0))
-       (dosync (alter mode assoc :rect-p0 @cursor-pos))))
-   KeyCode/ENTER
-   (fn [_]
-     (let [lel-key (lel/find-lel-by-pos @lels @cursor-pos)
-           wire-keys (lel/find-wires-by-pos @wires @cursor-pos)
-           rect-keys (if (@mode :rect-p0)
-                       (lel/rectangular-select @lels @wires
-                         (@mode :rect-p0) @cursor-pos)
-                       {})
-           sl (reduce into [(:selected-lels @mode) (:lels rect-keys)
-                            (if lel-key #{lel-key} #{})])
-           sw (reduce (partial merge-with into)
-               [(:selected-wires @mode) (:wires rect-keys) wire-keys])]
-       (dosync
-         (alter mode
-                #(-> % (assoc :selected-lels sl)
-                       (assoc :selected-wires sw)
-                       (dissoc :rect-p0)
-                       )))))
-   KeyCode/ESCAPE
-   (fn [_] (dosync (alter mode #(-> % (dissoc :rect-p0)
-                                      (assoc :selected-lels #{})
-                                      (assoc :selected-wires {})
-                                      ))))
-   KeyCode/X
-   (fn [_]
-     (dosync (alter lels lel/remove-lel-by-key (@mode :selected-lels))
-             (alter wires lel/remove-wire-by-key (@mode :selected-wires))
-             (alter mode #(-> % (dissoc :selected-lels)
-                                (dissoc :selected-wires)
-                                ))))
-   })
+   (= (.getCode keyEvent) KeyCode/R)
+   (if (:rect-p0 @mode)
+     (dosync (alter mode dissoc :rect-p0))
+     (dosync (alter mode assoc :rect-p0 @cursor-pos)))
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (let [lel-key (lel/find-lel-by-pos @lels @cursor-pos)
+         wire-keys (lel/find-wires-by-pos @wires @cursor-pos)
+         rect-keys (if (@mode :rect-p0)
+                     (lel/rectangular-select @lels @wires
+                       (@mode :rect-p0) @cursor-pos)
+                     {})
+         sl (reduce into [(:selected-lels @mode) (:lels rect-keys)
+                          (if lel-key #{lel-key} #{})])
+         sw (reduce (partial merge-with into)
+             [(:selected-wires @mode) (:wires rect-keys) wire-keys])]
+     (dosync
+       (alter mode
+              #(-> % (assoc :selected-lels sl)
+                     (assoc :selected-wires sw)
+                     (dissoc :rect-p0)
+                     ))))
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (dosync (alter mode #(-> % (dissoc :rect-p0)
+                              (assoc :selected-lels #{})
+                              (assoc :selected-wires {})
+                              )))
+   (= (.getCode keyEvent) KeyCode/X)
+   (dosync (alter lels lel/remove-lel-by-key (@mode :selected-lels))
+           (alter wires lel/remove-wire-by-key (@mode :selected-wires))
+           (alter mode #(-> % (dissoc :selected-lels)
+                              (dissoc :selected-wires)
+                              )))
+   :else :no-consume)) ; cond, defn
 
 ; add mode can be merged into move mode
 ; if continuous addition is not necessary.
-(def key-command-add-mode
-  {; add -> catalog
-   KeyCode/C
-   (fn [_] (dosync (ref-set mode {:mode :catalog :catalog-pos {:x 0 :y 0}})))
+(defn key-command-add-mode [keyEvent]
+  (cond
+   ; add -> catalog
+   (= (.getCode keyEvent) KeyCode/C)
+   (dosync (ref-set mode {:mode :catalog :catalog-pos {:x 0 :y 0}}))
    ; add -> cursor
-   KeyCode/ESCAPE
-   (fn [_] (dosync (ref-set mode {:mode :cursor,
-                                  :selected-lels #{}, :selected-wires {}})))
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (dosync (ref-set mode {:mode :cursor,
+                          :selected-lels #{}, :selected-wires {}}))
    ; no mode change
-   KeyCode/ENTER
-   (fn [_]
-     (dosync
-       (alter lels conj {(gensym) (-> (:lel @mode)
-                                      (assoc :x (:x @cursor-pos))
-                                      (assoc :y (:y @cursor-pos))
-                                      )})))
-   })
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (dosync
+     (alter lels conj {(gensym) (-> (:lel @mode)
+                                    (assoc :x (:x @cursor-pos))
+                                    (assoc :y (:y @cursor-pos))
+                                    )}))
+   :else :no-consume))
 
-(def key-command-move-mode
-  {; move -> cursor
-   KeyCode/ESCAPE
-   (fn [_] (dosync
-             (ref-set lels (:revert-lels @mode))
-             (ref-set wires (:revert-wires @mode))
-             (ref-set mode {:mode :cursor,
-                            :selected-lels #{}, :selected-wires {}})))
-   KeyCode/ENTER
-   (fn [_] (dosync
-             (alter lels conj (:moving-lels @mode))
-             (alter wires conj (:moving-wires @mode))
-             (ref-set mode {:mode :cursor,
-                            :selected-lels #{}, :selected-wires {}})))
-   })
+(defn key-command-move-mode [keyEvent]
+  (cond
+   ; move -> cursor
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (dosync
+     (ref-set lels (:revert-lels @mode))
+     (ref-set wires (:revert-wires @mode))
+      (ref-set mode {:mode :cursor,
+                    :selected-lels #{}, :selected-wires {}}))
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (dosync
+     (alter lels conj (:moving-lels @mode))
+     (alter wires conj (:moving-wires @mode))
+     (ref-set mode {:mode :cursor,
+                    :selected-lels #{}, :selected-wires {}}))
+   :else :no-consume))
 
-(def key-command-wire-mode
-  {; wire -> cursor
-   KeyCode/ESCAPE
-   (fn [_] (dosync
-             (ref-set mode {:mode :cursor,
-                            :selected-lels #{}, :selected-wires {}})))
-   KeyCode/ENTER
-   (fn [_] (dosync
-             (alter wires conj
-                    {(gensym) {:x0 (get-in @mode [:wire-p0 :x])
-                               :y0 (get-in @mode [:wire-p0 :y])
-                               :x1 (@cursor-pos :x)
-                               :y1 (@cursor-pos :y)}})
-             (alter mode assoc :wire-p0 @cursor-pos)))
-   })
+(defn key-command-wire-mode [keyEvent]
+  (cond
+   ; wire -> cursor
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (dosync
+     (ref-set mode {:mode :cursor,
+                    :selected-lels #{}, :selected-wires {}}))
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (dosync
+     (alter wires conj
+            {(gensym) {:x0 (get-in @mode [:wire-p0 :x])
+                       :y0 (get-in @mode [:wire-p0 :y])
+                       :x1 (@cursor-pos :x)
+                       :y1 (@cursor-pos :y)}})
+     (alter mode assoc :wire-p0 @cursor-pos))
+   :else :no-consume))
 
-(def key-command-catalog-mode
-  {; catalog -> add
-   KeyCode/ENTER
-   (fn [_]
-     (when-let [type (get-in ld/catalog-table
-                             (map #(get-in @mode [:catalog-pos %]) [:y :x]))]
-       (dosync (ref-set mode {:mode :add :lel (lel/lel-init type)}))))
+(defn key-command-catalog-mode [keyEvent]
+  (cond
+   ; catalog -> add
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (when-let [type (get-in ld/catalog-table
+                           (map #(get-in @mode [:catalog-pos %]) [:y :x]))]
+     (dosync (ref-set mode {:mode :add :lel (lel/lel-init type)})))
    ; catalog -> cursor
-   KeyCode/ESCAPE
-   (fn [_] (dosync (ref-set mode {:mode :cursor,
-                                  :selected-lels #{}, :selected-wires {}})))
-   })
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (dosync (ref-set mode {:mode :cursor,
+                          :selected-lels #{}, :selected-wires {}}))
+   :else :no-consume))
 
 (def key-command
   {:cursor  key-command-cursor-mode
@@ -402,10 +401,8 @@
       (or (pane-schem-goto-dialog  keyEvent pane f-set-to-parent)
           (pane-schem-cursor-move  keyEvent pane)
           (pane-schem-cursor-speed keyEvent)
-          (let [f ((key-command (:mode @mode)) (.getCode keyEvent))]
-            (when f
-              (f 'dummy)
-              (.consume keyEvent)
+          (let [f (key-command (:mode @mode))]
+            (when (and f (not= (f keyEvent) :no-consume))
               (.setText *label-debug* (state-text))
               (.setAll (.getChildren pane) (draw-mode))
               ))))))
