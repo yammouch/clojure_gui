@@ -112,7 +112,7 @@
             wire coords)))
 
 (defn move-wires [wires dir speed points]
-  (into {} (map (fn [[k v]] [k (move-wire v dir speed #'{p0 p1})])
+  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{p0 p1})])
                 wires)))
 
 (defn move-wires-by-vertices [wires moving-vertices dir speed]
