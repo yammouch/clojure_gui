@@ -27,74 +27,74 @@
     :minus {:type :minus :x 0 :y 0}
     ))
 
-(defmulti lel-width  (fn [lel] (:type lel)))
-(defmulti lel-height (fn [lel] (:type lel)))
-(defmulti lel-x-min  (fn [lel] (:type lel)))
-(defmulti lel-x-max  (fn [lel] (:type lel)))
-(defmulti lel-y-min  (fn [lel] (:type lel)))
-(defmulti lel-y-max  (fn [lel] (:type lel)))
+(defmulti width  (fn [lel] (:type lel)))
+(defmulti height (fn [lel] (:type lel)))
+(defmulti x-min  (fn [lel] (:type lel)))
+(defmulti x-max  (fn [lel] (:type lel)))
+(defmulti y-min  (fn [lel] (:type lel)))
+(defmulti y-max  (fn [lel] (:type lel)))
 
-(defmethod lel-width  :default [lel]
+(defmethod width  :default [lel]
   (case (lel :direction)
     (:up :down :vertical) (lel :height)
     (lel :width)))
-(defmethod lel-height :default [lel]
+(defmethod height :default [lel]
   (case (lel :direction)
     (:up :down :vertical) (lel :width)
     (lel :height)))
-(defmethod lel-x-min  :default [lel] (:x lel))
-(defmethod lel-x-max  :default [lel] (+ (:x lel) (lel-width lel)))
-(defmethod lel-y-min  :default [lel] (:y lel))
-(defmethod lel-y-max  :default [lel] (+ (:y lel) (lel-height lel)))
+(defmethod x-min  :default [lel] (:x lel))
+(defmethod x-max  :default [lel] (+ (:x lel) (width lel)))
+(defmethod y-min  :default [lel] (:y lel))
+(defmethod y-max  :default [lel] (+ (:y lel) (height lel)))
 
 ; for "in"
-(defmethod lel-width  :in [lel]
+(defmethod width  :in [lel]
   (case (lel :direction) (:right :left) 3, (:up :down) 2))
-(defmethod lel-height :in [lel]
+(defmethod height :in [lel]
   (case (lel :direction) (:right :left) 2, (:up :down) 3))
 
 ; for "out"
-(defmethod lel-width  :out [lel]
+(defmethod width  :out [lel]
   (case (lel :direction) (:right :left) 3, (:up :down) 2))
-(defmethod lel-height :out [lel]
+(defmethod height :out [lel]
   (case (lel :direction) (:right :left) 2, (:up :down) 3))
 
 ; for "inout"
-(defmethod lel-width  :inout [lel]
+(defmethod width  :inout [lel]
   (case (lel :direction) :horizontal 3, :vertical 2))
-(defmethod lel-height :inout [lel]
+(defmethod height :inout [lel]
   (case (lel :direction) :horizontal 2, :vertical 3))
 
 ; for "dot"
-(defmethod lel-width  :dot [lel] 0)
-(defmethod lel-height :dot [lel] 0)
+(defmethod width  :dot [lel] 0)
+(defmethod height :dot [lel] 0)
 
 ; for "name"
 ; 0 of size is feasible?
-(defmethod lel-width  :name [lel] 0)
-(defmethod lel-height :name [lel] 0)
+(defmethod width  :name [lel] 0)
+(defmethod height :name [lel] 0)
 
 ; for "not"
-(defmethod lel-width  :not [lel]
+(defmethod width  :not [lel]
   (case (lel :direction) (:right :left) 3, (:up :down) 4))
-(defmethod lel-height :not [lel]
+(defmethod height :not [lel]
   (case (lel :direction) (:right :left) 4, (:up :down) 3))
 
 ; for "dff"
-(defmethod lel-width  :dff [lel] 4)
-(defmethod lel-height :dff [lel] 5)
+(defmethod width  :dff [lel] 4)
+(defmethod height :dff [lel] 5)
 
 ; for "dffr"
-(defmethod lel-width  :dffr [lel] 4)
-(defmethod lel-height :dffr [lel] 5)
+(defmethod width  :dffr [lel] 4)
+(defmethod height :dffr [lel] 5)
 
 ; for "plus"
-(defmethod lel-width  :plus [lel] 4)
-(defmethod lel-height :plus [lel] 4)
+(defmethod width  :plus [lel] 4)
+(defmethod height :plus [lel] 4)
 
 ; for "minus"
-(defmethod lel-width  :minus [lel] 4)
-(defmethod lel-height :minus [lel] 4)
+(defmethod width  :minus [lel] 4)
+(defmethod height :minus [lel] 4)
 
 ;--------------------------------------------------
 ; move-*
@@ -170,8 +170,8 @@
   (let [xmin (min x0 x1) xmax (max x0 x1)
         ymin (min y0 y1) ymax (max y0 y1)
         lels (filter (fn [[k v]]
-                       (and (<= xmin (lel-x-min v)) (<= (lel-x-max v) xmax)
-                            (<= ymin (lel-y-min v)) (<= (lel-y-max v) ymax)))
+                       (and (<= xmin (x-min v)) (<= (x-max v) xmax)
+                            (<= ymin (y-min v)) (<= (y-max v) ymax)))
                      lels)
         wires (filter (fn [[k v]]
                         (and (<= xmin (min (:x0 v) (:x1 v)))
@@ -198,8 +198,8 @@
             :down  [#(< (:y cursor-pos) %) #(apply min %) :y])
         [lelc0 lelc1 wirec0 wirec1]
           (case move-dir
-            :x [lel-x-min lel-x-max :x0 :x1]
-            :y [lel-y-min lel-y-max :y0 :y1]
+            :x [x-min x-max :x0 :x1]
+            :y [y-min y-max :y0 :y1]
             nil)
         filtered (filter fil
                          (concat (map lelc0  (vals lels))
