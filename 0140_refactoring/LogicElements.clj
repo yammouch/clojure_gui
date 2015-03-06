@@ -111,7 +111,7 @@
     (reduce #(update-in %1 [%2] (partial + speed))
             wire coords)))
 
-(defn move-wires [wires dir speed points]
+(defn move-wires [wires dir speed]
   (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{p0 p1})])
                 wires)))
 
