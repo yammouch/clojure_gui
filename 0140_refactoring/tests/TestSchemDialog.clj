@@ -59,5 +59,5 @@
     (.requestFocus label)))
 
 (defn -main [& args]
-  (Application/launch (Class/forName "TestSchemDialog")
+  (Application/launch (Class/forName "tests.TestSchemDialog")
                       (into-array String [])))
