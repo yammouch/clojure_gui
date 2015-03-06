@@ -141,7 +141,7 @@
 
 (defn move-catalog [dir speed]
   (dosync (alter mode
-           #(update-in % [:catalog-in dir] (if (neg? speed) dec inc))
+           #(update-in % [:catalog-pos dir] (if (neg? speed) dec inc))
            )))
 
 ;--------------------------------------------------
@@ -298,7 +298,7 @@
                                :y0 (get-in @mode [:wire-p0 :y])
                                :x1 (@cursor-pos :x)
                                :y1 (@cursor-pos :y)}})
-             (alter mode assoc :rect-p0 @cursor-pos)))
+             (alter mode assoc :wire-p0 @cursor-pos)))
    })
 
 (def key-command-catalog-mode
@@ -306,7 +306,7 @@
    KeyCode/ENTER
    (fn [_]
      (when-let [type (get-in ld/catalog-table
-                             (map #(@mode :catalog-pos %) [:y :x]))]
+                             (map #(get-in @mode [:catalog-pos %]) [:y :x]))]
        (dosync (ref-set mode {:mode :add :lel (lel/lel-init type)}))))
    ; catalog -> cursor
    KeyCode/ESCAPE
@@ -324,7 +324,8 @@
 
 (defn state-text []
   (reduce #(str %1 "\n" %2)
-          [@mode @cursor-pos @cursor-speed
+          [(reduce #(dissoc %1 %2) @mode [:revert-lels :revert-wires])
+           @cursor-pos @cursor-speed
            @lels @wires @selected-name]))
 
 ;--------------------------------------------------
