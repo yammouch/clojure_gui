@@ -21,7 +21,7 @@
   '(javafx.scene.control Label TextField RadioButton ToggleGroup Button
                          MenuBar Menu MenuItem)
   '(javafx.stage         Stage FileChooser FileChooser$ExtensionFilter))
-(require 'clojure.set)
+
 (require 'clojure.java.io)
 (require 'clojure.pprint)
 (require 'SchemDialog)
@@ -745,7 +745,7 @@
          (when lel-key
            (alter selected-lels conj lel-key))
          (when (:lels rect-keys)
-           (alter selected-lels clojure.set/union (:lels rect-keys)))
+           (alter selected-lels into (:lels rect-keys)))
          (when wire-key
            (alter selected-wires merge-selected-wire wire-key))
          (when (:wires rect-keys)
