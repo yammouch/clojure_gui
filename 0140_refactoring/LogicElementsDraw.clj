@@ -8,8 +8,7 @@
   '(javafx.scene       Node)
   '(javafx.scene.paint Color)
   '(javafx.scene.shape Rectangle Polygon Polyline Line Circle
-                       Path PathElement MoveTo ArcTo ClosePath
-                       LineTo)
+                       Path PathElement MoveTo ArcTo LineTo ClosePath)
   '(javafx.scene.text  Font Text TextAlignment))
 
 (require 'LogicElements)
@@ -31,10 +30,10 @@
 ;    270 [   y  (- x)]))
 (defn rotate-ofs [[x y] width height degree]
   (case degree
-    (  0  :right :horizontal) [             x                y  ]
-    ( 90  :down  :vertical  ) [(+ height (- y))              x  ]
-    (180  :left             ) [(+ width  (- x)) (+ height (- y))]
-    (270  :up               ) [             y   (+ width  (- x))]
+    (  0 :right :horizontal) [             x                y  ]
+    ( 90 :down  :vertical  ) [(+ height (- y))              x  ]
+    (180 :left             ) [(+ width  (- x)) (+ height (- y))]
+    (270 :up               ) [             y   (+ width  (- x))]
     ))
 
 ;--------------------------------------------------
@@ -288,11 +287,11 @@
     (mapcat (fn [[k v]]
               (lel-draw v (if (selected-lels k) Color/RED Color/BLACK)))
             lels)
-    (when (@mode :rect-x0)
-      (let [x (Math/min (cursor-pos :x) (mode :rect-x0))
-            y (Math/min (cursor-pos :y) (mode :rect-y0))
-            width  (Math/abs (- (cursor-pos :x) (mode :rect-x0)))
-            height (Math/abs (- (cursor-pos :y) (mode :rect-y0)))
+    (when (mode :rect-p0)
+      (let [x (Math/min (cursor-pos :x) (get-in mode [:rect-p0 :x]))
+            y (Math/min (cursor-pos :y) (get-in mode [:rect-p0 :y]))
+            width  (Math/abs (- (cursor-pos :x) (get-in mode [:rect-p0 :x])))
+            height (Math/abs (- (cursor-pos :y) (get-in mode [:rect-p0 :y])))
             rect (Rectangle. (* x pix-per-grid)
                              (* y pix-per-grid)
                              (* width pix-per-grid)
@@ -324,8 +323,7 @@
    (concat
     (map (fn [[k v]] (draw-wire v Color/BLACK)) wires)
     (mapcat (fn [[k v]] (lel-draw v Color/BLACK)) lels)
-    (lel-draw (conj (lel/lel-init (:type mode))
-                    cursor-pos)
+    (lel-draw (conj (:lel mode) cursor-pos)
               Color/RED))))
 
 (defn draw-mode-wire [cursor-pos lels wires wire-p0]
