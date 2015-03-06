@@ -135,7 +135,7 @@
 (defn move-selected [dir speed]
   (dosync
     (alter mode update-in [:moving-lels] lel/move-lels dir speed)
-    (alter mode update-in [:moveing-wires] lel/move-wires dir speed)
+    (alter mode update-in [:moving-wires] lel/move-wires dir speed)
     (alter wires lel/move-wires-by-vertices
            (@mode :moving-vertices) dir speed)))
 
@@ -189,8 +189,8 @@
    ; cursor -> move
    KeyCode/M
    (fn [_]
-     (when (and (not (empty? (@mode :selected-lels)))
-                (not (empty? (@mode :selected-wires))))
+     (when-not (and (empty? (@mode :selected-lels))
+                    (empty? (@mode :selected-wires)))
        (dosync
          (let [sl (@mode :selected-lels) sw (@mode :selected-wires)
                {:keys [ml nl]}
@@ -200,13 +200,13 @@
                           @wires)]
            (ref-set mode
             {:mode            :move
-             :moving-lels     ml
-             :moving-wires    mw
+             :moving-lels     (into {} ml)
+             :moving-wires    (into {} mw)
              :moving-vertices (into {} (filter (fn [[_ v]] (not= '#{p0 p1} v))
                                                sw))
              :revert-lels     @lels
              :revert-wires    @wires})
-           (ref-set lels nl) (ref-set wires nw)
+           (ref-set lels (into {} nl)) (ref-set wires (into {} nw))
            ))))
    ; cursor -> wire
    KeyCode/W
