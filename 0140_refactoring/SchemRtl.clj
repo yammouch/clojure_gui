@@ -10,13 +10,10 @@
   '(javafx.application   Application)
   '(javafx.event         EventHandler)
   '(javafx.geometry      VPos)
-  '(javafx.scene         Group Node Scene)
+  '(javafx.scene         Node Scene)
   '(javafx.scene.input   KeyCode KeyEvent)
   '(javafx.scene.layout  BorderPane Pane VBox)
   '(javafx.scene.paint   Color)
-  '(javafx.scene.shape   Rectangle Polygon Polyline Ellipse Line Circle
-                         Path PathElement MoveTo ArcTo ClosePath
-                         LineTo)
   '(javafx.scene.text    Font Text TextAlignment)
   '(javafx.scene.control Label Button MenuBar Menu MenuItem)
   '(javafx.stage         Stage FileChooser FileChooser$ExtensionFilter))
