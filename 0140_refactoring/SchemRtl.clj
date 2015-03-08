@@ -38,8 +38,6 @@
 (def cursor-pos (ref {:x 5 :y 5}))
 (def cursor-speed (ref 0))
 
-(def selected-name (ref nil))
-
 (def mode (ref {:mode :cursor, :selected-lels #{}, :selected-wires {}}))
 ; {:mode :cursor, :selected-lels #{}, :selected-wires {},
 ;  (optional) :rect-p0 {:x ... :y ...}}))
@@ -324,8 +322,7 @@
 (defn state-text []
   (reduce #(str %1 "\n" %2)
           [(reduce #(dissoc %1 %2) @mode [:revert-lels :revert-wires])
-           @cursor-pos @cursor-speed
-           @lels @wires @selected-name]))
+           @cursor-pos @cursor-speed @lels @wires]))
 
 ;--------------------------------------------------
 ; schematic pane
@@ -376,24 +373,29 @@
   (.requestFocus pane))
 
 (defn pane-schem-goto-dialog [keyEvent pane f-set-to-parent]
-  (when (and (= KeyCode/D (.getCode keyEvent))
-             (= (:mode @mode) :cursor))
-    (let [lel-key (lel/find-lel-by-pos @lels @cursor-pos)]
-      (when-let [dt (dialog-table (get-in @lels [lel-key :type]))]
-        (.setFocusTraversable pane false)
-        (dosync (ref-set selected-name lel-key))
-        (let [borderpane (BorderPane.)
-              dialog
-                (sd/pane-dialog #(.setRight borderpane %)
-                 #(pane-schem-revert f-set-to-parent pane)
-                 dt (@lels lel-key)
-                 #(dosync (alter lels assoc lel-key %))
-                 )]
-          (.setCenter borderpane pane)
-          (f-set-to-parent borderpane)
-          (.setFocusTraversable dialog true)
-          (.requestFocus dialog)
-          true)))))
+  (when-let [[lel lel-update-fn]
+              (cond (and (= KeyCode/D (.getCode keyEvent))
+                         (= (:mode @mode) :cursor))
+                    (when-let [lel-key
+                               (lel/find-lel-by-pos @lels @cursor-pos)]
+                      [(@lels lel-key)
+                       #(dosync (alter lels assoc lel-key %))])
+
+                    (and (= KeyCode/D (.getCode keyEvent))
+                         (= (:mode @mode) :add))
+                    [(@mode :lel)
+                     #(dosync (alter mode assoc :lel %))])]
+    (when-let [dt (dialog-table (:type lel))]
+      (.setFocusTraversable pane false)
+      (let [borderpane (BorderPane.)
+            dialog (sd/pane-dialog #(.setRight borderpane %)
+                   #(pane-schem-revert f-set-to-parent pane)
+                   dt lel lel-update-fn)]
+        (.setCenter borderpane pane)
+        (f-set-to-parent borderpane)
+        (.setFocusTraversable dialog true)
+        (.requestFocus dialog)
+        true))))
 
 (defn pane-schem-key [f-set-to-parent pane]
   (proxy [EventHandler] []
