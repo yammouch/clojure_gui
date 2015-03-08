@@ -338,6 +338,7 @@
       (dosync (ref-set cursor-speed
                (if (= num :-) 0 (+ (* @cursor-speed 10) num))))
       (.setText *label-debug* (state-text))
+      (.consume keyEvent)
       true)))
 
 (defn pane-schem-cursor-move [keyEvent pane]
@@ -363,6 +364,7 @@
       (.consume keyEvent)
       (.setText *label-debug* (state-text))
       (.setAll (.getChildren pane) (draw-mode))
+      (.consume keyEvent)
       true)))
 
 (defn pane-schem-revert [f-set-to-parent pane]
@@ -395,6 +397,7 @@
         (f-set-to-parent borderpane)
         (.setFocusTraversable dialog true)
         (.requestFocus dialog)
+        (.comsume keyEvent)
         true))))
 
 (defn pane-schem-key [f-set-to-parent pane]
@@ -407,6 +410,7 @@
             (when (and f (not= (f keyEvent) :no-consume))
               (.setText *label-debug* (state-text))
               (.setAll (.getChildren pane) (draw-mode))
+              (.consume keyEvent)
               ))))))
 
 (defn pane-schem [f-set-to-parent]
