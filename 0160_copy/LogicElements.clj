@@ -105,14 +105,14 @@
 
 (defn move-wire [wire dir speed points]
   (let [[& coords] (case points
-                     #{p0}    (case dir :x [:x0    ] :y [:y0    ])
-                     #{p1}    (case dir :x [    :x1] :y [    :y1])
-                     #{p0 p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
+                     #{:p0}     (case dir :x [:x0    ] :y [:y0    ])
+                     #{:p1}     (case dir :x [    :x1] :y [    :y1])
+                     #{:p0 :p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
     (reduce #(update-in %1 [%2] (partial + speed))
             wire coords)))
 
 (defn move-wires [wires dir speed]
-  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{p0 p1})])
+  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{:p0 :p1})])
                 wires)))
 
 (defn move-wires-by-vertices [wires moving-vertices dir speed]
@@ -134,16 +134,16 @@
                         (< q1 qc) nil
 
                         (< (- q1 q0) 4)
-                        (cond (= qc q0) (if inv #{'p1} #{'p0})
-                              (= qc q1) (if inv #{'p0} #{'p1})
-                              :else     #{'p0 'p1})
+                        (cond (= qc q0) (if inv #{:p1} #{:p0})
+                              (= qc q1) (if inv #{:p0} #{:p1})
+                              :else     #{:p0 :p1})
 
-                        (<= qc (+ q0 1)) (if inv #{'p1} #{'p0})
-                        (<= (- q1 1) qc) (if inv #{'p0} #{'p1})
-                        :else #{'p0 'p1}
+                        (<= qc (+ q0 1)) (if inv #{:p1} #{:p0})
+                        (<= (- q1 1) qc) (if inv #{:p0} #{:p1})
+                        :else #{:p0 :p1}
                         )))]
-    (cond (= (map #(cur %) [:x :y]) (map #(wire %) [:x0 :y0])) #{'p0}
-          (= (map #(cur %) [:x :y]) (map #(wire %) [:x1 :y1])) #{'p1}
+    (cond (= (map #(cur %) [:x :y]) (map #(wire %) [:x0 :y0])) #{:p0}
+          (= (map #(cur %) [:x :y]) (map #(wire %) [:x1 :y1])) #{:p1}
 
           (= (:x cur) (:x0 wire) (:x1 wire))
           (fcomp (:y cur) (:y0 wire) (:y1 wire))
@@ -180,14 +180,14 @@
                              (<= (max (:y0 v) (:y1 v)) ymax)))
                       wires)]
     {:lels (set (keys lels))
-     :wires (zipmap (keys wires) (repeat '#{p0 p1}))
+     :wires (zipmap (keys wires) (repeat #{:p0 :p1}))
      }))
 
 (defn remove-lel-by-key [lels keys]
   (into {} (remove (fn [[k _]] (keys k)) lels)))
 
 (defn remove-wire-by-key [wires keys]
-  (into {} (remove (fn [[k _]] (= (keys k) 'p0p1)) wires)))
+  (into {} (remove (fn [[k _]] (= (keys k) #{:p0 :p1})) wires)))
 
 (defn jump-amount [dir cursor-pos lels wires]
   (let [[fil pick move-dir]

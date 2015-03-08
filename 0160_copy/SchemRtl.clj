@@ -189,12 +189,12 @@
           {:keys [ml nl]}
            (group-by #(if (sl (% 0)) :ml :nl) lels)
           {:keys [mw nw]}
-           (group-by #(if (= (sw (% 0)) '#{p0 p1}) :mw :nw)
+           (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
                      wires)]
       [{:mode            :move
         :moving-lels     (into {} ml)
         :moving-wires    (into {} mw)
-        :moving-vertices (into {} (filter (fn [[_ v]] (not= '#{p0 p1} v))
+        :moving-vertices (into {} (filter (fn [[_ v]] (not= #{:p0 :p1} v))
                                           sw))
         :revert-lels     lels
         :revert-wires    wires}
@@ -207,7 +207,7 @@
           {:keys [ml nl]}
            (group-by #(if (sl (% 0)) :ml :nl) lels)
           {:keys [mw nw]}
-           (group-by #(if (= (sw (% 0)) '#{p0 p1}) :mw :nw)
+           (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
                      wires)]
       {:mode            :copy
        :moving-lels     (into {} ml)

@@ -74,7 +74,7 @@
     line))
 
 (defn draw-wire-selected [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} selected]
-  (if (= selected '#{p0 p1})
+  (if (= selected #{:p0 :p1})
     (let [line (apply #(Line. %1 %2 %3 %4)
                 (mapcat grid2screen [[x0 y0] [x1 y1]]))]
       (.setStroke line Color/RED)
@@ -83,14 +83,14 @@
           len (Math/sqrt (+ (* x- x-) (* y- y-)))
 
           [xorg xhl yorg yhl] ; hl: highlight
-          (if (= selected #{'p0})
+          (if (= selected #{:p0})
             [x0 (+ x0 (/ x- len)) y0 (+ y0 (/ y- len))]
             [x1 (- x1 (/ x- len)) y1 (- y1 (/ y- len))])
           shortline (apply #(Line. %1 %2 %3 %4)
                      (mapcat grid2screen [[xorg yorg] [xhl yhl]]))
           longline (apply #(Line. %1 %2 %3 %4)
                     (mapcat grid2screen
-                            [[xhl yhl] (if (= selected #{'p0})
+                            [[xhl yhl] (if (= selected #{:p0})
                                          [x1 y1] [x0 y0])]))]
       (.setStroke shortline Color/RED)
       [shortline longline])))
