@@ -13,13 +13,14 @@
     :out   {:type :out   :x 0 :y 0 :direction :right}
     :inout {:type :inout :x 0 :y 0 :direction :horizontal}
     :dot   {:type :dot   :x 0 :y 0}
-    :name  {:type :name  :x 0 :y 0
-            :string "blah" :v-align :bottom :h-align :left}
-    :not   {:type :not   :x 0 :y 0 :direction :right}
+    :not   {:type :not   :x 0 :y 0 :direction :horizontal}
+    :buf   {:type :buf   :x 0 :y 0 :direction :right :width 4 :height 4}
     :and   {:type :and   :x 0 :y 0 :direction :right :width 4 :height 4}
     :or    {:type :or    :x 0 :y 0 :direction :right :width 4 :height 4}
     :dff   {:type :dff   :x 0 :y 0}
     :dffr  {:type :dffr  :x 0 :y 0}
+    :name  {:type :name  :x 0 :y 0
+            :string "blah" :v-align :bottom :h-align :left}
     :mux21 {:type :mux21 :x 0 :y 0 :direction :right :width 2 :height 6
             :order01 :0->1}
     :mux-n {:type :mux-n :x 0 :y 0 :direction :right :width 2 :height 6}
@@ -76,9 +77,9 @@
 
 ; for "not"
 (defmethod width  :not [lel]
-  (case (lel :direction) (:right :left) 3, (:up :down) 4))
+  (case (lel :direction) :horizontal 1, :vertical 2))
 (defmethod height :not [lel]
-  (case (lel :direction) (:right :left) 4, (:up :down) 3))
+  (case (lel :direction) :horizontal 2, :vertical 1))
 
 ; for "dff"
 (defmethod width  :dff [lel] 4)

@@ -161,21 +161,19 @@
 
 (defn dialog-table [type]
   (case type
-    (:in :out) [[:radio :direction :right :up :left :down]]
-    :inout     [[:radio :direction :horizontal :vertical]]
-    :inv       [[:radio :direction :right :up :left :down]]
-    (:and :or :mux-n)
-               [[:edstr :width  read-string]
-                [:edstr :height read-string]
-                [:radio :direction :right :up :left :down]]
-    :not       [[:radio :direction :right :up :left :down]]
-    :name      [[:edstr :string identity]
-                [:radio :h-align :left   :center :right]
-                [:radio :v-align :bottom :center :top  ]]
-    :mux21     [[:edstr :width  read-string]
-                [:edstr :height read-string]
-                [:radio :direction :right :up :left :down]
-                [:radio :order01 :0->1 :1->0]]
+    (:in :out)    [[:radio :direction :right :up :left :down]]
+    (:inout :not) [[:radio :direction :horizontal :vertical]]
+    (:and :or :buf :mux-n)
+                  [[:edstr :width  read-string]
+                   [:edstr :height read-string]
+                   [:radio :direction :right :up :left :down]]
+    :name         [[:edstr :string identity]
+                   [:radio :h-align :left   :center :right]
+                   [:radio :v-align :bottom :center :top  ]]
+    :mux21        [[:edstr :width  read-string]
+                   [:edstr :height read-string]
+                   [:radio :direction :right :up :left :down]
+                   [:radio :order01 :0->1 :1->0]]
     nil))
 
 ;--------------------------------------------------
@@ -440,7 +438,7 @@
         (f-set-to-parent borderpane)
         (.setFocusTraversable dialog true)
         (.requestFocus dialog)
-        (.comsume keyEvent)
+        (.consume keyEvent)
         true))))
 
 (defn pane-schem-key [f-set-to-parent pane]

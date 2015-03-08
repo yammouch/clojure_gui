@@ -31,9 +31,9 @@
 (defn rotate-ofs [[x y] width height degree]
   (case degree
     (  0 :right :horizontal) [             x                y  ]
-    ( 90 :down  :vertical  ) [(+ height (- y))              x  ]
+    ( 90 :down             ) [(+ height (- y))              x  ]
     (180 :left             ) [(+ width  (- x)) (+ height (- y))]
-    (270 :up               ) [             y   (+ width  (- x))]
+    (270 :up    :vertical  ) [             y   (+ width  (- x))]
     ))
 
 ;--------------------------------------------------
@@ -146,26 +146,33 @@
                 (lel :v-align) (lel :h-align))
      line-h line-v]))
 
-; for "not"
 (defmethod lel-draw :not [lel color]
-  (let [[[x0 y0] [x1 y1] [x2 y2] [cx cy]]
-          (map #(grid2screen (map + (rotate-ofs % 3 4 (lel :direction))
-                                    [(:x lel) (:y lel)]))
-               [[0 0] [2 2] [0 4] [2.5 2.0]])
-        triangle (Polygon. (double-array [x0 y0 x1 y1 x2 y2]))
+  (let [[cx cy]
+        (grid2screen (map + (rotate-ofs [0.5 0] 0 0 (lel :direction))
+                            [(:x lel) (:y lel)]))
         circle (Circle. cx cy (* 0.5 pix-per-grid))]
-    (doto triangle (.setStroke color) (.setFill Color/TRANSPARENT))
     (doto circle   (.setStroke color) (.setFill Color/TRANSPARENT))
-    [triangle circle]))
+    [circle]))
+
+; for "buf"
+(defmethod lel-draw :buf [lel color]
+  (let [w (lel :width) h (lel :height)
+        [[x0 y0] [x1 y1] [x2 y2]]
+        (map #(grid2screen (map + (rotate-ofs % w h (lel :direction))
+                                  [(:x lel) (:y lel)]))
+             [[0 0] [w (* 0.5 h)] [0 h]])
+        triangle (Polygon. (double-array [x0 y0 x1 y1 x2 y2]))]
+    (doto triangle (.setStroke color) (.setFill Color/TRANSPARENT))
+    [triangle]))
 
 ; for "and"
 (defmethod lel-draw :and [lel color]
   (let [w (lel :width) h (lel :height)
         [[x0 y0] [x1 y1] [x2 y2] [x3 y3]]
-          (map #(grid2screen
-                 (map + (rotate-ofs % w h (lel :direction))
-                        [(:x lel) (:y lel)]))
-               [[0 0] [(* 0.5 w) 0] [(* 0.5 w) h] [0 h]])
+        (map #(grid2screen
+               (map + (rotate-ofs % w h (lel :direction))
+                      [(:x lel) (:y lel)]))
+             [[0 0] [(* 0.5 w) 0] [(* 0.5 w) h] [0 h]])
         [rx ry] (map #(* 0.5 pix-per-grid %) 
                      (if ('#{:up :down} (lel :direction)) [h w] [w h]))
         symbol (Path. (into-array PathElement
@@ -189,15 +196,15 @@
 (defmethod lel-draw :or [lel color]
   (let [w (lel :width) h (lel :height)
         [[x0 y0] [x1 y1]]
-          (map #(grid2screen
-                 (map + (rotate-ofs % w h (lel :direction))
-                        [(:x lel) (:y lel)]))
-               [[0 0] [0 h]])
+        (map #(grid2screen
+               (map + (rotate-ofs % w h (lel :direction))
+                      [(:x lel) (:y lel)]))
+             [[0 0] [0 h]])
         [rx0 ry0 rx1 ry1]
-          (map #(* pix-per-grid %)
-           (if ('#{:right :left} (lel :direction))
-             [w         (* 0.5 h) (* 0.25 w) (* 0.5  h)]
-             [(* 0.5 h) w         (* 0.5  h) (* 0.25 w)]))
+        (map #(* pix-per-grid %)
+         (if ('#{:right :left} (lel :direction))
+           [w         (* 0.5 h) (* 0.25 w) (* 0.5  h)]
+           [(* 0.5 h) w         (* 0.5  h) (* 0.25 w)]))
         symbol (Path. (into-array PathElement
                 [(MoveTo. x0 y0)
                  (ArcTo. rx0 ry0 0.0 x1 y1 false true)
@@ -321,6 +328,7 @@
 (defn draw-mode-add [mode cursor-pos lels wires]
   (into-array Node
    (concat
+    [(draw-dot cursor-pos 9 Color/BLUE)]
     (map (fn [[k v]] (draw-wire v Color/BLACK)) wires)
     (mapcat (fn [[k v]] (lel-draw v Color/BLACK)) lels)
     (lel-draw (conj (:lel mode) cursor-pos)
@@ -337,9 +345,9 @@
                 Color/RED)])))
 
 (def catalog-table
-  [[:in    :out   :inout :dot   :name]
-   [:not   :and   :or    :dff   :dffr]
-   [:mux21 :mux-n :plus  :minus      ]])
+  [[:in    :out   :inout :dot   :not  ]
+   [:buf   :and   :or    :dff   :dffr ]
+   [:name  :mux21 :mux-n :plus  :minus]])
 
 (defn draw-mode-catalog [catalog-pos]
   (let [parts (mapcat (fn [idx0 parts]
