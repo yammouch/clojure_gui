@@ -9,17 +9,17 @@
   '(javafx.scene.layout  BorderPane VBox FlowPane)
   '(javafx.scene.paint   Color)
   '(javafx.scene.shape   Polygon)
-  '(javafx.scene.control Label TextField RadioButton ToggleGroup Button))
+  '(javafx.scene.control Label TextArea RadioButton ToggleGroup Button))
 
 ;--------------------------------------------------
-; text field
+; text area
 ;--------------------------------------------------
 
 (defn pane-text [f-set-to-parent str]
-  (let [textfield (TextField. str)]
-    (.setFocusTraversable textfield true)
-    (f-set-to-parent textfield)
-    textfield))
+  (let [textarea (TextArea. str)]
+    (.setFocusTraversable textarea true)
+    (f-set-to-parent textarea)
+    textarea))
 
 ;--------------------------------------------------
 ; dialog box
@@ -46,18 +46,22 @@
         [prv nxt] (prev-next #(.isSelected %) toggles)]
     (.selectToggle toggleGroup (case dir :left prv, :right nxt))))
 
-(defn pane-text-key-dialog [f-revert textfield label-on-dialog]
+(defn pane-text-key-dialog [f-revert textarea label-on-dialog]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (when (#{KeyCode/ENTER KeyCode/ESCAPE} (.getCode keyEvent))
-        (when (= (.getCode keyEvent) KeyCode/ENTER)
-          (.setText label-on-dialog (.getText textfield)))
-        (.consume keyEvent)
-        (f-revert)
-        ))))
+      (let [op (cond (and (= (.getCode keyEvent) KeyCode/ENTER)
+                          (.isShiftDown keyEvent))
+                     :ok
+                     (= (.getCode keyEvent) KeyCode/ESCAPE)
+                     :cancel
+                     :else nil)]
+        (when op
+          (when (= op :ok) (.setText label-on-dialog (.getText textarea)))
+          (.consume keyEvent)
+          (f-revert)
+          )))))
 
 (defn pane-dialog-revert [f-set-to-parent pane]
-  ;(.setText *label-debug* (state-text))
   (f-set-to-parent pane)
   (.setFocusTraversable pane true)
   (.requestFocus pane))
@@ -87,18 +91,18 @@
                                          rows))]
                   (when (= (:type row) :edstr)
                     (let [borderpane (BorderPane.)
-                          textfield
+                          textarea
                             (pane-text #(.setBottom borderpane %)
                                        (.getText (:str row)))]
-                      (.setOnKeyPressed textfield
+                      (.setOnKeyPressed textarea
                        (pane-text-key-dialog
                         #(pane-dialog-revert f-set-to-parent pane)
-                        textfield (:str row)))
+                        textarea (:str row)))
                       (.setFocusTraversable pane false)
                       (.setCenter borderpane pane)
                       (f-set-to-parent borderpane)
-                      (.setFocusTraversable textfield true)
-                      (.requestFocus textfield))))
+                      (.setFocusTraversable textarea true)
+                      (.requestFocus textarea))))
               (#{KeyCode/J KeyCode/K} kc)
                 (pane-dialog-cursor-move (map #(:cursor %) rows)
                  (if (= kc KeyCode/J) :down :up))
