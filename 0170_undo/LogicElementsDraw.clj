@@ -216,11 +216,14 @@
 
 ; for "dff"
 (defmethod lel-draw :dff [lel color]
-  (let [[x y] (grid2screen [(:x lel) (:y lel)])
-        rect (Rectangle. x y (* 4 pix-per-grid) (* 5 pix-per-grid))
+  (let [w (:width lel) h (:height lel)
+        [x y] (grid2screen [(:x lel) (:y lel)])
+        rect (Rectangle. x y (* w pix-per-grid) (* h pix-per-grid))
         line (Polyline. (double-array
               (mapcat #(grid2screen (map + % [(:x lel) (:y lel)]))
-                      [[1 5] [2 4] [3 5]])))]
+                        [[(- (* 0.5 w) 1)    h   ]
+                         [(   * 0.5 w   ) (- h 1)]
+                         [(+ (* 0.5 w) 1)    h   ]])))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
     (doto line (.setStroke color))
     [rect line]))
@@ -260,21 +263,16 @@
     [trapezoid]))
 
 ; for "plus" and "minus"
-(defn arith-symbol [lel color]
-  (let [[x y] (grid2screen [(:x lel) (:y lel)])
-        rect (Rectangle. x y (* 4 pix-per-grid) (* 4 pix-per-grid))]
+(defmethod lel-draw :op [lel color]
+  (let [w (lel :width) h (lel :height)
+        [x y] (grid2screen [(:x lel) (:y lel)])
+        rect (Rectangle. x y (* w pix-per-grid) (* h pix-per-grid))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
-    [(draw-text {:x (+ (lel :x) (* 0.5 (lel/width  lel)))
-                 :y (+ (lel :y) (* 0.5 (lel/height lel)))}
-                (case (:type lel) :plus "+", :minus "-")
+    [(draw-text {:x (+ (lel :x) (* 0.5 w))
+                 :y (+ (lel :y) (* 0.5 w))}
+                (:operator lel)
                 color :center :center)
      rect]))
-
-; for "plus"
-(defmethod lel-draw :plus [lel color] (arith-symbol lel color))
-
-; for "minus"
-(defmethod lel-draw :minus [lel color] (arith-symbol lel color))
 
 ;--------------------------------------------------
 ; draw-mode-*
@@ -347,7 +345,7 @@
 (def catalog-table
   [[:in    :out   :inout :dot   :not  ]
    [:buf   :and   :or    :dff   :dffr ]
-   [:name  :mux21 :mux-n :plus  :minus]])
+   [:name  :mux21 :mux-n :op          ]])
 
 (defn draw-mode-catalog [catalog-pos]
   (let [parts (mapcat (fn [idx0 parts]
