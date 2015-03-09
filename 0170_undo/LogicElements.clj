@@ -17,15 +17,14 @@
     :buf   {:type :buf   :x 0 :y 0 :direction :right :width 4 :height 4}
     :and   {:type :and   :x 0 :y 0 :direction :right :width 4 :height 4}
     :or    {:type :or    :x 0 :y 0 :direction :right :width 4 :height 4}
-    :dff   {:type :dff   :x 0 :y 0}
-    :dffr  {:type :dffr  :x 0 :y 0}
+    :dff   {:type :dff   :x 0 :y 0 :width 4 :height 5}
+    :dffr  {:type :dffr  :x 0 :y 0 :width 4 :height 5}
     :name  {:type :name  :x 0 :y 0
             :string "blah" :v-align :bottom :h-align :left}
     :mux21 {:type :mux21 :x 0 :y 0 :direction :right :width 2 :height 6
             :order01 :0->1}
     :mux-n {:type :mux-n :x 0 :y 0 :direction :right :width 2 :height 6}
-    :plus  {:type :plus  :x 0 :y 0}
-    :minus {:type :minus :x 0 :y 0}
+    :op    {:type :op    :x 0 :y 0 :width 4 :height 4 :operator "+"}
     ))
 
 (defmulti width  (fn [lel] (:type lel)))
@@ -76,26 +75,26 @@
 (defmethod height :name [lel] 0)
 
 ; for "not"
+(defmethod x-min  :not [lel]
+  (case (lel :direction)
+    :horizontal (:x lel)
+    :vertical   (dec (:x lel))))
+(defmethod x-max  :not [lel]
+  (case (lel :direction)
+    :horizontal (inc (:x lel))
+    :vertical   (inc (:x lel))))
+(defmethod y-min  :not [lel]
+  (case (lel :direction)
+    :horizontal (dec (:y lel))
+    :vertical   (dec (:y lel))))
+(defmethod y-max  :not [lel]
+  (case (lel :direction)
+    :horizontal (inc (:y lel))
+    :vertical   (:y lel)))
 (defmethod width  :not [lel]
   (case (lel :direction) :horizontal 1, :vertical 2))
 (defmethod height :not [lel]
   (case (lel :direction) :horizontal 2, :vertical 1))
-
-; for "dff"
-(defmethod width  :dff [lel] 4)
-(defmethod height :dff [lel] 5)
-
-; for "dffr"
-(defmethod width  :dffr [lel] 4)
-(defmethod height :dffr [lel] 5)
-
-; for "plus"
-(defmethod width  :plus [lel] 4)
-(defmethod height :plus [lel] 4)
-
-; for "minus"
-(defmethod width  :minus [lel] 4)
-(defmethod height :minus [lel] 4)
 
 ;--------------------------------------------------
 ; move-*
