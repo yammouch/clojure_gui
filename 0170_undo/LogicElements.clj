@@ -17,8 +17,7 @@
     :buf   {:type :buf   :x 0 :y 0 :direction :right :width 4 :height 4}
     :and   {:type :and   :x 0 :y 0 :direction :right :width 4 :height 4}
     :or    {:type :or    :x 0 :y 0 :direction :right :width 4 :height 4}
-    :dff   {:type :dff   :x 0 :y 0 :width 4 :height 5}
-    :dffr  {:type :dffr  :x 0 :y 0 :width 4 :height 5}
+    :dff   {:type :dff   :x 0 :y 0 :width 4 :height 5 :async-reset :true}
     :name  {:type :name  :x 0 :y 0
             :string "blah" :v-align :bottom :h-align :left}
     :mux21 {:type :mux21 :x 0 :y 0 :direction :right :width 2 :height 6

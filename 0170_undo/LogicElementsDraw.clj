@@ -226,14 +226,11 @@
                          [(+ (* 0.5 w) 1)    h   ]])))]
     (doto rect (.setStroke color) (.setFill Color/TRANSPARENT))
     (doto line (.setStroke color))
-    [rect line]))
-
-; for "dffr"
-(defmethod lel-draw :dffr [lel color]
-  (conj (lel-draw (assoc lel :type :dff) color)
-        (draw-text {:x (+ (:x lel) 2) :y (:y lel)}
-                   "R" color :top :center
-                   )))
+    (if (= (lel :async-reset) :true)
+      [(draw-text {:x (+ (:x lel) (* 0.5 w)) :y (:y lel)}
+                  "R" color :top :center)
+       rect line]
+      [rect line])))
 
 ; for "mux21"
 (defmethod lel-draw :mux21 [lel color]
@@ -262,7 +259,7 @@
     (doto trapezoid (.setStroke color) (.setFill Color/TRANSPARENT))
     [trapezoid]))
 
-; for "plus" and "minus"
+; for "op"
 (defmethod lel-draw :op [lel color]
   (let [w (lel :width) h (lel :height)
         [x y] (grid2screen [(:x lel) (:y lel)])
@@ -343,9 +340,9 @@
                 Color/RED)])))
 
 (def catalog-table
-  [[:in    :out   :inout :dot   :not  ]
-   [:buf   :and   :or    :dff   :dffr ]
-   [:name  :mux21 :mux-n :op          ]])
+  [[:in    :out   :inout :dot :not ]
+   [:buf   :and   :or    :dff :name]
+   [:mux21 :mux-n :op              ]])
 
 (defn draw-mode-catalog [catalog-pos]
   (let [parts (mapcat (fn [idx0 parts]
