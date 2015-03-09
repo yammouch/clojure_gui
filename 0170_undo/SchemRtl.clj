@@ -96,19 +96,25 @@
                 ])))
 
 ;--------------------------------------------------
+; undo, redo
+;--------------------------------------------------
+(def undos (ref '()))
+(def redos (ref '()))
+(let [undo-depth 64]
+  (defn push-undo [undos lels wires redos]
+    (ref-set redos '())
+    (alter undos #(take undo-depth (conj % {:lels lels :wires wires})))))
+(defn undo-redo [from lels wires to]
+  (dosync
+    (when-not (empty? @from)
+      (alter to conj {:lels @lels :wires @wires})
+      (ref-set lels (:lels (first @from)))
+      (ref-set wires (:wires (first @from)))
+      (alter from rest))))
+
+;--------------------------------------------------
 ; draw-*
 ;--------------------------------------------------
-
-(defn draw-status [objs]
-  (map (fn [obj ypos]
-         (let [text (Text. 2.0 (+ 12.0 (* 12.0 ypos)) (str obj))]
-           (doto text
-             (.setFont (Font. "Monospaced Regular" 10.0))
-             (.setTextAlignment TextAlignment/LEFT)
-             (.setTextOrigin VPos/TOP)
-             (.setStroke Color/BLUE))
-           text))
-       objs (range)))
 
 (defn draw-mode []
   (case (@mode :mode)
@@ -262,11 +268,17 @@
                               (assoc :selected-wires {})
                               )))
    (= (.getCode keyEvent) KeyCode/X)
-   (dosync (alter lels lel/remove-lel-by-key (@mode :selected-lels))
-           (alter wires lel/remove-wire-by-key (@mode :selected-wires))
-           (alter mode #(-> % (assoc :selected-lels #{})
-                              (assoc :selected-wires {})
-                              )))
+   (dosync
+     (push-undo undos @lels @wires redos)
+     (alter lels lel/remove-lel-by-key (@mode :selected-lels))
+     (alter wires lel/remove-wire-by-key (@mode :selected-wires))
+     (alter mode #(-> % (assoc :selected-lels #{})
+                        (assoc :selected-wires {})
+                        )))
+   (and (= (.getCode keyEvent) KeyCode/Z)
+        (.isControlDown keyEvent))   (undo-redo undos lels wires redos)
+   (and (= (.getCode keyEvent) KeyCode/Y)
+        (.isControlDown keyEvent))   (undo-redo redos lels wires undos)
    :else :no-consume)) ; cond, defn
 
 ; add mode can be merged into move mode
@@ -283,6 +295,7 @@
    ; no mode change
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
+     (push-undo undos @lels @wires redos)
      (alter lels conj {(gensym) (-> (:lel @mode)
                                     (assoc :x (:x @cursor-pos))
                                     (assoc :y (:y @cursor-pos))
@@ -300,6 +313,7 @@
                     :selected-lels #{}, :selected-wires {}}))
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
+     (push-undo undos @lels @wires redos)
      (alter lels conj (:moving-lels @mode))
      (alter wires conj (:moving-wires @mode))
      (ref-set mode {:mode :cursor,
@@ -315,6 +329,7 @@
                     :selected-lels #{}, :selected-wires {}}))
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
+     (push-undo undos @lels @wires redos)
      (alter lels into (map (fn [[k v]] [(gensym) v])
                            (:moving-lels @mode)))
      (alter wires into (map (fn [[k v]] [(gensym) v])
@@ -330,6 +345,7 @@
                     :selected-lels #{}, :selected-wires {}}))
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
+     (push-undo undos @lels @wires redos)
      (alter wires conj
             {(gensym) {:x0 (get-in @mode [:wire-p0 :x])
                        :y0 (get-in @mode [:wire-p0 :y])
@@ -363,7 +379,9 @@
 (defn state-text []
   (reduce #(str %1 "\n" %2)
           [(reduce #(dissoc %1 %2) @mode [:revert-lels :revert-wires])
-           @cursor-pos @cursor-speed @lels @wires]))
+           (str @cursor-pos " " @cursor-speed " "
+                (count @redos) " " (count @undos))
+           @lels @wires]))
 
 ;--------------------------------------------------
 ; schematic pane
@@ -378,7 +396,6 @@
     (when (and num (#{:cursor :add :wire :move :copy} (:mode @mode)))
       (dosync (ref-set cursor-speed
                (if (= num :-) 0 (+ (* @cursor-speed 10) num))))
-      (.setText *label-debug* (state-text))
       (.consume keyEvent)
       true)))
 
@@ -403,13 +420,11 @@
     (when (and dir op)
       (op (case dir (:left :right) :x :y))
       (.consume keyEvent)
-      (.setText *label-debug* (state-text))
       (.setAll (.getChildren pane) (draw-mode))
       (.consume keyEvent)
       true)))
 
 (defn pane-schem-revert [f-set-to-parent pane]
-  (.setText *label-debug* (state-text))
   (f-set-to-parent pane)
   (.setAll (.getChildren pane) (draw-mode))
   (.setFocusTraversable pane true)
@@ -449,10 +464,10 @@
           (pane-schem-cursor-speed keyEvent)
           (let [f (key-command (:mode @mode))]
             (when (and f (not= (f keyEvent) :no-consume))
-              (.setText *label-debug* (state-text))
               (.setAll (.getChildren pane) (draw-mode))
-              (.consume keyEvent)
-              ))))))
+              (.consume keyEvent))))
+      (.setText *label-debug* (state-text))
+      )))
 
 (defn pane-schem [f-set-to-parent]
   (let [pane (Pane.)]
