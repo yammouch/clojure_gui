@@ -68,7 +68,7 @@
                  {:type :and  , :x 32, :y 22, :direction :right,
                   :width 4, :height 4}
                  {:type :dot  , :x 30, :y 29}
-                 {:type :dff  , :x 55, :y 26}
+                 {:type :dff  , :x 55, :y 26, :width 4, :height 5}
                  {:type :mux21, :x 48, :y 24, :direction :right,
                   :width 2, :height 6, :order01 :1->0}
                  ])))
@@ -180,6 +180,11 @@
                    [:edstr :height read-string]
                    [:radio :direction :right :up :left :down]
                    [:radio :order01 :0->1 :1->0]]
+    (:dff :dffr)  [[:edstr :width  read-string]
+                   [:edstr :height read-string]]
+    :op           [[:edstr :operator identity   ]
+                   [:edstr :width    read-string]
+                   [:edstr :height   read-string]]
     nil))
 
 ;--------------------------------------------------
