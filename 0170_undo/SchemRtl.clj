@@ -442,7 +442,9 @@
                     (when-let [lel-key
                                (lel/find-lel-by-pos @lels @cursor-pos)]
                       [(@lels lel-key)
-                       #(dosync (alter lels assoc lel-key %))])
+                       #(dosync
+                          (push-undo undos @lels @wires redos)
+                          (alter lels assoc lel-key %))])
 
                     (and (= KeyCode/V (.getCode keyEvent))
                          (= (:mode @mode) :add))
