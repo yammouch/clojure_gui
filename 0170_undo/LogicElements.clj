@@ -188,23 +188,47 @@
 (defn remove-wire-by-key [wires keys]
   (into {} (remove (fn [[k _]] (= (keys k) #{:p0 :p1})) wires)))
 
+(defn lels-on-line [dir cursor-pos lels]
+  (let [[cx cy] (map cursor-pos [:x :y])
+        on-h-line #(<= (y-min %) cy (y-max %))
+        on-v-line #(<= (x-min %) cx (x-max %))]
+    (filter (case dir
+              :left  #(and (on-h-line %) (< (x-min %) cx))
+              :right #(and (on-h-line %) (< cx (x-max %)))
+              :up    #(and (on-v-line %) (< (y-min %) cy))
+              :down  #(and (on-v-line %) (< cy (y-max %))))
+            lels)))
+
+(defn wires-on-line [dir cursor-pos wires]
+  (let [[cx cy] (map cursor-pos [:x :y])
+        on-h-line #(or (<= (:y0 %) cy (:y1 %)) (<= (:y1 %) cy (:y0 %)))
+        on-v-line #(or (<= (:x0 %) cx (:x1 %)) (<= (:x1 %) cx (:x0 %)))]
+    (filter (case dir
+              :left  #(and (on-h-line %) (< (min (:x0 %) (:x1 %)) cx))
+              :right #(and (on-h-line %) (< cx (max (:x0 %) (:x1 %))))
+              :up    #(and (on-v-line %) (< (min (:y0 %) (:y1 %)) cy))
+              :down  #(and (on-v-line %) (< cy (max (:y0 %) (:y1 %)))))
+            wires)))
+
+(defn coordinates [dir lels wires]
+  (let [[lelc0 lelc1 wirec0 wirec1]
+        (case dir :x [x-min x-max :x0 :x1] :y [y-min y-max :y0 :y1])]
+    (concat (map lelc0  lels)  (map lelc1  lels)
+            (map wirec0 wires) (map wirec1 wires))))
+
 (defn jump-amount [dir cursor-pos lels wires]
-  (let [[fil pick move-dir]
-          (case dir
-            :left  [#(< % (:x cursor-pos)) #(apply max %) :x]
-            :right [#(< (:x cursor-pos) %) #(apply min %) :x]
-            :up    [#(< % (:y cursor-pos)) #(apply max %) :y]
-            :down  [#(< (:y cursor-pos) %) #(apply min %) :y])
-        [lelc0 lelc1 wirec0 wirec1]
-          (case move-dir
-            :x [x-min x-max :x0 :x1]
-            :y [y-min y-max :y0 :y1]
-            nil)
-        filtered (filter fil
-                         (concat (map lelc0  (vals lels))
-                                 (map lelc1  (vals lels))
-                                 (map wirec0 (vals wires))
-                                 (map wirec1 (vals wires))))]
+  (let [lol (lels-on-line dir cursor-pos (vals lels))
+        wol (wires-on-line dir cursor-pos (vals wires))
+        [fil pick move-dir]
+        (case dir
+          :left  [#(< % (:x cursor-pos)) #(apply max %) :x]
+          :right [#(< (:x cursor-pos) %) #(apply min %) :x]
+          :up    [#(< % (:y cursor-pos)) #(apply max %) :y]
+          :down  [#(< (:y cursor-pos) %) #(apply min %) :y])
+        filtered (filter fil (apply coordinates move-dir
+                               (if (and (empty? lol) (empty? wol))
+                                 [(vals lels) (vals wires)]
+                                 [lol wol])))]
     (if (empty? filtered)
       0
       (- (pick filtered) (move-dir cursor-pos))
