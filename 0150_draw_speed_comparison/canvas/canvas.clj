@@ -13,9 +13,6 @@
   '(javafx.scene.input   KeyCode KeyEvent)
   '(javafx.scene.layout  BorderPane Pane)
   '(javafx.scene.paint   Color)
-  '(javafx.scene.shape   Rectangle Polygon Circle
-                         Path PathElement MoveTo ArcTo ClosePath
-                         LineTo)
   '(javafx.stage         Stage))
 
 (def origin (ref [0 0]))
