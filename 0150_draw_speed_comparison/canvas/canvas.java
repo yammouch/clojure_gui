@@ -53,7 +53,13 @@ public class canvas extends Application {
     for (int i = 0; i < 100; i++, y += grid) {
       x = xorg;
       for (int j = 0; j < 100; j++, x += grid) {
-        draw_circle(gc, x, y);
+        int modulo = (j + i) % 4;
+        switch (modulo) {
+          case 0: draw_square(gc, x, y); break;
+          case 1: draw_circle(gc, x, y); break;
+          case 2: draw_triangle(gc, x, y); break;
+          case 3: draw_and(gc, x, y); break;
+        }
       }
     }
   }
@@ -72,7 +78,6 @@ public class canvas extends Application {
         //  case KeyCode.UP   : origin_y -= grid; break;
         //  case KeyCode.DOWN : origin_y += grid; break;
         //}
-        System.out.printf("%f %f\n", origin_x, origin_y);
         gc.clearRect(0.0, 0.0, canvas.getWidth(), canvas.getHeight());
         draw_objects(gc, origin_x, origin_y);
         keyEvent.consume();
