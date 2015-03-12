@@ -65,13 +65,14 @@ public class canvas extends Application {
         if      (keyEvent.getCode() == KeyCode.RIGHT) { origin_x += grid; }
         else if (keyEvent.getCode() == KeyCode.LEFT ) { origin_x -= grid; }
         else if (keyEvent.getCode() == KeyCode.UP   ) { origin_y -= grid; }
-        else if (keyEvent.getCode() == KeyCode.LEFT ) { origin_y += grid; }
+        else if (keyEvent.getCode() == KeyCode.DOWN ) { origin_y += grid; }
         //switch (keyEvent.getCode()) {
         //  case KeyCode.RIGHT: origin_x += grid; break;
         //  case KeyCode.LEFT : origin_x -= grid; break;
         //  case KeyCode.UP   : origin_y -= grid; break;
         //  case KeyCode.DOWN : origin_y += grid; break;
         //}
+        System.out.printf("%f %f\n", origin_x, origin_y);
         gc.clearRect(0.0, 0.0, canvas.getWidth(), canvas.getHeight());
         draw_objects(gc, origin_x, origin_y);
         keyEvent.consume();
