@@ -110,11 +110,11 @@
     (reduce #(update-in %1 [%2] (partial + speed))
             wire coords)))
 
-(defn move-wires [wires dir speed]
+(defn move-geoms [wires dir speed]
   (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{:p0 :p1})])
                 wires)))
 
-(defn move-wires-by-vertices [wires moving-vertices dir speed]
+(defn move-geoms-by-vertices [wires moving-vertices dir speed]
   (reduce-kv (fn [wires k v]
                (update-in wires [k] move-wire dir speed v))
              wires moving-vertices))
@@ -152,17 +152,10 @@
 
           :else nil)))
 
-(defn find-wires-by-pos [wires pos]
+(defn find-geoms-by-pos [wires pos]
   (reduce-kv (fn [acc k v] (if-let [p (wire-vs-cursor v pos)]
                              (conj acc {k p}) acc))
              {} wires))
-
-(defn merge-selected-wire [base add]
-  (reduce-kv (fn [acc k points]
-               (if (base k)
-                 (update-in acc [k] #(into % points))
-                 (conj acc {k points})))
-             base add))
 
 ; An edge of a line should be selected by surrounding it.
 (defn rectangular-select [lels wires {x0 :x y0 :y} {x1 :x y1 :y}]
@@ -179,13 +172,13 @@
                              (<= (max (:y0 v) (:y1 v)) ymax)))
                       wires)]
     {:lels (set (keys lels))
-     :wires (zipmap (keys wires) (repeat #{:p0 :p1}))
+     :geoms (zipmap (keys wires) (repeat #{:p0 :p1}))
      }))
 
 (defn remove-lel-by-key [lels keys]
   (into {} (remove (fn [[k _]] (keys k)) lels)))
 
-(defn remove-wire-by-key [wires keys]
+(defn remove-geom-by-key [wires keys]
   (into {} (remove (fn [[k _]] (= (keys k) #{:p0 :p1})) wires)))
 
 (defn lels-on-line [dir cursor-pos lels]

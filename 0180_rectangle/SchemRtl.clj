@@ -38,17 +38,17 @@
 (def cursor-pos (ref {:x 5 :y 5}))
 (def cursor-speed (ref 0))
 
-(def mode (ref {:mode :cursor, :selected-lels #{}, :selected-wires {}}))
-; {:mode :cursor, :selected-lels #{}, :selected-wires {},
+(def mode (ref {:mode :cursor, :selected-lels #{}, :selected-geoms {}}))
+; {:mode :cursor, :selected-lels #{}, :selected-geoms {},
 ;  (optional) :rect-p0 {:x ... :y ...}}))
 ; {:mode :wire, :wire-p0 {:x ... :y ...}}
 ; {:mode :add , :lel {:type not, :x ...}}
 ; {:mode            :move,
 ;  :moving-lels     #{...},
-;  :moving-wires    #{...},
+;  :moving-geoms    #{...},
 ;  :moving-vertices {...},
 ;  :revert-lels     {...},
-;  :revert-wires    {...}}
+;  :revert-geoms    {...}}
 ; {:mode :catalog, :catalog-pos {:x ... :y ...}}
 
 (def lels
@@ -74,26 +74,26 @@
                   :width 2, :height 6, :order01 :1->0}
                  ])))
 
-(def wires
+(def geoms
   (ref (zipmap (map (fn [_] (gensym)) (repeat '_))
-               [{:x0 36, :y0 24, :x1 41, :y1 24}
-                {:x0 46, :y0 29, :x1 48, :y1 29}
-                {:x0 28, :y0 29, :x1 32, :y1 29}
-                {:x0 46, :y0 35, :x1 46, :y1 29}
-                {:x0 30, :y0 29, :x1 30, :y1 25}
-                {:x0 28, :y0 37, :x1 49, :y1 37}
-                {:x0 36, :y0 30, :x1 38, :y1 30}
-                {:x0 49, :y0 37, :x1 49, :y1 29}
-                {:x0 50, :y0 27, :x1 55, :y1 27}
-                {:x0 28, :y0 23, :x1 32, :y1 23}
-                {:x0 28, :y0 31, :x1 32, :y1 31}
-                {:x0 28, :y0 35, :x1 46, :y1 35}
-                {:x0 44, :y0 25, :x1 48, :y1 25}
-                {:x0 44, :y0 25, :x1 44, :y1 25}
-                {:x0 38, :y0 30, :x1 38, :y1 26}
-                {:x0 59, :y0 27, :x1 62, :y1 27}
-                {:x0 30, :y0 25, :x1 32, :y1 25}
-                {:x0 38, :y0 26, :x1 41, :y1 26}
+               [{:type :wire, :x0 36, :y0 24, :x1 41, :y1 24}
+                {:type :wire, :x0 46, :y0 29, :x1 48, :y1 29}
+                {:type :wire, :x0 28, :y0 29, :x1 32, :y1 29}
+                {:type :wire, :x0 46, :y0 35, :x1 46, :y1 29}
+                {:type :wire, :x0 30, :y0 29, :x1 30, :y1 25}
+                {:type :wire, :x0 28, :y0 37, :x1 49, :y1 37}
+                {:type :wire, :x0 36, :y0 30, :x1 38, :y1 30}
+                {:type :wire, :x0 49, :y0 37, :x1 49, :y1 29}
+                {:type :wire, :x0 50, :y0 27, :x1 55, :y1 27}
+                {:type :wire, :x0 28, :y0 23, :x1 32, :y1 23}
+                {:type :wire, :x0 28, :y0 31, :x1 32, :y1 31}
+                {:type :wire, :x0 28, :y0 35, :x1 46, :y1 35}
+                {:type :wire, :x0 44, :y0 25, :x1 48, :y1 25}
+                {:type :wire, :x0 44, :y0 25, :x1 44, :y1 25}
+                {:type :wire, :x0 38, :y0 30, :x1 38, :y1 26}
+                {:type :wire, :x0 59, :y0 27, :x1 62, :y1 27}
+                {:type :wire, :x0 30, :y0 25, :x1 32, :y1 25}
+                {:type :wire, :x0 38, :y0 26, :x1 41, :y1 26}
                 ])))
 
 ;--------------------------------------------------
@@ -102,15 +102,15 @@
 (def undos (ref '()))
 (def redos (ref '()))
 (let [undo-depth 64]
-  (defn push-undo [undos lels wires redos]
+  (defn push-undo [undos lels geoms redos]
     (ref-set redos '())
-    (alter undos #(take undo-depth (conj % {:lels lels :wires wires})))))
-(defn undo-redo [from lels wires to]
+    (alter undos #(take undo-depth (conj % {:lels lels :geoms geoms})))))
+(defn undo-redo [from lels geoms to]
   (dosync
     (when-not (empty? @from)
-      (alter to conj {:lels @lels :wires @wires})
+      (alter to conj {:lels @lels :geoms @geoms})
       (ref-set lels (:lels (first @from)))
-      (ref-set wires (:wires (first @from)))
+      (ref-set geoms (:geoms (first @from)))
       (alter from rest))))
 
 ;--------------------------------------------------
@@ -121,14 +121,14 @@
   (case (@mode :mode)
     :cursor  (ld/draw-mode-cursor @mode @cursor-pos
                                   @lels (@mode :selected-lels)
-                                  @wires (@mode :selected-wires))
+                                  @geoms (@mode :selected-geoms))
     :move    (ld/draw-mode-move @cursor-pos @lels (@mode :moving-lels)
-                                @wires (@mode :moving-wires)
+                                @geoms (@mode :moving-geoms)
                                 (@mode :moving-vertices))
     :copy    (ld/draw-mode-move @cursor-pos @lels (@mode :moving-lels)
-                                @wires (@mode :moving-wires) {})
-    :add     (ld/draw-mode-add @mode @cursor-pos @lels @wires)
-    :wire    (ld/draw-mode-wire @cursor-pos @lels @wires (@mode :wire-p0))
+                                @geoms (@mode :moving-geoms) {})
+    :add     (ld/draw-mode-add @mode @cursor-pos @lels @geoms)
+    :wire    (ld/draw-mode-wire @cursor-pos @lels @geoms (@mode :wire-p0))
     :catalog (ld/draw-mode-catalog (@mode :catalog-pos))
     ))
 
@@ -142,8 +142,8 @@
 (defn move-selected [dir speed]
   (dosync
     (alter mode update-in [:moving-lels] lel/move-lels dir speed)
-    (alter mode update-in [:moving-wires] lel/move-wires dir speed)
-    (alter wires lel/move-wires-by-vertices
+    (alter mode update-in [:moving-geoms] lel/move-geoms dir speed)
+    (alter geoms lel/move-geoms-by-vertices
            (@mode :moving-vertices) dir speed)))
 
 (defn move-catalog [dir speed]
@@ -193,36 +193,36 @@
 ; key commands for each mode on schematic panel
 ;--------------------------------------------------
 
-(defn move-mode [mode lels wires]
+(defn move-mode [mode lels geoms]
   (when-not (and (empty? (mode :selected-lels))
-                 (empty? (mode :selected-wires)))
-    (let [sl (mode :selected-lels) sw (mode :selected-wires)
+                 (empty? (mode :selected-geoms)))
+    (let [sl (mode :selected-lels) sw (mode :selected-geoms)
           {:keys [ml nl]}
            (group-by #(if (sl (% 0)) :ml :nl) lels)
           {:keys [mw nw]}
            (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
-                     wires)]
+                     geoms)]
       [{:mode            :move
         :moving-lels     (into {} ml)
-        :moving-wires    (into {} mw)
+        :moving-geoms    (into {} mw)
         :moving-vertices (into {} (filter (fn [[_ v]] (not= #{:p0 :p1} v))
                                           sw))
         :revert-lels     lels
-        :revert-wires    wires}
+        :revert-geoms    geoms}
        nl nw])))
 
-(defn copy-mode [mode lels wires]
+(defn copy-mode [mode lels geoms]
   (when-not (and (empty? (mode :selected-lels))
-                 (empty? (mode :selected-wires)))
-    (let [sl (mode :selected-lels) sw (mode :selected-wires)
+                 (empty? (mode :selected-geoms)))
+    (let [sl (mode :selected-lels) sw (mode :selected-geoms)
           {:keys [ml nl]}
            (group-by #(if (sl (% 0)) :ml :nl) lels)
           {:keys [mw nw]}
            (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
-                     wires)]
+                     geoms)]
       {:mode            :copy
        :moving-lels     (into {} ml)
-       :moving-wires    (into {} mw)
+       :moving-geoms    (into {} mw)
        :moving-vertices {}})))
 
 (defn key-command-cursor-mode [keyEvent]
@@ -233,16 +233,16 @@
    ; cursor -> move
    (= (.getCode keyEvent) KeyCode/M)
    (dosync
-     (when-let [[new-mode no-move-lels no-move-wires]
-                (move-mode @mode @lels @wires)]
+     (when-let [[new-mode no-move-lels no-move-geoms]
+                (move-mode @mode @lels @geoms)]
        (ref-set mode new-mode)
        (ref-set lels (into {} no-move-lels))
-       (ref-set wires (into {} no-move-wires))
+       (ref-set geoms (into {} no-move-geoms))
        ))
    ; cursor -> copy
    (= (.getCode keyEvent) KeyCode/C)
    (dosync
-     (when-let [new-mode (copy-mode @mode @lels @wires)]
+     (when-let [new-mode (copy-mode @mode @lels @geoms)]
        (ref-set mode new-mode)))
    ; cursor -> wire
    (= (.getCode keyEvent) KeyCode/W)
@@ -254,38 +254,38 @@
      (dosync (alter mode assoc :rect-p0 @cursor-pos)))
    (= (.getCode keyEvent) KeyCode/ENTER)
    (let [lel-key (lel/find-lel-by-pos @lels @cursor-pos)
-         wire-keys (lel/find-wires-by-pos @wires @cursor-pos)
+         geom-keys (lel/find-geoms-by-pos @geoms @cursor-pos)
          rect-keys (if (@mode :rect-p0)
-                     (lel/rectangular-select @lels @wires
+                     (lel/rectangular-select @lels @geoms
                        (@mode :rect-p0) @cursor-pos)
                      {})
          sl (reduce into [(:selected-lels @mode) (:lels rect-keys)
                           (if lel-key #{lel-key} #{})])
          sw (reduce (partial merge-with into)
-             [(:selected-wires @mode) (:wires rect-keys) wire-keys])]
+             [(:selected-geoms @mode) (:geoms rect-keys) geom-keys])]
      (dosync
        (alter mode
               #(-> % (assoc :selected-lels sl)
-                     (assoc :selected-wires sw)
+                     (assoc :selected-geoms sw)
                      (dissoc :rect-p0)
                      ))))
    (= (.getCode keyEvent) KeyCode/ESCAPE)
    (dosync (alter mode #(-> % (dissoc :rect-p0)
                               (assoc :selected-lels #{})
-                              (assoc :selected-wires {})
+                              (assoc :selected-geoms {})
                               )))
    (= (.getCode keyEvent) KeyCode/X)
    (dosync
-     (push-undo undos @lels @wires redos)
+     (push-undo undos @lels @geoms redos)
      (alter lels lel/remove-lel-by-key (@mode :selected-lels))
-     (alter wires lel/remove-wire-by-key (@mode :selected-wires))
+     (alter geoms lel/remove-geom-by-key (@mode :selected-geoms))
      (alter mode #(-> % (assoc :selected-lels #{})
-                        (assoc :selected-wires {})
+                        (assoc :selected-geoms {})
                         )))
    (and (= (.getCode keyEvent) KeyCode/Z)
-        (.isControlDown keyEvent))   (undo-redo undos lels wires redos)
+        (.isControlDown keyEvent))   (undo-redo undos lels geoms redos)
    (and (= (.getCode keyEvent) KeyCode/Y)
-        (.isControlDown keyEvent))   (undo-redo redos lels wires undos)
+        (.isControlDown keyEvent))   (undo-redo redos lels geoms undos)
    :else :no-consume)) ; cond, defn
 
 ; add mode can be merged into move mode
@@ -298,11 +298,11 @@
    ; add -> cursor
    (= (.getCode keyEvent) KeyCode/ESCAPE)
    (dosync (ref-set mode {:mode :cursor,
-                          :selected-lels #{}, :selected-wires {}}))
+                          :selected-lels #{}, :selected-geoms {}}))
    ; no mode change
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
-     (push-undo undos @lels @wires redos)
+     (push-undo undos @lels @geoms redos)
      (alter lels conj {(gensym) (-> (:lel @mode)
                                     (assoc :x (:x @cursor-pos))
                                     (assoc :y (:y @cursor-pos))
@@ -315,16 +315,16 @@
    (= (.getCode keyEvent) KeyCode/ESCAPE)
    (dosync
      (ref-set lels (:revert-lels @mode))
-     (ref-set wires (:revert-wires @mode))
+     (ref-set geoms (:revert-geoms @mode))
      (ref-set mode {:mode :cursor,
-                    :selected-lels #{}, :selected-wires {}}))
+                    :selected-lels #{}, :selected-geoms {}}))
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
-     (push-undo undos @lels @wires redos)
+     (push-undo undos @lels @geoms redos)
      (alter lels conj (:moving-lels @mode))
-     (alter wires conj (:moving-wires @mode))
+     (alter geoms conj (:moving-geoms @mode))
      (ref-set mode {:mode :cursor,
-                    :selected-lels #{}, :selected-wires {}}))
+                    :selected-lels #{}, :selected-geoms {}}))
    :else :no-consume))
 
 (defn key-command-copy-mode [keyEvent]
@@ -333,14 +333,14 @@
    (= (.getCode keyEvent) KeyCode/ESCAPE)
    (dosync
      (ref-set mode {:mode :cursor,
-                    :selected-lels #{}, :selected-wires {}}))
+                    :selected-lels #{}, :selected-geoms {}}))
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
-     (push-undo undos @lels @wires redos)
+     (push-undo undos @lels @geoms redos)
      (alter lels into (map (fn [[k v]] [(gensym) v])
                            (:moving-lels @mode)))
-     (alter wires into (map (fn [[k v]] [(gensym) v])
-                            (:moving-wires @mode))))
+     (alter geoms into (map (fn [[k v]] [(gensym) v])
+                            (:moving-geoms @mode))))
    :else :no-consume))
 
 (defn key-command-wire-mode [keyEvent]
@@ -349,11 +349,11 @@
    (= (.getCode keyEvent) KeyCode/ESCAPE)
    (dosync
      (ref-set mode {:mode :cursor,
-                    :selected-lels #{}, :selected-wires {}}))
+                    :selected-lels #{}, :selected-geoms {}}))
    (= (.getCode keyEvent) KeyCode/ENTER)
    (dosync
-     (push-undo undos @lels @wires redos)
-     (alter wires conj
+     (push-undo undos @lels @geoms redos)
+     (alter geoms conj
             {(gensym) {:x0 (get-in @mode [:wire-p0 :x])
                        :y0 (get-in @mode [:wire-p0 :y])
                        :x1 (@cursor-pos :x)
@@ -371,7 +371,7 @@
    ; catalog -> cursor
    (= (.getCode keyEvent) KeyCode/ESCAPE)
    (dosync (ref-set mode {:mode :cursor,
-                          :selected-lels #{}, :selected-wires {}}))
+                          :selected-lels #{}, :selected-geoms {}}))
    :else :no-consume))
 
 (def key-command
@@ -385,10 +385,10 @@
 
 (defn state-text []
   (reduce #(str %1 "\n" %2)
-          [(reduce #(dissoc %1 %2) @mode [:revert-lels :revert-wires])
+          [(reduce #(dissoc %1 %2) @mode [:revert-lels :revert-geoms])
            (str @cursor-pos " " @cursor-speed " "
                 (count @redos) " " (count @undos))
-           @lels @wires]))
+           @lels @geoms]))
 
 ;--------------------------------------------------
 ; schematic pane
@@ -415,7 +415,7 @@
                   :else                           nil)
         speed (cond (not dir)            1
                     (<= @cursor-speed 0)
-                      (lel/jump-amount dir @cursor-pos @lels @wires)
+                      (lel/jump-amount dir @cursor-pos @lels @geoms)
                     ('#{:left :up} dir)  (- @cursor-speed)
                     :else                @cursor-speed)
         op (case (:mode @mode)
@@ -445,7 +445,7 @@
                                (lel/find-lel-by-pos @lels @cursor-pos)]
                       [(@lels lel-key)
                        #(dosync
-                          (push-undo undos @lels @wires redos)
+                          (push-undo undos @lels @geoms redos)
                           (alter lels assoc lel-key %))])
 
                     (and (= KeyCode/V (.getCode keyEvent))
@@ -512,7 +512,7 @@
         (let [file (my-file-chooser main-stage "Open File" @prev-path false)
               rd (when file (PushbackReader. (clojure.java.io/reader file)))]
           (when rd
-            (dosync (doseq [r [lels wires]] (ref-set r (read rd))))
+            (dosync (doseq [r [lels geoms]] (ref-set r (read rd))))
             (reset! prev-path (.getParentFile file))
             (.close rd)
             ))))))
@@ -525,7 +525,7 @@
                                     @prev-path true)
               wr (when file (clojure.java.io/writer file))]
           (when wr
-            (doseq [x [@lels @wires]]
+            (doseq [x [@lels @geoms]]
               (clojure.pprint/pprint x wr))
             (reset! prev-path (.getParentFile file))
             (.close wr)
