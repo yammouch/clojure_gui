@@ -36,7 +36,7 @@
 (def *label-debug* (Label.))
 
 (def cursor-pos (ref {:x 5 :y 5}))
-(def cursor-speed (ref 0))
+(def cursor-speed (ref 1))
 
 (def mode (ref {:mode :cursor, :selected-lels #{}, :selected-geoms {}}))
 ; {:mode :cursor, :selected-lels #{}, :selected-geoms {},
@@ -94,6 +94,7 @@
                 {:type :wire, :x0 59, :y0 27, :x1 62, :y1 27}
                 {:type :wire, :x0 30, :y0 25, :x1 32, :y1 25}
                 {:type :wire, :x0 38, :y0 26, :x1 41, :y1 26}
+                {:type :rect, :x0 50, :y0  5, :x1 60, :y1 10}
                 ])))
 
 ;--------------------------------------------------

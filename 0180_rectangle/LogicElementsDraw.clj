@@ -65,6 +65,17 @@
            (* (:y pos) pix-per-grid)
            (* 0.5 size) color))
 
+
+(defn draw-rect [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
+  (let [x (* pix-per-grid (min x0 x1))
+        y (* pix-per-grid (min y0 y1))
+        w (* pix-per-grid (Math/abs (- x1 x0)))
+        h (* pix-per-grid (Math/abs (- y1 y0)))
+        rect (Rectangle. x y w h)]
+    (doto rect
+      (.setStroke color) (.setFill Color/TRANSPARENT))
+    rect))
+
 (defn draw-wire [{x0 :x0 y0 :y0 x1 :x1 y1 :y1} color]
   (let [line (Line. (* x0 pix-per-grid)
                     (* y0 pix-per-grid)
@@ -280,11 +291,13 @@
   (into-array Node
    (concat
     [(draw-dot cursor-pos 9 Color/BLUE)]
-    (mapcat (fn [[k v]]
-              (let [selected (selected-wires k)]
-                (if selected
-                  (draw-wire-selected v selected)
-                  [(draw-wire v Color/BLACK)])))
+    (mapcat (fn [[k {type :type :as v}]]
+              (case type
+                :wire (let [selected (selected-wires k)]
+                        (if selected
+                          (draw-wire-selected v selected)
+                          [(draw-wire v Color/BLACK)]))
+                :rect [(draw-rect v Color/BLACK)]))
             wires)
     (mapcat (fn [[k v]]
               (lel-draw v (if (selected-lels k) Color/RED Color/BLACK)))
