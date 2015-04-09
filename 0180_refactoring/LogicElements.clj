@@ -250,15 +250,15 @@
 
 (defn move-cursor [schem dir speed]
   (update-in schem [:cursor-pos dir] #(+ speed %)))
-;  (dosync (alter cursor-pos #(update-in % [dir] (partial + speed)))))
-;
-;(defn move-selected [dir speed]
-;  (dosync
-;    (alter mode update-in [:moving-lels] lel/move-lels dir speed)
-;    (alter mode update-in [:moving-geoms] lel/move-geoms dir speed)
-;    (alter geoms lel/move-geoms-by-vertices
-;           (@mode :moving-vertices) dir speed)))
-;
+
+(defn move-selected [schem dir speed]
+  (-> schem
+      (update-in [:moving-lels ] move-lels  dir speed)
+      (update-in [:moving-geoms] move-geoms dir speed)
+      (update-in [:geoms] move-geoms-by-vertices
+                 (:moving-vertices schem) dir speed
+                 )))
+
 ;(defn move-catalog [dir speed]
 ;  (dosync (alter mode
 ;           #(update-in % [:catalog-pos dir] (if (neg? speed) dec inc))
