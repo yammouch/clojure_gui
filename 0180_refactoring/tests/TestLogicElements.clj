@@ -55,3 +55,24 @@
       (print expected)))
   (print " result: ")
   (println result))
+
+;--------------------------------------------------
+(println "tests move-selected")
+
+(def schem {:cursor-pos {:x 10 :y 20}})
+
+(def test-patts
+  [[(dut/move-cursor schem :x  2) {:cursor-pos {:x 12 :y 20}}]
+   [(dut/move-cursor schem :x -2) {:cursor-pos {:x  8 :y 20}}]
+   [(dut/move-cursor schem :y  3) {:cursor-pos {:x 10 :y 23}}]
+   [(dut/move-cursor schem :y -3) {:cursor-pos {:x 10 :y 17}}]
+   ])
+
+(doseq [[result expected] test-patts]
+  (if (= result expected)
+    (print "[OK]")
+    (do
+      (print "[ER] expected: ")
+      (print expected)))
+  (print " result: ")
+  (println result))
