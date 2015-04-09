@@ -72,15 +72,26 @@
 
 (def test-patts
   [[(dut/move-selected schem :x 2)
-    {:moving-lels  {'G0 {:x   2 :y   1}
-                    'G1 {:x  12 :y  11}}
-     :moving-geoms {'G2 {:x0 22 :y0 21 :x1 24 :y1 23}
-                    'G3 {:x0 32 :y0 31 :x1 34 :y1 33}}
-     :geoms        {'G4 {:x0 42 :y0 41 :x1 42 :y1 43}
-                    'G5 {:x0 50 :y0 51 :x1 54 :y1 53}}
-     :moving-vertices {'G4 #{':p0}
-                       'G5 #{':p1}
-                       }}]])
+    (-> schem
+        (update-in [:moving-lels  'G0 :x ] #(+ 2 %))
+        (update-in [:moving-lels  'G1 :x ] #(+ 2 %))
+        (update-in [:moving-geoms 'G2 :x0] #(+ 2 %))
+        (update-in [:moving-geoms 'G2 :x1] #(+ 2 %))
+        (update-in [:moving-geoms 'G3 :x0] #(+ 2 %))
+        (update-in [:moving-geoms 'G3 :x1] #(+ 2 %))
+        (update-in [:geoms        'G4 :x0] #(+ 2 %))
+        (update-in [:geoms        'G5 :x1] #(+ 2 %)))]
+   [(dut/move-selected schem :y -3)
+    (-> schem
+        (update-in [:moving-lels  'G0 :y ] #(- % 3))
+        (update-in [:moving-lels  'G1 :y ] #(- % 3))
+        (update-in [:moving-geoms 'G2 :y0] #(- % 3))
+        (update-in [:moving-geoms 'G2 :y1] #(- % 3))
+        (update-in [:moving-geoms 'G3 :y0] #(- % 3))
+        (update-in [:moving-geoms 'G3 :y1] #(- % 3))
+        (update-in [:geoms        'G4 :y0] #(- % 3))
+        (update-in [:geoms        'G5 :y1] #(- % 3))
+        )]])
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
