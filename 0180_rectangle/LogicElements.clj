@@ -227,3 +227,334 @@
       (- (pick filtered) (move-dir cursor-pos))
       )))
 
+;--------------------------------------------------
+; undo, redo
+;--------------------------------------------------
+;(def undos (ref '()))
+;(def redos (ref '()))
+;(let [undo-depth 64]
+;  (defn push-undo [undos lels geoms redos]
+;     (ref-set redos '())
+;     (alter undos #(take undo-depth (conj % {:lels lels :geoms geoms})))))
+;(defn undo-redo [from lels geoms to]
+;  (dosync
+;    (when-not (empty? @from)
+;      (alter to conj {:lels @lels :geoms @geoms})
+;      (ref-set lels (:lels (first @from)))
+;      (ref-set geoms (:geoms (first @from)))
+;      (alter from rest))))
+;
+;;--------------------------------------------------
+;; draw-*
+;;--------------------------------------------------
+;
+;(defn draw-mode []
+;  (case (@mode :mode)
+;    :cursor  (ld/draw-mode-cursor @mode @cursor-pos
+;                                  @lels (@mode :selected-lels)
+;                                  @geoms (@mode :selected-geoms))
+;    :move    (ld/draw-mode-move @cursor-pos @lels (@mode :moving-lels)
+;                                @geoms (@mode :moving-geoms)
+;                                (@mode :moving-vertices))
+;    :copy    (ld/draw-mode-move @cursor-pos @lels (@mode :moving-lels)
+;                                @geoms (@mode :moving-geoms) {})
+;    :add     (ld/draw-mode-add @mode @cursor-pos @lels @geoms)
+;    :wire    (ld/draw-mode-wire @cursor-pos @lels @geoms (@mode :wire-p0))
+;    :catalog (ld/draw-mode-catalog (@mode :catalog-pos))
+;    ))
+;
+;;--------------------------------------------------
+;; move-*
+;;--------------------------------------------------
+;
+;(defn move-cursor [dir speed]
+;  (dosync (alter cursor-pos #(update-in % [dir] (partial + speed)))))
+;
+;(defn move-selected [dir speed]
+;  (dosync
+;    (alter mode update-in [:moving-lels] lel/move-lels dir speed)
+;    (alter mode update-in [:moving-geoms] lel/move-geoms dir speed)
+;    (alter geoms lel/move-geoms-by-vertices
+;           (@mode :moving-vertices) dir speed)))
+;
+;(defn move-catalog [dir speed]
+;  (dosync (alter mode
+;           #(update-in % [:catalog-pos dir] (if (neg? speed) dec inc))
+;           )))
+;
+;;--------------------------------------------------
+;; dialog box
+;;--------------------------------------------------
+;
+;(defn dialog-table [type]
+;  (case type
+;    (:in :out)    [[:radio :direction :right :up :left :down]]
+;    (:inout :not) [[:radio :direction :horizontal :vertical]]
+;    (:and :or :buf :mux-n)
+;                  [[:edstr :height read-string]
+;                   [:edstr :width  read-string]
+;                   [:radio :direction :right :up :left :down]]
+;    :name         [[:edstr :string identity]
+;                   [:radio :h-align :left   :center :right]
+;                   [:radio :v-align :bottom :center :top  ]]
+;    :mux21        [[:edstr :height read-string]
+;                   [:edstr :width  read-string]
+;                   [:radio :direction :right :up :left :down]
+;                   [:radio :order01 :0->1 :1->0]]
+;    :dff          [[:edstr :height read-string]
+;                   [:edstr :width  read-string]
+;                   [:radio :async-reset :true :false]]
+;    :op           [[:edstr :operator identity   ]
+;                   [:edstr :height   read-string]
+;                   [:edstr :width    read-string]]
+;    nil))
+;
+;;--------------------------------------------------
+;; key commands for each mode on schematic panel
+;;--------------------------------------------------
+;
+;(defn move-mode [mode lels geoms]
+;  (when-not (and (empty? (mode :selected-lels))
+;                 (empty? (mode :selected-geoms)))
+;    (let [sl (mode :selected-lels) sw (mode :selected-geoms)
+;          {:keys [ml nl]}
+;           (group-by #(if (sl (% 0)) :ml :nl) lels)
+;          {:keys [mw nw]}
+;           (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
+;                     geoms)]
+;      [{:mode            :move
+;        :moving-lels     (into {} ml)
+;        :moving-geoms    (into {} mw)
+;        :moving-vertices (into {} (filter (fn [[_ v]] (not= #{:p0 :p1} v))
+;                                          sw))
+;        :revert-lels     lels
+;        :revert-geoms    geoms}
+;       nl nw])))
+;
+;(defn copy-mode [mode lels geoms]
+;  (when-not (and (empty? (mode :selected-lels))
+;                 (empty? (mode :selected-geoms)))
+;    (let [sl (mode :selected-lels) sw (mode :selected-geoms)
+;          {:keys [ml nl]}
+;           (group-by #(if (sl (% 0)) :ml :nl) lels)
+;          {:keys [mw nw]}
+;           (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
+;                     geoms)]
+;      {:mode            :copy
+;       :moving-lels     (into {} ml)
+;       :moving-geoms    (into {} mw)
+;       :moving-vertices {}})))
+;
+;(defn key-command-cursor-mode [keyEvent]
+;  (cond
+;   ; cursor -> catalog
+;   (= (.getCode keyEvent) KeyCode/E)
+;   (dosync (ref-set mode {:mode :catalog, :catalog-pos {:x 0 :y 0}}))
+;   ; cursor -> move
+;   (= (.getCode keyEvent) KeyCode/M)
+;   (dosync
+;     (when-let [[new-mode no-move-lels no-move-geoms]
+;                (move-mode @mode @lels @geoms)]
+;       (ref-set mode new-mode)
+;       (ref-set lels (into {} no-move-lels))
+;       (ref-set geoms (into {} no-move-geoms))
+;       ))
+;   ; cursor -> copy
+;   (= (.getCode keyEvent) KeyCode/C)
+;   (dosync
+;     (when-let [new-mode (copy-mode @mode @lels @geoms)]
+;       (ref-set mode new-mode)))
+;   ; cursor -> wire
+;   (= (.getCode keyEvent) KeyCode/W)
+;   (dosync (ref-set mode {:mode :wire, :wire-p0 @cursor-pos}))
+;   ; no mode change
+;   (= (.getCode keyEvent) KeyCode/R)
+;   (if (:rect-p0 @mode)
+;     (dosync (alter mode dissoc :rect-p0))
+;     (dosync (alter mode assoc :rect-p0 @cursor-pos)))
+;   (= (.getCode keyEvent) KeyCode/ENTER)
+;   (let [lel-key (lel/find-lel-by-pos @lels @cursor-pos)
+;         geom-keys (lel/find-geoms-by-pos @geoms @cursor-pos)
+;         rect-keys (if (@mode :rect-p0)
+;                     (lel/rectangular-select @lels @geoms
+;                       (@mode :rect-p0) @cursor-pos)
+;                     {})
+;         sl (reduce into [(:selected-lels @mode) (:lels rect-keys)
+;                          (if lel-key #{lel-key} #{})])
+;         sw (reduce (partial merge-with into)
+;             [(:selected-geoms @mode) (:geoms rect-keys) geom-keys])]
+;     (dosync
+;       (alter mode
+;              #(-> % (assoc :selected-lels sl)
+;                     (assoc :selected-geoms sw)
+;                     (dissoc :rect-p0)
+;                     ))))
+;   (= (.getCode keyEvent) KeyCode/ESCAPE)
+;   (dosync (alter mode #(-> % (dissoc :rect-p0)
+;                              (assoc :selected-lels #{})
+;                              (assoc :selected-geoms {})
+;                              )))
+;   (= (.getCode keyEvent) KeyCode/X)
+;   (dosync
+;     (push-undo undos @lels @geoms redos)
+;     (alter lels lel/remove-lel-by-key (@mode :selected-lels))
+;     (alter geoms lel/remove-geom-by-key (@mode :selected-geoms))
+;     (alter mode #(-> % (assoc :selected-lels #{})
+;                        (assoc :selected-geoms {})
+;                        )))
+;   (and (= (.getCode keyEvent) KeyCode/Z)
+;        (.isControlDown keyEvent))   (undo-redo undos lels geoms redos)
+;   (and (= (.getCode keyEvent) KeyCode/Y)
+;        (.isControlDown keyEvent))   (undo-redo redos lels geoms undos)
+;   :else :no-consume)) ; cond, defn
+;
+;; add mode can be merged into move mode
+;; if continuous addition is not necessary.
+;(defn key-command-add-mode [keyEvent]
+;  (cond
+;   ; add -> catalog
+;   (= (.getCode keyEvent) KeyCode/E)
+;   (dosync (ref-set mode {:mode :catalog :catalog-pos {:x 0 :y 0}}))
+;   ; add -> cursor
+;   (= (.getCode keyEvent) KeyCode/ESCAPE)
+;   (dosync (ref-set mode {:mode :cursor,
+;                          :selected-lels #{}, :selected-geoms {}}))
+;   ; no mode change
+;   (= (.getCode keyEvent) KeyCode/ENTER)
+;   (dosync
+;     (push-undo undos @lels @geoms redos)
+;     (alter lels conj {(gensym) (-> (:lel @mode)
+;                                    (assoc :x (:x @cursor-pos))
+;                                    (assoc :y (:y @cursor-pos))
+;                                    )}))
+;   :else :no-consume))
+;
+;(defn key-command-move-mode [keyEvent]
+;  (cond
+;   ; move -> cursor
+;   (= (.getCode keyEvent) KeyCode/ESCAPE)
+;   (dosync
+;     (ref-set lels (:revert-lels @mode))
+;     (ref-set geoms (:revert-geoms @mode))
+;     (ref-set mode {:mode :cursor,
+;                    :selected-lels #{}, :selected-geoms {}}))
+;   (= (.getCode keyEvent) KeyCode/ENTER)
+;   (dosync
+;     (push-undo undos @lels @geoms redos)
+;     (alter lels conj (:moving-lels @mode))
+;     (alter geoms conj (:moving-geoms @mode))
+;     (ref-set mode {:mode :cursor,
+;                    :selected-lels #{}, :selected-geoms {}}))
+;   :else :no-consume))
+;
+;(defn key-command-copy-mode [keyEvent]
+;  (cond
+;   ; move -> cursor
+;   (= (.getCode keyEvent) KeyCode/ESCAPE)
+;   (dosync
+;     (ref-set mode {:mode :cursor,
+;                    :selected-lels #{}, :selected-geoms {}}))
+;   (= (.getCode keyEvent) KeyCode/ENTER)
+;   (dosync
+;     (push-undo undos @lels @geoms redos)
+;     (alter lels into (map (fn [[k v]] [(gensym) v])
+;                           (:moving-lels @mode)))
+;     (alter geoms into (map (fn [[k v]] [(gensym) v])
+;                            (:moving-geoms @mode))))
+;   :else :no-consume))
+;
+;(defn key-command-wire-mode [keyEvent]
+;  (cond
+;   ; wire -> cursor
+;   (= (.getCode keyEvent) KeyCode/ESCAPE)
+;   (dosync
+;     (ref-set mode {:mode :cursor,
+;                    :selected-lels #{}, :selected-geoms {}}))
+;   (= (.getCode keyEvent) KeyCode/ENTER)
+;   (dosync
+;     (push-undo undos @lels @geoms redos)
+;     (alter geoms conj
+;            {(gensym) {:x0 (get-in @mode [:wire-p0 :x])
+;                       :y0 (get-in @mode [:wire-p0 :y])
+;                       :x1 (@cursor-pos :x)
+;                       :y1 (@cursor-pos :y)}})
+;     (alter mode assoc :wire-p0 @cursor-pos))
+;   :else :no-consume))
+;
+;(defn key-command-catalog-mode [keyEvent]
+;  (cond
+;   ; catalog -> add
+;   (= (.getCode keyEvent) KeyCode/ENTER)
+;   (when-let [type (get-in ld/catalog-table
+;                           (map #(get-in @mode [:catalog-pos %]) [:y :x]))]
+;     (dosync (ref-set mode {:mode :add :lel (lel/lel-init type)})))
+;   ; catalog -> cursor
+;   (= (.getCode keyEvent) KeyCode/ESCAPE)
+;   (dosync (ref-set mode {:mode :cursor,
+;                          :selected-lels #{}, :selected-geoms {}}))
+;   :else :no-consume))
+;
+;(def key-command
+;  {:cursor  key-command-cursor-mode
+;   :add     key-command-add-mode
+;   :move    key-command-move-mode
+;   :copy    key-command-copy-mode
+;   :wire    key-command-wire-mode
+;   :catalog key-command-catalog-mode
+;   })
+;
+;;--------------------------------------------------
+;; schematic pane
+;;--------------------------------------------------
+;
+;(defn pane-schem-cursor-speed [keyEvent]
+;  (let [num ({KeyCode/DIGIT0 0, KeyCode/DIGIT1 1, KeyCode/DIGIT2 2,
+;              KeyCode/DIGIT3 3, KeyCode/DIGIT4 4, KeyCode/DIGIT5 5,
+;              KeyCode/DIGIT6 6, KeyCode/DIGIT7 7, KeyCode/DIGIT8 8,
+;              KeyCode/DIGIT9 9, KeyCode/MINUS :-}
+;             (.getCode keyEvent))]
+;    (when (and num (#{:cursor :add :wire :move :copy} (:mode @mode)))
+;      (dosync (ref-set cursor-speed
+;               (if (= num :-) 0 (+ (* @cursor-speed 10) num))))
+;      (.consume keyEvent)
+;      true)))
+;
+;(defn pane-schem-cursor-move [keyEvent pane]
+;  (let [kc (.getCode keyEvent)
+;        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) :left
+;                  (#{KeyCode/RIGHT KeyCode/L} kc) :right
+;                  (#{KeyCode/UP    KeyCode/K} kc) :up
+;                  (#{KeyCode/DOWN  KeyCode/J} kc) :down
+;                  :else                           nil)
+;        speed (cond (not dir)            1
+;                    (<= @cursor-speed 0)
+;                      (lel/jump-amount dir @cursor-pos @lels @geoms)
+;                    ('#{:left :up} dir)  (- @cursor-speed)
+;                    :else                @cursor-speed)
+;        op (case (:mode @mode)
+;             (:cursor :add :wire) #(move-cursor % speed)
+;             (:move :copy)        #(do (move-cursor   % speed)
+;                                       (move-selected % speed))
+;             :catalog             #(move-catalog % (case dir (:left :up) -1 1))
+;             nil)]
+;    (when (and dir op)
+;      (op (case dir (:left :right) :x :y))
+;      (.consume keyEvent)
+;      (.setAll (.getChildren pane) (draw-mode))
+;      (.consume keyEvent)
+;      true)))
+;
+;(defn pane-schem-key [f-set-to-parent pane]
+;  (proxy [EventHandler] []
+;    (handle [keyEvent]
+;      (or (pane-schem-goto-dialog  keyEvent pane f-set-to-parent)
+;          (pane-schem-cursor-move  keyEvent pane)
+;          (pane-schem-cursor-speed keyEvent)
+;          (let [f (key-command (:mode @mode))]
+;            (when (and f (not= (f keyEvent) :no-consume))
+;              (.setAll (.getChildren pane) (draw-mode))
+;              (.consume keyEvent))))
+;      (.setText *label-debug* (state-text))
+;      )))
+
+
