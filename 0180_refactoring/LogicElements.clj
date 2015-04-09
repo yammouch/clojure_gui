@@ -244,30 +244,12 @@
 ;      (ref-set geoms (:geoms (first @from)))
 ;      (alter from rest))))
 ;
-;;--------------------------------------------------
-;; draw-*
-;;--------------------------------------------------
-;
-;(defn draw-mode []
-;  (case (@mode :mode)
-;    :cursor  (ld/draw-mode-cursor @mode @cursor-pos
-;                                  @lels (@mode :selected-lels)
-;                                  @geoms (@mode :selected-geoms))
-;    :move    (ld/draw-mode-move @cursor-pos @lels (@mode :moving-lels)
-;                                @geoms (@mode :moving-geoms)
-;                                (@mode :moving-vertices))
-;    :copy    (ld/draw-mode-move @cursor-pos @lels (@mode :moving-lels)
-;                                @geoms (@mode :moving-geoms) {})
-;    :add     (ld/draw-mode-add @mode @cursor-pos @lels @geoms)
-;    :wire    (ld/draw-mode-wire @cursor-pos @lels @geoms (@mode :wire-p0))
-;    :catalog (ld/draw-mode-catalog (@mode :catalog-pos))
-;    ))
-;
-;;--------------------------------------------------
-;; move-*
-;;--------------------------------------------------
-;
-;(defn move-cursor [dir speed]
+;--------------------------------------------------
+; move-*
+;--------------------------------------------------
+
+(defn move-cursor [schem dir speed]
+  (update-in schem [:cursor-pos dir] #(+ speed %)))
 ;  (dosync (alter cursor-pos #(update-in % [dir] (partial + speed)))))
 ;
 ;(defn move-selected [dir speed]
