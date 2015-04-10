@@ -3,6 +3,8 @@
 (gen-class
   :name "LogicElements")
 
+(import '(javafx.scene.input KeyCode))
+
 ;--------------------------------------------------
 ; generic functions for lel (Logic ELement)
 ;--------------------------------------------------
@@ -319,28 +321,20 @@
           {:mode :copy, :moving-vertices {}}
           )))
 
-;(defn key-command-cursor-mode [keyEvent]
-;  (cond
+(defn key-command-cursor-mode [schem keyEvent]
+  (cond
 ;   ; cursor -> catalog
 ;   (= (.getCode keyEvent) KeyCode/E)
 ;   (dosync (ref-set mode {:mode :catalog, :catalog-pos {:x 0 :y 0}}))
-;   ; cursor -> move
-;   (= (.getCode keyEvent) KeyCode/M)
-;   (dosync
-;     (when-let [[new-mode no-move-lels no-move-geoms]
-;                (move-mode @mode @lels @geoms)]
-;       (ref-set mode new-mode)
-;       (ref-set lels (into {} no-move-lels))
-;       (ref-set geoms (into {} no-move-geoms))
-;       ))
-;   ; cursor -> copy
-;   (= (.getCode keyEvent) KeyCode/C)
-;   (dosync
-;     (when-let [new-mode (copy-mode @mode @lels @geoms)]
-;       (ref-set mode new-mode)))
-;   ; cursor -> wire
-;   (= (.getCode keyEvent) KeyCode/W)
-;   (dosync (ref-set mode {:mode :wire, :wire-p0 @cursor-pos}))
+   ; cursor -> move
+   (= (.getCode keyEvent) KeyCode/M)
+   (if-let [mm (move-mode schem)] mm schem)
+   ; cursor -> copy
+   (= (.getCode keyEvent) KeyCode/C)
+   (if-let [cm (copy-mode schem)] cm schem)
+   ; cursor -> wire
+   (= (.getCode keyEvent) KeyCode/W)
+   (into schem {:mode :wire, :wire-p0 (:cursor-pos schem)})
 ;   ; no mode change
 ;   (= (.getCode keyEvent) KeyCode/R)
 ;   (if (:rect-p0 @mode)
@@ -380,7 +374,7 @@
 ;        (.isControlDown keyEvent))   (undo-redo undos lels geoms redos)
 ;   (and (= (.getCode keyEvent) KeyCode/Y)
 ;        (.isControlDown keyEvent))   (undo-redo redos lels geoms undos)
-;   :else :no-consume)) ; cond, defn
+   :else :no-consume)) ; cond, defn
 ;
 ;; add mode can be merged into move mode
 ;; if continuous addition is not necessary.

@@ -1,5 +1,7 @@
 (ns tests.TestLogicElements)
 
+(import '(javafx.scene.input KeyCode KeyEvent))
+
 (require 'LogicElements)
 (alias 'dut 'LogicElements)
 
@@ -112,17 +114,30 @@
    :selected-lels #{'G0}
    :selected-geoms {'G2 #{:p0 :p1} 'G3 #{:p0} 'G4 #{:p1}}
    })
-
+(def schem-move-mode
+  {:mode :move
+   :lels {'G1 :g1}
+   :geoms {'G3 :g3 'G4 :g4 'G5 :g5}
+   :moving-lels {'G0 :g0}
+   :moving-geoms {'G2 :g2}
+   :moving-vertices {'G3 #{:p0} 'G4 #{:p1}}
+   :revert-schem schem
+   })
 (def test-patts
-  [[(dut/move-mode schem)
-    {:mode :move
-     :lels {'G1 :g1}
-     :geoms {'G3 :g3 'G4 :g4 'G5 :g5}
-     :moving-lels {'G0 :g0}
-     :moving-geoms {'G2 :g2}
-     :moving-vertices {'G3 #{:p0} 'G4 #{:p1}}
-     :revert-schem schem
-     }]])
+  [[(dut/move-mode schem) schem-move-mode]
+   [(dut/key-command-cursor-mode schem
+     (KeyEvent. KeyEvent/KEY_PRESSED "m" "m" KeyCode/M
+      false false false false))
+    schem-move-mode]])
+
+(def schem (reduce #(dissoc %1 %2) schem [:selected-lels :selected-geoms]))
+(def test-patts
+  (into test-patts
+   [[(dut/move-mode schem) nil]
+    [(dut/key-command-cursor-mode schem
+      (KeyEvent. KeyEvent/KEY_PRESSED "m" "m" KeyCode/M
+       false false false false))
+     schem]]))
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
@@ -143,16 +158,48 @@
    :selected-lels #{'G0}
    :selected-geoms {'G2 #{:p0 :p1} 'G3 #{:p0} 'G4 #{:p1}}
    })
-
+(def schem-copy-mode
+  {:mode :copy
+   :lels {'G1 :g1}
+   :geoms {'G3 :g3 'G4 :g4 'G5 :g5}
+   :moving-lels {'G0 :g0}
+   :moving-geoms {'G2 :g2}
+   :moving-vertices {}
+   })
 (def test-patts
-  [[(dut/copy-mode schem)
-    {:mode :copy
-     :lels {'G1 :g1}
-     :geoms {'G3 :g3 'G4 :g4 'G5 :g5}
-     :moving-lels {'G0 :g0}
-     :moving-geoms {'G2 :g2}
-     :moving-vertices {}
-     }]])
+  [[(dut/copy-mode schem) schem-copy-mode]
+   [(dut/key-command-cursor-mode schem
+     (KeyEvent. KeyEvent/KEY_PRESSED "c" "c" KeyCode/C
+      false false false false))
+    schem-copy-mode]])
+
+(def schem (reduce #(dissoc %1 %2) schem [:selected-lels :selected-geoms]))
+(def test-patts
+  (into test-patts
+   [[(dut/copy-mode schem) nil]
+    [(dut/key-command-cursor-mode schem
+      (KeyEvent. KeyEvent/KEY_PRESSED "c" "c" KeyCode/C
+       false false false false))
+     schem]]))
+
+(doseq [[result expected] test-patts]
+  (if (= result expected)
+    (print "[OK] ")
+    (do
+      (print "[ER]\nexpected: ")
+      (println (into (sorted-map) expected))))
+  (print "result  : ")
+  (println (into (sorted-map) result)))
+
+;--------------------------------------------------
+(println "tests cursor mode -> wire mode")
+
+(def schem {:mode :cursor :cursor-pos :foo})
+(def test-patts
+  [[(dut/key-command-cursor-mode schem
+     (KeyEvent. KeyEvent/KEY_PRESSED "w" "w" KeyCode/W
+      false false false false))
+    {:mode :wire :cursor-pos :foo :wire-p0 :foo}]])
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
