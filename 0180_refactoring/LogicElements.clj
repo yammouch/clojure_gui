@@ -302,7 +302,6 @@
           {:keys [ml nl]} ; ml: moved lel, nl: not moved lel
            (group-by #(if (sl (% 0)) :ml :nl)
                      (:lels schem))
-          _ (do (println schem) (println (:geoms schem)))
           {:keys [mg ng]} ; mg: moved geom, ng: not moved geom
            (group-by #(if (= (sg (% 0)) #{:p0 :p1}) :mg :ng)
                      (:geoms schem))]
@@ -314,20 +313,12 @@
        :revert-schem    schem
        })))
 
-;(defn copy-mode [mode lels geoms]
-;  (when-not (and (empty? (mode :selected-lels))
-;                 (empty? (mode :selected-geoms)))
-;    (let [sl (mode :selected-lels) sw (mode :selected-geoms)
-;          {:keys [ml nl]}
-;           (group-by #(if (sl (% 0)) :ml :nl) lels)
-;          {:keys [mw nw]}
-;           (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
-;                     geoms)]
-;      {:mode            :copy
-;       :moving-lels     (into {} ml)
-;       :moving-geoms    (into {} mw)
-;       :moving-vertices {}})))
-;
+(defn copy-mode [schem]
+  (when-let [mm (move-mode schem)]
+    (into (dissoc mm :revert-schem)
+          {:mode :copy, :moving-vertices {}}
+          )))
+
 ;(defn key-command-cursor-mode [keyEvent]
 ;  (cond
 ;   ; cursor -> catalog
