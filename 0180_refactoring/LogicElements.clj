@@ -290,29 +290,30 @@
 ;                   [:edstr :height   read-string]
 ;                   [:edstr :width    read-string]]
 ;    nil))
-;
-;;--------------------------------------------------
-;; key commands for each mode on schematic panel
-;;--------------------------------------------------
-;
-;(defn move-mode [mode lels geoms]
-;  (when-not (and (empty? (mode :selected-lels))
-;                 (empty? (mode :selected-geoms)))
-;    (let [sl (mode :selected-lels) sw (mode :selected-geoms)
-;          {:keys [ml nl]}
-;           (group-by #(if (sl (% 0)) :ml :nl) lels)
-;          {:keys [mw nw]}
-;           (group-by #(if (= (sw (% 0)) #{:p0 :p1}) :mw :nw)
-;                     geoms)]
-;      [{:mode            :move
-;        :moving-lels     (into {} ml)
-;        :moving-geoms    (into {} mw)
-;        :moving-vertices (into {} (filter (fn [[_ v]] (not= #{:p0 :p1} v))
-;                                          sw))
-;        :revert-lels     lels
-;        :revert-geoms    geoms}
-;       nl nw])))
-;
+
+;--------------------------------------------------
+; key commands for each mode on schematic panel
+;--------------------------------------------------
+
+(defn move-mode [schem]
+  (when-not (and (empty? (schem :selected-lels))
+                 (empty? (schem :selected-geoms)))
+    (let [sl (schem :selected-lels) sg (schem :selected-geoms)
+          {:keys [ml nl]} ; ml: moved lel, nl: not moved lel
+           (group-by #(if (sl (% 0)) :ml :nl)
+                     (:lels schem))
+          _ (do (println schem) (println (:geoms schem)))
+          {:keys [mg ng]} ; mg: moved geom, ng: not moved geom
+           (group-by #(if (= (sg (% 0)) #{:p0 :p1}) :mg :ng)
+                     (:geoms schem))]
+      {:mode :move, :lels (into {} nl), :geoms (into {} ng)
+       :moving-lels     (into {} ml)
+       :moving-geoms    (into {} mg)
+       :moving-vertices (into {} (filter (fn [[_ v]] (not= #{:p0 :p1} v))
+                                         sg))
+       :revert-schem    schem
+       })))
+
 ;(defn copy-mode [mode lels geoms]
 ;  (when-not (and (empty? (mode :selected-lels))
 ;                 (empty? (mode :selected-geoms)))

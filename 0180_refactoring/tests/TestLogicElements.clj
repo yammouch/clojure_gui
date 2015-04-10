@@ -102,3 +102,34 @@
   (print " result: ")
   (println result))
 
+;--------------------------------------------------
+(println "tests move-mode")
+
+(def schem
+  {:mode  :cursor
+   :lels  {'G0 :g0 'G1 :g1}
+   :geoms {'G2 :g2 'G3 :g3 'G4 :g4 'G5 :g5}
+   :selected-lels #{'G0}
+   :selected-geoms {'G2 #{:p0 :p1} 'G3 #{:p0} 'G4 #{:p1}}
+   })
+
+(def test-patts
+  [[(dut/move-mode schem)
+    {:mode :move
+     :lels {'G1 :g1}
+     :geoms {'G3 :g3 'G4 :g4 'G5 :g5}
+     :moving-lels {'G0 :g0}
+     :moving-geoms {'G2 :g2}
+     :moving-vertices {'G3 #{:p0} 'G4 #{:p1}}
+     :revert-schem schem
+     }]])
+
+(doseq [[result expected] test-patts]
+  (if (= result expected)
+    (print "[OK] ")
+    (do
+      (print "[ER]\nexpected: ")
+      (println (into (sorted-map) expected))))
+  (print "result  : ")
+  (println (into (sorted-map) result)))
+
