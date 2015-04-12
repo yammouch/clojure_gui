@@ -171,7 +171,7 @@
   (if (empty? (schem from))
     schem
     (-> schem
-        (update-in [to] cons {:lels (:lels schem) :geoms (:geoms schem)})
+        (update-in [to] #(cons {:lels (:lels schem) :geoms (:geoms schem)} %))
         (assoc :lels  (:lels  (first (schem from))))
         (assoc :geoms (:geoms (first (schem from))))
         (update-in [from] next))))
@@ -406,27 +406,28 @@
    (= (.getCode keyEvent) KeyCode/ESCAPE) (:revert-schem schem)
    (= (.getCode keyEvent) KeyCode/ENTER)
    (into (-> schem push-undo
-             (update-in [:lels ] #(conj % (:moving-lels  schem)))
-             (update-in [:geoms] #(conj % (:moving-geoms schem))))
+             (update-in [:lels ] conj (:moving-lels  schem))
+             (update-in [:geoms] conj (:moving-geoms schem)))
          {:mode :cursor :selected-lels #{} :selected-geoms {}})
    :else :no-consume))
 
-;(defn key-command-copy-mode [keyEvent]
-;  (cond
-;   ; move -> cursor
-;   (= (.getCode keyEvent) KeyCode/ESCAPE)
-;   (dosync
-;     (ref-set mode {:mode :cursor,
-;                    :selected-lels #{}, :selected-geoms {}}))
-;   (= (.getCode keyEvent) KeyCode/ENTER)
-;   (dosync
-;     (push-undo undos @lels @geoms redos)
-;     (alter lels into (map (fn [[k v]] [(gensym) v])
-;                           (:moving-lels @mode)))
-;     (alter geoms into (map (fn [[k v]] [(gensym) v])
-;                            (:moving-geoms @mode))))
-;   :else :no-consume))
-;
+(defn key-command-copy-mode [schem keyEvent]
+  (cond
+   ; move -> cursor
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (into schem {:mode :cursor :selected-lels #{} :selected-geoms {}})
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (-> schem push-undo
+       (update-in [:lels ] into (map (fn [[k v]] [(gensym) v])
+                                     (:moving-lels  schem)))
+       (update-in [:geoms] into (map (fn [[k v]] [(gensym) v])
+                                     (:moving-geoms schem)))
+       (assoc :mode :cursor)
+       (dissoc :moving-lels)
+       (dissoc :moving-geoms)
+       (dissoc :moving-vertices))
+   :else :no-consume))
+
 ;(defn key-command-wire-mode [keyEvent]
 ;  (cond
 ;   ; wire -> cursor
