@@ -107,9 +107,8 @@
 (defn remove-geom-by-key [wires keys]
   (into {} (remove (fn [[k _]] (= (keys k) #{:p0 :p1})) wires)))
 
-(defn lels-on-line [dir cursor-pos lels]
-  (let [[cx cy] (map cursor-pos [:x :y])
-        on-h-line #(<= (y-min %) cy (y-max %))
+(defn lels-on-line [dir {cx :x cy :y :as cursor-pos} lels]
+  (let [on-h-line #(<= (y-min %) cy (y-max %))
         on-v-line #(<= (x-min %) cx (x-max %))]
     (filter (case dir
               :left  #(and (on-h-line %) (< (x-min %) cx))
@@ -118,9 +117,8 @@
               :down  #(and (on-v-line %) (< cy (y-max %))))
             lels)))
 
-(defn wires-on-line [dir cursor-pos wires]
-  (let [[cx cy] (map cursor-pos [:x :y])
-        on-h-line #(or (<= (:y0 %) cy (:y1 %)) (<= (:y1 %) cy (:y0 %)))
+(defn wires-on-line [dir {cx :x cy :y :as cursor-pos} wires]
+  (let [on-h-line #(or (<= (:y0 %) cy (:y1 %)) (<= (:y1 %) cy (:y0 %)))
         on-v-line #(or (<= (:x0 %) cx (:x1 %)) (<= (:x1 %) cx (:x0 %)))]
     (filter (case dir
               :left  #(and (on-h-line %) (< (min (:x0 %) (:x1 %)) cx))
@@ -135,15 +133,15 @@
     (concat (map lelc0  lels)  (map lelc1  lels)
             (map wirec0 wires) (map wirec1 wires))))
 
-(defn jump-amount [dir cursor-pos lels wires]
+(defn jump-amount [dir {cx :x cy :y :as cursor-pos} lels wires]
   (let [lol (lels-on-line dir cursor-pos (vals lels))
         wol (wires-on-line dir cursor-pos (vals wires))
         [fil pick move-dir]
         (case dir
-          :left  [#(< % (:x cursor-pos)) #(apply max %) :x]
-          :right [#(< (:x cursor-pos) %) #(apply min %) :x]
-          :up    [#(< % (:y cursor-pos)) #(apply max %) :y]
-          :down  [#(< (:y cursor-pos) %) #(apply min %) :y])
+          :left  [#(< % cx) #(apply max %) :x]
+          :right [#(< cx %) #(apply min %) :x]
+          :up    [#(< % cy) #(apply max %) :y]
+          :down  [#(< cy %) #(apply min %) :y])
         filtered (filter fil (apply coordinates move-dir
                                (if (and (empty? lol) (empty? wol))
                                  [(vals lels) (vals wires)]
@@ -292,9 +290,9 @@
 ; select
 ;--------------------------------------------------
 
-(defn find-lel-by-pos [lels pos]
-  (some (fn [[k v]]
-          (when (= (map #(pos %) [:x :y]) (map #(v %) [:x :y])) k))
+(defn find-lel-by-pos [lels {posx :x posy :y}]
+  (some (fn [[k {x :x y :y}]]
+          (when (= [posx posy] [x y]) k))
         lels))
 
 (defn wire-vs-cursor [wire cur]
@@ -338,11 +336,9 @@
                        (and (<= xmin (x-min v)) (<= (x-max v) xmax)
                             (<= ymin (y-min v)) (<= (y-max v) ymax)))
                      lels)
-        wires (filter (fn [[k v]]
-                        (and (<= xmin (min (:x0 v) (:x1 v)))
-                             (<= (max (:x0 v) (:x1 v)) xmax)
-                             (<= ymin (min (:y0 v) (:y1 v)))
-                             (<= (max (:y0 v) (:y1 v)) ymax)))
+        wires (filter (fn [[k {x0 :x0 y0 :y0 x1 :x1 y1 :y1}]]
+                        (and (<= xmin (min x0 x1)) (<= (max x0 x1) xmax)
+                             (<= ymin (min y0 y1)) (<= (max y0 y1) ymax)))
                       wires)]
     {:lels (set (keys lels))
      :geoms (zipmap (keys wires) (repeat #{:p0 :p1}))
@@ -435,27 +431,23 @@
                                      (:moving-geoms schem))))
    :else :no-consume))
 
-(defn key-command-wire-mode [schem keyEvent]
+(defn key-command-wire-mode
+  [{{x0 :x y0 :y} :wire-p0 {x1 :x y1 :y} :cursor-pos :as schem} keyEvent]
   (cond
    ; wire -> cursor
    (= (.getCode keyEvent) KeyCode/ESCAPE) (cursor-mode schem)
    ; no mode change
    (= (.getCode keyEvent) KeyCode/ENTER)
    (-> schem push-undo
-       (update-in [:geoms] conj
-        {(gensym) {:x0 (get-in schem [:wire-p0 :x])
-                   :y0 (get-in schem [:wire-p0 :y])
-                   :x1 (get-in schem [:cursor-pos :x])
-                   :y1 (get-in schem [:cursor-pos :y])}})
+       (update-in [:geoms] conj {(gensym) {:x0 x0 :y0 y0 :x1 x1 :y1 y1}})
        (assoc :wire-p0 (:cursor-pos schem)))
    :else :no-consume))
 
-(defn key-command-catalog-mode [schem keyEvent]
+(defn key-command-catalog-mode [{{x :x y :y} :catalog-pos :as schem} keyEvent]
   (cond
    ; catalog -> add
    (= (.getCode keyEvent) KeyCode/ENTER)
-   (if-let [type (get-in catalog-table
-                         (map #(get-in schem [:catalog-pos %]) [:y :x]))]
+   (if-let [type (get-in catalog-table [y x])]
      (add-mode (:revert-schem schem) type)
      schem)
    ; catalog -> cursor
@@ -471,22 +463,22 @@
    :catalog key-command-catalog-mode
    })
 
-;;--------------------------------------------------
-;; schematic pane
-;;--------------------------------------------------
-;
-;(defn pane-schem-cursor-speed [keyEvent]
-;  (let [num ({KeyCode/DIGIT0 0, KeyCode/DIGIT1 1, KeyCode/DIGIT2 2,
-;              KeyCode/DIGIT3 3, KeyCode/DIGIT4 4, KeyCode/DIGIT5 5,
-;              KeyCode/DIGIT6 6, KeyCode/DIGIT7 7, KeyCode/DIGIT8 8,
-;              KeyCode/DIGIT9 9, KeyCode/MINUS :-}
-;             (.getCode keyEvent))]
-;    (when (and num (#{:cursor :add :wire :move :copy} (:mode @mode)))
-;      (dosync (ref-set cursor-speed
-;               (if (= num :-) 0 (+ (* @cursor-speed 10) num))))
-;      (.consume keyEvent)
-;      true)))
-;
+;--------------------------------------------------
+; schematic pane
+;--------------------------------------------------
+
+(defn pane-schem-cursor-speed
+  [{cursor-speed :cursor-speed :as schem} keyEvent]
+  (let [num ({KeyCode/DIGIT0 0, KeyCode/DIGIT1 1, KeyCode/DIGIT2 2,
+              KeyCode/DIGIT3 3, KeyCode/DIGIT4 4, KeyCode/DIGIT5 5,
+              KeyCode/DIGIT6 6, KeyCode/DIGIT7 7, KeyCode/DIGIT8 8,
+              KeyCode/DIGIT9 9, KeyCode/MINUS :-}
+             (.getCode keyEvent))]
+    (if (and num (#{:cursor :add :wire :move :copy} (:mode schem)))
+      (assoc schem :cursor-speed
+             (if (= num :-) 0 (+ (* @cursor-speed 10) num)))
+      :no-consume)))
+
 ;(defn pane-schem-cursor-move [keyEvent pane]
 ;  (let [kc (.getCode keyEvent)
 ;        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) :left
