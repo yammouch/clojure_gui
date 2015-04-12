@@ -101,8 +101,6 @@
 ; move-*
 ;--------------------------------------------------
 
-
-
 (defn remove-lel-by-key [lels keys]
   (into {} (remove (fn [[k _]] (keys k)) lels)))
 
@@ -158,24 +156,26 @@
 (defn move-cursor [schem dir speed]
   (update-in schem [:cursor-pos dir] #(+ speed %)))
 
-
 ;--------------------------------------------------
 ; undo, redo
 ;--------------------------------------------------
-;(def undos (ref '()))
-;(def redos (ref '()))
-;(let [undo-depth 64]
-;  (defn push-undo [undos lels geoms redos]
-;     (ref-set redos '())
-;     (alter undos #(take undo-depth (conj % {:lels lels :geoms geoms})))))
-;(defn undo-redo [from lels geoms to]
-;  (dosync
-;    (when-not (empty? @from)
-;      (alter to conj {:lels @lels :geoms @geoms})
-;      (ref-set lels (:lels (first @from)))
-;      (ref-set geoms (:geoms (first @from)))
-;      (alter from rest))))
-;
+(let [undo-depth 64]
+  (defn push-undo [schem]
+    (-> schem
+        (dissoc :redos)
+        (update-in [:undos]
+         #(take undo-depth
+                (cons {:lels (:lels schem) :geoms (:geoms schem)} %)
+                )))))
+(defn undo-redo [schem from to]
+  (if (empty? (schem from))
+    schem
+    (-> schem
+        (update-in [to] cons {:lels (:lels schem) :geoms (:geoms schem)})
+        (assoc :lels  (:lels  (first (schem from))))
+        (assoc :geoms (:geoms (first (schem from))))
+        (update-in [from] next))))
+
 ;(defn move-catalog [dir speed]
 ;  (dosync (alter mode
 ;           #(update-in % [:catalog-pos dir] (if (neg? speed) dec inc))
@@ -368,18 +368,17 @@
    (-> schem (dissoc :rect-p0)
              (assoc :selected-lels #{})
              (assoc :selected-geoms {}))
-;   (= (.getCode keyEvent) KeyCode/X)
-;   (dosync
-;     (push-undo undos @lels @geoms redos)
-;     (alter lels lel/remove-lel-by-key (@mode :selected-lels))
-;     (alter geoms lel/remove-geom-by-key (@mode :selected-geoms))
-;     (alter mode #(-> % (assoc :selected-lels #{})
-;                        (assoc :selected-geoms {})
-;                        )))
-;   (and (= (.getCode keyEvent) KeyCode/Z)
-;        (.isControlDown keyEvent))   (undo-redo undos lels geoms redos)
-;   (and (= (.getCode keyEvent) KeyCode/Y)
-;        (.isControlDown keyEvent))   (undo-redo redos lels geoms undos)
+   (= (.getCode keyEvent) KeyCode/X)
+   (-> schem
+       push-undo
+       (update-in [:lels ] remove-lel-by-key  (schem :selected-lels ))
+       (update-in [:geoms] remove-geom-by-key (schem :selected-geoms))
+       (assoc :selected-lels #{})
+       (assoc :selected-geoms {}))
+   (and (= (.getCode keyEvent) KeyCode/Z)
+        (.isControlDown keyEvent))   (undo-redo schem :undos :redos)
+   (and (= (.getCode keyEvent) KeyCode/Y)
+        (.isControlDown keyEvent))   (undo-redo schem :redos :undos)
    :else :no-consume)) ; cond, defn
 ;
 ;; add mode can be merged into move mode
