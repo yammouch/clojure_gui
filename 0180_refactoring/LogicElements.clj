@@ -380,28 +380,26 @@
    (and (= (.getCode keyEvent) KeyCode/Y)
         (.isControlDown keyEvent))   (undo-redo schem :redos :undos)
    :else :no-consume)) ; cond, defn
-;
-;; add mode can be merged into move mode
-;; if continuous addition is not necessary.
-;(defn key-command-add-mode [keyEvent]
-;  (cond
+
+(defn key-command-add-mode [schem keyEvent]
+  (cond
 ;   ; add -> catalog
 ;   (= (.getCode keyEvent) KeyCode/E)
 ;   (dosync (ref-set mode {:mode :catalog :catalog-pos {:x 0 :y 0}}))
-;   ; add -> cursor
-;   (= (.getCode keyEvent) KeyCode/ESCAPE)
-;   (dosync (ref-set mode {:mode :cursor,
-;                          :selected-lels #{}, :selected-geoms {}}))
-;   ; no mode change
-;   (= (.getCode keyEvent) KeyCode/ENTER)
-;   (dosync
-;     (push-undo undos @lels @geoms redos)
-;     (alter lels conj {(gensym) (-> (:lel @mode)
-;                                    (assoc :x (:x @cursor-pos))
-;                                    (assoc :y (:y @cursor-pos))
-;                                    )}))
-;   :else :no-consume))
-;
+   ; add -> cursor
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (into schem {:mode :cursor :selected-lels #{} :selected-geoms {}})
+   ; no mode change
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (-> schem
+       push-undo
+       (update-in [:lels]
+        #(conj % {(gensym) (into (:lel schem)
+                                 {:x (get-in schem [:cursor-pos :x])
+                                  :y (get-in schem [:cursor-pos :y])
+                                  })})))
+   :else :no-consume))
+
 ;(defn key-command-move-mode [keyEvent]
 ;  (cond
 ;   ; move -> cursor
