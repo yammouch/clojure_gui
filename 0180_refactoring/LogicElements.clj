@@ -101,25 +101,6 @@
 ; move-*
 ;--------------------------------------------------
 
-(defn move-lels [lels dir speed]
-  (reduce #(update-in %1 [%2 dir] (partial + speed)) lels (keys lels)))
-
-(defn move-wire [wire dir speed points]
-  (let [[& coords] (case points
-                     #{:p0}     (case dir :x [:x0    ] :y [:y0    ])
-                     #{:p1}     (case dir :x [    :x1] :y [    :y1])
-                     #{:p0 :p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
-    (reduce #(update-in %1 [%2] (partial + speed))
-            wire coords)))
-
-(defn move-geoms [wires dir speed]
-  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{:p0 :p1})])
-                wires)))
-
-(defn move-geoms-by-vertices [wires moving-vertices dir speed]
-  (reduce-kv (fn [wires k v]
-               (update-in wires [k] move-wire dir speed v))
-             wires moving-vertices))
 
 (defn find-lel-by-pos [lels pos]
   (some (fn [[k v]]
@@ -229,6 +210,10 @@
       (- (pick filtered) (move-dir cursor-pos))
       )))
 
+(defn move-cursor [schem dir speed]
+  (update-in schem [:cursor-pos dir] #(+ speed %)))
+
+
 ;--------------------------------------------------
 ; undo, redo
 ;--------------------------------------------------
@@ -250,8 +235,25 @@
 ; move-*
 ;--------------------------------------------------
 
-(defn move-cursor [schem dir speed]
-  (update-in schem [:cursor-pos dir] #(+ speed %)))
+(defn move-lels [lels dir speed]
+  (reduce #(update-in %1 [%2 dir] (partial + speed)) lels (keys lels)))
+
+(defn move-wire [wire dir speed points]
+  (let [[& coords] (case points
+                     #{:p0}     (case dir :x [:x0    ] :y [:y0    ])
+                     #{:p1}     (case dir :x [    :x1] :y [    :y1])
+                     #{:p0 :p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
+    (reduce #(update-in %1 [%2] (partial + speed))
+            wire coords)))
+
+(defn move-geoms [wires dir speed]
+  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{:p0 :p1})])
+                wires)))
+
+(defn move-geoms-by-vertices [wires moving-vertices dir speed]
+  (reduce-kv (fn [wires k v]
+               (update-in wires [k] move-wire dir speed v))
+             wires moving-vertices))
 
 (defn move-selected [schem dir speed]
   (-> schem
