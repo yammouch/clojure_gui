@@ -133,7 +133,7 @@
 (def schem (reduce #(dissoc %1 %2) schem [:selected-lels :selected-geoms]))
 (def test-patts
   (into test-patts
-   [[(dut/move-mode schem) nil]
+   [[(dut/move-mode schem) schem]
     [(dut/key-command-cursor-mode schem
       (KeyEvent. KeyEvent/KEY_PRESSED "m" "m" KeyCode/M
        false false false false))
@@ -176,7 +176,7 @@
 (def schem (reduce #(dissoc %1 %2) schem [:selected-lels :selected-geoms]))
 (def test-patts
   (into test-patts
-   [[(dut/copy-mode schem) nil]
+   [[(dut/copy-mode schem) schem]
     [(dut/key-command-cursor-mode schem
       (KeyEvent. KeyEvent/KEY_PRESSED "c" "c" KeyCode/C
        false false false false))
