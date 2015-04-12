@@ -300,8 +300,9 @@
 ;--------------------------------------------------
 
 (defn move-mode [schem]
-  (when-not (and (empty? (schem :selected-lels))
-                 (empty? (schem :selected-geoms)))
+  (if (and (empty? (schem :selected-lels))
+           (empty? (schem :selected-geoms)))
+    schem
     (let [sl (schem :selected-lels) sg (schem :selected-geoms)
           {:keys [ml nl]} ; ml: moved lel, nl: not moved lel
            (group-by #(if (sl (% 0)) :ml :nl)
@@ -318,10 +319,11 @@
        })))
 
 (defn copy-mode [schem]
-  (when-let [mm (move-mode schem)]
-    (into (dissoc mm :revert-schem)
-          {:mode :copy, :moving-vertices {}}
-          )))
+  (let [mm (move-mode schem)]
+    (if (= :move (:mode mm))
+      (into (dissoc mm :revert-schem)
+            {:mode :copy, :moving-vertices {}})
+      schem)))
 
 (defn key-command-cursor-mode [schem keyEvent]
   (cond
@@ -329,11 +331,9 @@
 ;   (= (.getCode keyEvent) KeyCode/E)
 ;   (dosync (ref-set mode {:mode :catalog, :catalog-pos {:x 0 :y 0}}))
    ; cursor -> move
-   (= (.getCode keyEvent) KeyCode/M)
-   (if-let [mm (move-mode schem)] mm schem)
+   (= (.getCode keyEvent) KeyCode/M) (move-mode schem)
    ; cursor -> copy
-   (= (.getCode keyEvent) KeyCode/C)
-   (if-let [cm (copy-mode schem)] cm schem)
+   (= (.getCode keyEvent) KeyCode/C) (copy-mode schem)
    ; cursor -> wire
    (= (.getCode keyEvent) KeyCode/W)
    (into schem {:mode :wire, :wire-p0 (:cursor-pos schem)})
