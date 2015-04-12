@@ -102,61 +102,6 @@
 ;--------------------------------------------------
 
 
-(defn find-lel-by-pos [lels pos]
-  (some (fn [[k v]]
-          (when (= (map #(pos %) [:x :y]) (map #(v %) [:x :y])) k))
-        lels))
-
-(defn wire-vs-cursor [wire cur]
-  (let [fcomp (fn [qc q0 q1]
-                (let [[q0 q1 inv] (if (< q0 q1)
-                                    [q0 q1 false]
-                                    [q1 q0 true ])]
-                  (cond (< qc q0) nil
-                        (< q1 qc) nil
-
-                        (< (- q1 q0) 4)
-                        (cond (= qc q0) (if inv #{:p1} #{:p0})
-                              (= qc q1) (if inv #{:p0} #{:p1})
-                              :else     #{:p0 :p1})
-
-                        (<= qc (+ q0 1)) (if inv #{:p1} #{:p0})
-                        (<= (- q1 1) qc) (if inv #{:p0} #{:p1})
-                        :else #{:p0 :p1}
-                        )))]
-    (cond (= (map #(cur %) [:x :y]) (map #(wire %) [:x0 :y0])) #{:p0}
-          (= (map #(cur %) [:x :y]) (map #(wire %) [:x1 :y1])) #{:p1}
-
-          (= (:x cur) (:x0 wire) (:x1 wire))
-          (fcomp (:y cur) (:y0 wire) (:y1 wire))
-
-          (= (:y cur) (:y0 wire) (:y1 wire))
-          (fcomp (:x cur) (:x0 wire) (:x1 wire))
-
-          :else nil)))
-
-(defn find-geoms-by-pos [wires pos]
-  (reduce-kv (fn [acc k v] (if-let [p (wire-vs-cursor v pos)]
-                             (conj acc {k p}) acc))
-             {} wires))
-
-; An edge of a line should be selected by surrounding it.
-(defn rectangular-select [lels wires {x0 :x y0 :y} {x1 :x y1 :y}]
-  (let [xmin (min x0 x1) xmax (max x0 x1)
-        ymin (min y0 y1) ymax (max y0 y1)
-        lels (filter (fn [[k v]]
-                       (and (<= xmin (x-min v)) (<= (x-max v) xmax)
-                            (<= ymin (y-min v)) (<= (y-max v) ymax)))
-                     lels)
-        wires (filter (fn [[k v]]
-                        (and (<= xmin (min (:x0 v) (:x1 v)))
-                             (<= (max (:x0 v) (:x1 v)) xmax)
-                             (<= ymin (min (:y0 v) (:y1 v)))
-                             (<= (max (:y0 v) (:y1 v)) ymax)))
-                      wires)]
-    {:lels (set (keys lels))
-     :geoms (zipmap (keys wires) (repeat #{:p0 :p1}))
-     }))
 
 (defn remove-lel-by-key [lels keys]
   (into {} (remove (fn [[k _]] (keys k)) lels)))
@@ -231,38 +176,6 @@
 ;      (ref-set geoms (:geoms (first @from)))
 ;      (alter from rest))))
 ;
-;--------------------------------------------------
-; move-*
-;--------------------------------------------------
-
-(defn move-lels [lels dir speed]
-  (reduce #(update-in %1 [%2 dir] (partial + speed)) lels (keys lels)))
-
-(defn move-wire [wire dir speed points]
-  (let [[& coords] (case points
-                     #{:p0}     (case dir :x [:x0    ] :y [:y0    ])
-                     #{:p1}     (case dir :x [    :x1] :y [    :y1])
-                     #{:p0 :p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
-    (reduce #(update-in %1 [%2] (partial + speed))
-            wire coords)))
-
-(defn move-geoms [wires dir speed]
-  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{:p0 :p1})])
-                wires)))
-
-(defn move-geoms-by-vertices [wires moving-vertices dir speed]
-  (reduce-kv (fn [wires k v]
-               (update-in wires [k] move-wire dir speed v))
-             wires moving-vertices))
-
-(defn move-selected [schem dir speed]
-  (-> schem
-      (update-in [:moving-lels ] move-lels  dir speed)
-      (update-in [:moving-geoms] move-geoms dir speed)
-      (update-in [:geoms] move-geoms-by-vertices
-                 (:moving-vertices schem) dir speed
-                 )))
-
 ;(defn move-catalog [dir speed]
 ;  (dosync (alter mode
 ;           #(update-in % [:catalog-pos dir] (if (neg? speed) dec inc))
@@ -295,9 +208,38 @@
 ;                   [:edstr :width    read-string]]
 ;    nil))
 
+
 ;--------------------------------------------------
-; key commands for each mode on schematic panel
+; move lels and geoms
 ;--------------------------------------------------
+
+(defn move-lels [lels dir speed]
+  (reduce #(update-in %1 [%2 dir] (partial + speed)) lels (keys lels)))
+
+(defn move-wire [wire dir speed points]
+  (let [[& coords] (case points
+                     #{:p0}     (case dir :x [:x0    ] :y [:y0    ])
+                     #{:p1}     (case dir :x [    :x1] :y [    :y1])
+                     #{:p0 :p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
+    (reduce #(update-in %1 [%2] (partial + speed))
+            wire coords)))
+
+(defn move-geoms [wires dir speed]
+  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{:p0 :p1})])
+                wires)))
+
+(defn move-geoms-by-vertices [wires moving-vertices dir speed]
+  (reduce-kv (fn [wires k v]
+               (update-in wires [k] move-wire dir speed v))
+             wires moving-vertices))
+
+(defn move-selected [schem dir speed]
+  (-> schem
+      (update-in [:moving-lels ] move-lels  dir speed)
+      (update-in [:moving-geoms] move-geoms dir speed)
+      (update-in [:geoms] move-geoms-by-vertices
+                 (:moving-vertices schem) dir speed
+                 )))
 
 (defn move-mode [schem]
   (if (and (empty? (schem :selected-lels))
@@ -325,6 +267,85 @@
             {:mode :copy, :moving-vertices {}})
       schem)))
 
+;--------------------------------------------------
+; select
+;--------------------------------------------------
+
+(defn find-lel-by-pos [lels pos]
+  (some (fn [[k v]]
+          (when (= (map #(pos %) [:x :y]) (map #(v %) [:x :y])) k))
+        lels))
+
+(defn wire-vs-cursor [wire cur]
+  (let [fcomp (fn [qc q0 q1]
+                (let [[q0 q1 inv] (if (< q0 q1)
+                                    [q0 q1 false]
+                                    [q1 q0 true ])]
+                  (cond (< qc q0) nil
+                        (< q1 qc) nil
+
+                        (< (- q1 q0) 4)
+                        (cond (= qc q0) (if inv #{:p1} #{:p0})
+                              (= qc q1) (if inv #{:p0} #{:p1})
+                              :else     #{:p0 :p1})
+
+                        (<= qc (+ q0 1)) (if inv #{:p1} #{:p0})
+                        (<= (- q1 1) qc) (if inv #{:p0} #{:p1})
+                        :else #{:p0 :p1}
+                        )))]
+    (cond (= (map #(cur %) [:x :y]) (map #(wire %) [:x0 :y0])) #{:p0}
+          (= (map #(cur %) [:x :y]) (map #(wire %) [:x1 :y1])) #{:p1}
+
+          (= (:x cur) (:x0 wire) (:x1 wire))
+          (fcomp (:y cur) (:y0 wire) (:y1 wire))
+
+          (= (:y cur) (:y0 wire) (:y1 wire))
+          (fcomp (:x cur) (:x0 wire) (:x1 wire))
+
+          :else nil)))
+
+(defn find-geoms-by-pos [wires pos]
+  (reduce-kv (fn [acc k v] (if-let [p (wire-vs-cursor v pos)]
+                             (conj acc {k p}) acc))
+             {} wires))
+
+; An edge of a line should be selected by surrounding it.
+(defn rectangular-select [lels wires {x0 :x y0 :y} {x1 :x y1 :y}]
+  (let [xmin (min x0 x1) xmax (max x0 x1)
+        ymin (min y0 y1) ymax (max y0 y1)
+        lels (filter (fn [[k v]]
+                       (and (<= xmin (x-min v)) (<= (x-max v) xmax)
+                            (<= ymin (y-min v)) (<= (y-max v) ymax)))
+                     lels)
+        wires (filter (fn [[k v]]
+                        (and (<= xmin (min (:x0 v) (:x1 v)))
+                             (<= (max (:x0 v) (:x1 v)) xmax)
+                             (<= ymin (min (:y0 v) (:y1 v)))
+                             (<= (max (:y0 v) (:y1 v)) ymax)))
+                      wires)]
+    {:lels (set (keys lels))
+     :geoms (zipmap (keys wires) (repeat #{:p0 :p1}))
+     }))
+
+(defn select [schem]
+  (let [lel-key (find-lel-by-pos (:lels schem) (:cursor-pos schem))
+        geom-keys (find-geoms-by-pos (:geoms schem) (:cursor-pos schem))
+        rect-keys (if (schem :rect-p0)
+                    (rectangular-select (:lels schem) (:geoms schem)
+                      (schem :rect-p0) (:cursor-pos schem))
+                    {})
+        sl (reduce into [(:selected-lels schem) (:lels rect-keys)
+                         (if lel-key #{lel-key} #{})])
+        sw (reduce (partial merge-with into)
+            [(:selected-geoms schem) (:geoms rect-keys) geom-keys])]
+    (-> schem (assoc :selected-lels sl)
+              (assoc :selected-geoms sw)
+              (dissoc :rect-p0))))
+
+;--------------------------------------------------
+; key commands for each mode on schematic panel
+;--------------------------------------------------
+
 (defn key-command-cursor-mode [schem keyEvent]
   (cond
 ;   ; cursor -> catalog
@@ -342,28 +363,11 @@
    (if (schem :rect-p0)
      (dissoc schem :rect-p0)
      (assoc schem :rect-p0 (schem :cursor-pos)))
-;   (= (.getCode keyEvent) KeyCode/ENTER)
-;   (let [lel-key (lel/find-lel-by-pos @lels @cursor-pos)
-;         geom-keys (lel/find-geoms-by-pos @geoms @cursor-pos)
-;         rect-keys (if (@mode :rect-p0)
-;                     (lel/rectangular-select @lels @geoms
-;                       (@mode :rect-p0) @cursor-pos)
-;                     {})
-;         sl (reduce into [(:selected-lels @mode) (:lels rect-keys)
-;                          (if lel-key #{lel-key} #{})])
-;         sw (reduce (partial merge-with into)
-;             [(:selected-geoms @mode) (:geoms rect-keys) geom-keys])]
-;     (dosync
-;       (alter mode
-;              #(-> % (assoc :selected-lels sl)
-;                     (assoc :selected-geoms sw)
-;                     (dissoc :rect-p0)
-;                     ))))
-;   (= (.getCode keyEvent) KeyCode/ESCAPE)
-;   (dosync (alter mode #(-> % (dissoc :rect-p0)
-;                              (assoc :selected-lels #{})
-;                              (assoc :selected-geoms {})
-;                              )))
+   (= (.getCode keyEvent) KeyCode/ENTER) (select schem)
+   (= (.getCode keyEvent) KeyCode/ESCAPE)
+   (-> schem (dissoc :rect-p0)
+             (assoc :selected-lels #{})
+             (assoc :selected-geoms {}))
 ;   (= (.getCode keyEvent) KeyCode/X)
 ;   (dosync
 ;     (push-undo undos @lels @geoms redos)
