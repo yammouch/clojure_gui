@@ -337,11 +337,11 @@
    ; cursor -> wire
    (= (.getCode keyEvent) KeyCode/W)
    (into schem {:mode :wire, :wire-p0 (:cursor-pos schem)})
-;   ; no mode change
-;   (= (.getCode keyEvent) KeyCode/R)
-;   (if (:rect-p0 @mode)
-;     (dosync (alter mode dissoc :rect-p0))
-;     (dosync (alter mode assoc :rect-p0 @cursor-pos)))
+   ; no mode change
+   (= (.getCode keyEvent) KeyCode/R)
+   (if (schem :rect-p0)
+     (dissoc schem :rect-p0)
+     (assoc schem :rect-p0 (schem :cursor-pos)))
 ;   (= (.getCode keyEvent) KeyCode/ENTER)
 ;   (let [lel-key (lel/find-lel-by-pos @lels @cursor-pos)
 ;         geom-keys (lel/find-geoms-by-pos @geoms @cursor-pos)
