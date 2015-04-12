@@ -210,3 +210,27 @@
   (print "result  : ")
   (println (into (sorted-map) result)))
 
+;--------------------------------------------------
+(println "tests cursor mode, rectangular select ")
+
+(def test-patts
+  [[(dut/key-command-cursor-mode
+     {:mode :cursor :cursor-pos :foo}
+     (KeyEvent. KeyEvent/KEY_PRESSED "r" "r" KeyCode/R
+      false false false false))
+    {:mode :cursor :cursor-pos :foo :rect-p0 :foo}]
+   [(dut/key-command-cursor-mode
+     {:mode :cursor :cursor-pos :foo :rect-p0 :bar}
+     (KeyEvent. KeyEvent/KEY_PRESSED "r" "r" KeyCode/R
+      false false false false))
+    {:mode :cursor :cursor-pos :foo}]])
+
+(doseq [[result expected] test-patts]
+  (if (= result expected)
+    (print "[OK] ")
+    (do
+      (print "[ER]\nexpected: ")
+      (println (into (sorted-map) expected))))
+  (print "result  : ")
+  (println (into (sorted-map) result)))
+
