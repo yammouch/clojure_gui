@@ -400,24 +400,17 @@
                                   })})))
    :else :no-consume))
 
-;(defn key-command-move-mode [keyEvent]
-;  (cond
-;   ; move -> cursor
-;   (= (.getCode keyEvent) KeyCode/ESCAPE)
-;   (dosync
-;     (ref-set lels (:revert-lels @mode))
-;     (ref-set geoms (:revert-geoms @mode))
-;     (ref-set mode {:mode :cursor,
-;                    :selected-lels #{}, :selected-geoms {}}))
-;   (= (.getCode keyEvent) KeyCode/ENTER)
-;   (dosync
-;     (push-undo undos @lels @geoms redos)
-;     (alter lels conj (:moving-lels @mode))
-;     (alter geoms conj (:moving-geoms @mode))
-;     (ref-set mode {:mode :cursor,
-;                    :selected-lels #{}, :selected-geoms {}}))
-;   :else :no-consume))
-;
+(defn key-command-move-mode [schem keyEvent]
+  (cond
+   ; move -> cursor
+   (= (.getCode keyEvent) KeyCode/ESCAPE) (:revert-schem schem)
+   (= (.getCode keyEvent) KeyCode/ENTER)
+   (into (-> schem push-undo
+             (update-in [:lels ] #(conj % (:moving-lels  schem)))
+             (update-in [:geoms] #(conj % (:moving-geoms schem))))
+         {:mode :cursor :selected-lels #{} :selected-geoms {}})
+   :else :no-consume))
+
 ;(defn key-command-copy-mode [keyEvent]
 ;  (cond
 ;   ; move -> cursor
