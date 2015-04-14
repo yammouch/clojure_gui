@@ -1,0 +1,38 @@
+{:lels  {G_000 {:type :name , :x 5 , :y 20,
+                :string "hoge", :v-align :bottom, :h-align :left}
+         G_001 {:type :in   , :x 25, :y 28, :direction :right}
+         G_002 {:type :in   , :x 25, :y 22, :direction :right}
+         G_003 {:type :and  , :x 32, :y 28, :direction :right,
+                :width 4, :height 4}
+         G_004 {:type :or   , :x 40, :y 23, :direction :right,
+                :width 4, :height 4}
+         G_005 {:type :in   , :x 25, :y 30, :direction :right}
+         G_006 {:type :in   , :x 25, :y 36, :direction :right}
+         G_007 {:type :out  , :x 62, :y 26, :direction :right}
+         G_008 {:type :in   , :x 25, :y 34, :direction :right}
+         G_009 {:type :and  , :x 32, :y 22, :direction :right,
+                :width 4, :height 4}
+         G_010 {:type :dot  , :x 30, :y 29}
+         G_011 {:type :dff  , :x 55, :y 26, :width 4, :height 5,
+                :async-reset :false}
+         G_013 {:type :mux21, :x 48, :y 24, :direction :right,
+                :width 2, :height 6, :order01 :1->0}}
+ :geoms {G_100 {:type :wire, :x0 36, :y0 24, :x1 41, :y1 24}
+         G_101 {:type :wire, :x0 46, :y0 29, :x1 48, :y1 29}
+         G_102 {:type :wire, :x0 28, :y0 29, :x1 32, :y1 29}
+         G_103 {:type :wire, :x0 46, :y0 35, :x1 46, :y1 29}
+         G_104 {:type :wire, :x0 30, :y0 29, :x1 30, :y1 25}
+         G_105 {:type :wire, :x0 28, :y0 37, :x1 49, :y1 37}
+         G_106 {:type :wire, :x0 36, :y0 30, :x1 38, :y1 30}
+         G_107 {:type :wire, :x0 49, :y0 37, :x1 49, :y1 29}
+         G_108 {:type :wire, :x0 50, :y0 27, :x1 55, :y1 27}
+         G_109 {:type :wire, :x0 28, :y0 23, :x1 32, :y1 23}
+         G_110 {:type :wire, :x0 28, :y0 31, :x1 32, :y1 31}
+         G_111 {:type :wire, :x0 28, :y0 35, :x1 46, :y1 35}
+         G_112 {:type :wire, :x0 44, :y0 25, :x1 48, :y1 25}
+         G_113 {:type :wire, :x0 44, :y0 25, :x1 44, :y1 25}
+         G_114 {:type :wire, :x0 38, :y0 30, :x1 38, :y1 26}
+         G_115 {:type :wire, :x0 59, :y0 27, :x1 62, :y1 27}
+         G_116 {:type :wire, :x0 30, :y0 25, :x1 32, :y1 25}
+         G_117 {:type :wire, :x0 38, :y0 26, :x1 41, :y1 26}
+         G_118 {:type :rect, :x0 50, :y0  5, :x1 60, :y1 10}}}
