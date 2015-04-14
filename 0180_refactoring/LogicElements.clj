@@ -466,7 +466,7 @@
              (.getCode keyEvent))]
     (if (and num (#{:cursor :add :wire :move :copy} (:mode schem)))
       (assoc schem :cursor-speed
-             (if (= num :-) 0 (+ (* @cursor-speed 10) num)))
+             (if (= num :-) 0 (+ (* cursor-speed 10) num)))
       nil)))
 
 (defn pane-schem-cursor-move
