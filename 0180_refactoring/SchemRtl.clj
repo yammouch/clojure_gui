@@ -24,11 +24,6 @@
 (require 'LogicElements)     (alias 'lel 'LogicElements)
 (require 'LogicElementsDraw) (alias 'ld  'LogicElementsDraw)
 
-(def pix-per-grid 8.0)
-(defn grid2screen [[grid-x grid-y]]
-  [(* pix-per-grid grid-x)
-   (* pix-per-grid grid-y)])
-
 ;--------------------------------------------------
 ; state
 ;--------------------------------------------------
@@ -44,21 +39,14 @@
 ; draw-*
 ;--------------------------------------------------
 
-(defn draw-mode
-  [{:keys [mode cursor-pos lels geoms selected-lels selected-geoms
-           moving-lels moving-geoms moving-vertices wire-p0 catalog-pos]}]
-  (case mode
-    :cursor  (ld/draw-mode-cursor mode cursor-pos
-                                  lels selected-lels
-                                  geoms selected-geoms)
-    :move    (ld/draw-mode-move cursor-pos lels moving-lels
-                                geoms moving-geoms
-                                moving-vertices)
-    :copy    (ld/draw-mode-move cursor-pos lels moving-lels
-                                geoms moving-geoms {})
-    :add     (ld/draw-mode-add mode cursor-pos lels geoms)
-    :wire    (ld/draw-mode-wire cursor-pos lels geoms wire-p0)
-    :catalog (ld/draw-mode-catalog catalog-pos)
+(defn draw-mode [schem]
+  (case (:mode schem)
+    :cursor  (ld/draw-mode-cursor  schem)
+    :move    (ld/draw-mode-move    schem)
+    :copy    (ld/draw-mode-move    schem)
+    :add     (ld/draw-mode-add     schem)
+    :wire    (ld/draw-mode-wire    schem)
+    :catalog (ld/draw-mode-catalog schem)
     ))
 
 ;--------------------------------------------------
