@@ -102,10 +102,11 @@
 (defn state-text [{:keys [cursor-pos cursor-speed redos undos lels geoms]
                    :as schem}]
   (apply str (interpose "\n"
-              [(dissoc schem :revert-schem)
-               (interpose " "
-                [cursor-pos cursor-speed (count redos) (count undos)])
-               lels geoms])))
+              [(reduce #(dissoc %1 %2) schem
+                [:revert-schem :undos :redos :cursor-pos :cursor-speed])
+               (apply str (interpose " "
+                [cursor-pos cursor-speed (count redos) (count undos)]
+                ))])))
 
 ;--------------------------------------------------
 ; schematic pane
