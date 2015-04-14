@@ -123,33 +123,6 @@
         (assoc :geoms (:geoms (first (schem from))))
         (update-in [from] next))))
 
-;;--------------------------------------------------
-;; dialog box
-;;--------------------------------------------------
-;
-;(defn dialog-table [type]
-;  (case type
-;    (:in :out)    [[:radio :direction :right :up :left :down]]
-;    (:inout :not) [[:radio :direction :horizontal :vertical]]
-;    (:and :or :buf :mux-n)
-;                  [[:edstr :height read-string]
-;                   [:edstr :width  read-string]
-;                   [:radio :direction :right :up :left :down]]
-;    :name         [[:edstr :string identity]
-;                   [:radio :h-align :left   :center :right]
-;                   [:radio :v-align :bottom :center :top  ]]
-;    :mux21        [[:edstr :height read-string]
-;                   [:edstr :width  read-string]
-;                   [:radio :direction :right :up :left :down]
-;                   [:radio :order01 :0->1 :1->0]]
-;    :dff          [[:edstr :height read-string]
-;                   [:edstr :width  read-string]
-;                   [:radio :async-reset :true :false]]
-;    :op           [[:edstr :operator identity   ]
-;                   [:edstr :height   read-string]
-;                   [:edstr :width    read-string]]
-;    nil))
-
 (def catalog-table
   [[:in    :out   :inout :dot :not ]
    [:buf   :and   :or    :dff :name]
