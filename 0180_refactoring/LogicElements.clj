@@ -97,62 +97,11 @@
 (defmethod height :not [lel]
   (case (lel :direction) :horizontal 2, :vertical 1))
 
-;--------------------------------------------------
-; move-*
-;--------------------------------------------------
-
 (defn remove-lel-by-key [lels keys]
   (into {} (remove (fn [[k _]] (keys k)) lels)))
 
 (defn remove-geom-by-key [wires keys]
   (into {} (remove (fn [[k _]] (= (keys k) #{:p0 :p1})) wires)))
-
-(defn lels-on-line [dir {cx :x cy :y :as cursor-pos} lels]
-  (let [on-h-line #(<= (y-min %) cy (y-max %))
-        on-v-line #(<= (x-min %) cx (x-max %))]
-    (filter (case dir
-              :left  #(and (on-h-line %) (< (x-min %) cx))
-              :right #(and (on-h-line %) (< cx (x-max %)))
-              :up    #(and (on-v-line %) (< (y-min %) cy))
-              :down  #(and (on-v-line %) (< cy (y-max %))))
-            lels)))
-
-(defn wires-on-line [dir {cx :x cy :y :as cursor-pos} wires]
-  (let [on-h-line #(or (<= (:y0 %) cy (:y1 %)) (<= (:y1 %) cy (:y0 %)))
-        on-v-line #(or (<= (:x0 %) cx (:x1 %)) (<= (:x1 %) cx (:x0 %)))]
-    (filter (case dir
-              :left  #(and (on-h-line %) (< (min (:x0 %) (:x1 %)) cx))
-              :right #(and (on-h-line %) (< cx (max (:x0 %) (:x1 %))))
-              :up    #(and (on-v-line %) (< (min (:y0 %) (:y1 %)) cy))
-              :down  #(and (on-v-line %) (< cy (max (:y0 %) (:y1 %)))))
-            wires)))
-
-(defn coordinates [dir lels wires]
-  (let [[lelc0 lelc1 wirec0 wirec1]
-        (case dir :x [x-min x-max :x0 :x1] :y [y-min y-max :y0 :y1])]
-    (concat (map lelc0  lels)  (map lelc1  lels)
-            (map wirec0 wires) (map wirec1 wires))))
-
-(defn jump-amount [dir {cx :x cy :y :as cursor-pos} lels wires]
-  (let [lol (lels-on-line dir cursor-pos (vals lels))
-        wol (wires-on-line dir cursor-pos (vals wires))
-        [fil pick move-dir]
-        (case dir
-          :left  [#(< % cx) #(apply max %) :x]
-          :right [#(< cx %) #(apply min %) :x]
-          :up    [#(< % cy) #(apply max %) :y]
-          :down  [#(< cy %) #(apply min %) :y])
-        filtered (filter fil (apply coordinates move-dir
-                               (if (and (empty? lol) (empty? wol))
-                                 [(vals lels) (vals wires)]
-                                 [lol wol])))]
-    (if (empty? filtered)
-      0
-      (- (pick filtered) (move-dir cursor-pos))
-      )))
-
-(defn move-cursor [schem dir speed]
-  (update-in schem [:cursor-pos dir] #(+ speed %)))
 
 ;--------------------------------------------------
 ; undo, redo
@@ -174,11 +123,6 @@
         (assoc :geoms (:geoms (first (schem from))))
         (update-in [from] next))))
 
-;(defn move-catalog [dir speed]
-;  (dosync (alter mode
-;           #(update-in % [:catalog-pos dir] (if (neg? speed) dec inc))
-;           )))
-;
 ;;--------------------------------------------------
 ;; dialog box
 ;;--------------------------------------------------
@@ -344,20 +288,19 @@
      :geoms (zipmap (keys wires) (repeat #{:p0 :p1}))
      }))
 
-(defn select [schem]
-  (let [lel-key (find-lel-by-pos (:lels schem) (:cursor-pos schem))
-        geom-keys (find-geoms-by-pos (:geoms schem) (:cursor-pos schem))
-        rect-keys (if (schem :rect-p0)
-                    (rectangular-select (:lels schem) (:geoms schem)
-                      (schem :rect-p0) (:cursor-pos schem))
+(defn select
+  [{:keys [cursor-pos lels geoms rect-p0 selected-lels selected-geoms]
+    :as schem}]
+  (let [lel-key (find-lel-by-pos lels cursor-pos)
+        geom-keys (find-geoms-by-pos geoms cursor-pos)
+        rect-keys (if rect-p0
+                    (rectangular-select lels geoms rect-p0 cursor-pos)
                     {})
-        sl (reduce into [(:selected-lels schem) (:lels rect-keys)
-                         (if lel-key #{lel-key} #{})])
+        sl (reduce into [selected-lels lels (if lel-key #{lel-key} #{})])
         sw (reduce (partial merge-with into)
-            [(:selected-geoms schem) (:geoms rect-keys) geom-keys])]
-    (-> schem (assoc :selected-lels sl)
-              (assoc :selected-geoms sw)
-              (dissoc :rect-p0))))
+            [selected-geoms (:geoms rect-keys) geom-keys])]
+    (-> (conj schem {:selected-lels sl :selected-geoms sw})
+        (dissoc :rect-p0))))
 
 ;--------------------------------------------------
 ; key commands for each mode on schematic panel
@@ -389,7 +332,7 @@
         (.isControlDown keyEvent))   (undo-redo schem :undos :redos)
    (and (= (.getCode keyEvent) KeyCode/Y)
         (.isControlDown keyEvent))   (undo-redo schem :redos :undos)
-   :else :no-consume)) ; cond, defn
+   :else nil)) ; cond, defn
 
 (defn key-command-add-mode [schem keyEvent]
   (cond
@@ -406,7 +349,7 @@
                                  {:x (get-in schem [:cursor-pos :x])
                                   :y (get-in schem [:cursor-pos :y])
                                   })})))
-   :else :no-consume))
+   :else nil))
 
 (defn key-command-move-mode [schem keyEvent]
   (cond
@@ -416,7 +359,7 @@
    (-> (cursor-mode schem) push-undo
        (update-in [:lels ] conj (:moving-lels  schem))
        (update-in [:geoms] conj (:moving-geoms schem)))
-   :else :no-consume))
+   :else nil))
 
 (defn key-command-copy-mode [schem keyEvent]
   (cond
@@ -429,7 +372,7 @@
                                      (:moving-lels  schem)))
        (update-in [:geoms] into (map (fn [[k v]] [(gensym) v])
                                      (:moving-geoms schem))))
-   :else :no-consume))
+   :else nil))
 
 (defn key-command-wire-mode
   [{{x0 :x y0 :y} :wire-p0 {x1 :x y1 :y} :cursor-pos :as schem} keyEvent]
@@ -441,7 +384,7 @@
    (-> schem push-undo
        (update-in [:geoms] conj {(gensym) {:x0 x0 :y0 y0 :x1 x1 :y1 y1}})
        (assoc :wire-p0 (:cursor-pos schem)))
-   :else :no-consume))
+   :else nil))
 
 (defn key-command-catalog-mode [{{x :x y :y} :catalog-pos :as schem} keyEvent]
   (cond
@@ -452,7 +395,7 @@
      schem)
    ; catalog -> cursor
    (= (.getCode keyEvent) KeyCode/ESCAPE) (cursor-mode (:revert-schem schem))
-   :else :no-consume))
+   :else nil))
 
 (def key-command
   {:cursor  key-command-cursor-mode
@@ -464,8 +407,55 @@
    })
 
 ;--------------------------------------------------
-; schematic pane
+; move-cursor
 ;--------------------------------------------------
+
+(defn lels-on-line [dir {cx :x cy :y :as cursor-pos} lels]
+  (let [on-h-line #(<= (y-min %) cy (y-max %))
+        on-v-line #(<= (x-min %) cx (x-max %))]
+    (filter (case dir
+              :left  #(and (on-h-line %) (< (x-min %) cx))
+              :right #(and (on-h-line %) (< cx (x-max %)))
+              :up    #(and (on-v-line %) (< (y-min %) cy))
+              :down  #(and (on-v-line %) (< cy (y-max %))))
+            lels)))
+
+(defn wires-on-line [dir {cx :x cy :y :as cursor-pos} wires]
+  (let [on-h-line #(or (<= (:y0 %) cy (:y1 %)) (<= (:y1 %) cy (:y0 %)))
+        on-v-line #(or (<= (:x0 %) cx (:x1 %)) (<= (:x1 %) cx (:x0 %)))]
+    (filter (case dir
+              :left  #(and (on-h-line %) (< (min (:x0 %) (:x1 %)) cx))
+              :right #(and (on-h-line %) (< cx (max (:x0 %) (:x1 %))))
+              :up    #(and (on-v-line %) (< (min (:y0 %) (:y1 %)) cy))
+              :down  #(and (on-v-line %) (< cy (max (:y0 %) (:y1 %)))))
+            wires)))
+
+(defn coordinates [dir lels wires]
+  (let [[lelc0 lelc1 wirec0 wirec1]
+        (case dir :x [x-min x-max :x0 :x1] :y [y-min y-max :y0 :y1])]
+    (concat (map lelc0  lels)  (map lelc1  lels)
+            (map wirec0 wires) (map wirec1 wires))))
+
+(defn jump-amount [dir {cx :x cy :y :as cursor-pos} lels wires]
+  (let [lol (lels-on-line dir cursor-pos (vals lels))
+        wol (wires-on-line dir cursor-pos (vals wires))
+        [fil pick move-dir]
+        (case dir
+          :left  [#(< % cx) #(apply max %) :x]
+          :right [#(< cx %) #(apply min %) :x]
+          :up    [#(< % cy) #(apply max %) :y]
+          :down  [#(< cy %) #(apply min %) :y])
+        filtered (filter fil (apply coordinates move-dir
+                               (if (and (empty? lol) (empty? wol))
+                                 [(vals lels) (vals wires)]
+                                 [lol wol])))]
+    (if (empty? filtered)
+      0
+      (- (pick filtered) (move-dir cursor-pos))
+      )))
+
+(defn move-cursor [schem dir speed]
+  (update-in schem [:cursor-pos dir] #(+ speed %)))
 
 (defn pane-schem-cursor-speed
   [{cursor-speed :cursor-speed :as schem} keyEvent]
@@ -477,32 +467,28 @@
     (if (and num (#{:cursor :add :wire :move :copy} (:mode schem)))
       (assoc schem :cursor-speed
              (if (= num :-) 0 (+ (* @cursor-speed 10) num)))
-      :no-consume)))
+      nil)))
 
-;(defn pane-schem-cursor-move [keyEvent pane]
-;  (let [kc (.getCode keyEvent)
-;        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) :left
-;                  (#{KeyCode/RIGHT KeyCode/L} kc) :right
-;                  (#{KeyCode/UP    KeyCode/K} kc) :up
-;                  (#{KeyCode/DOWN  KeyCode/J} kc) :down
-;                  :else                           nil)
-;        speed (cond (not dir)            1
-;                    (<= @cursor-speed 0)
-;                      (lel/jump-amount dir @cursor-pos @lels @geoms)
-;                    ('#{:left :up} dir)  (- @cursor-speed)
-;                    :else                @cursor-speed)
-;        op (case (:mode @mode)
-;             (:cursor :add :wire) #(move-cursor % speed)
-;             (:move :copy)        #(do (move-cursor   % speed)
-;                                       (move-selected % speed))
-;             :catalog             #(move-catalog % (case dir (:left :up) -1 1))
-;             nil)]
-;    (when (and dir op)
-;      (op (case dir (:left :right) :x :y))
-;      (.consume keyEvent)
-;      (.setAll (.getChildren pane) (draw-mode))
-;      (.consume keyEvent)
-;      true)))
+(defn pane-schem-cursor-move
+  [{:keys [mode cursor-speed cursor-pos lels geoms] :as schem} keyEvent]
+  (let [kc (.getCode keyEvent)
+        dir (cond (#{KeyCode/LEFT  KeyCode/H} kc) :left
+                  (#{KeyCode/RIGHT KeyCode/L} kc) :right
+                  (#{KeyCode/UP    KeyCode/K} kc) :up
+                  (#{KeyCode/DOWN  KeyCode/J} kc) :down
+                  :else                           nil)]
+    (when dir
+      (let [speed (cond (<= cursor-speed 0)
+                        (jump-amount dir cursor-pos lels geoms)
+                        ('#{:left :up} dir)  (- cursor-speed)
+                        :else                cursor-speed)]
+        (case mode
+          (:cursor :add :wire) (move-cursor schem dir speed)
+          (:move :copy)        (-> (move-cursor schem dir speed)
+                                   (move-selected     dir speed))
+          :catalog (update-in schem [:catalog-pos dir]
+                    (if (neg? speed) dec inc))
+          nil)))))
 ;
 ;(defn pane-schem-key [f-set-to-parent pane]
 ;  (proxy [EventHandler] []
