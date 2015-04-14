@@ -104,7 +104,7 @@
   (apply str (interpose "\n"
               [(dissoc schem :revert-schem)
                (interpose " "
-                [cursor-pos cursor-speed (count @redos) (count @undos)])
+                [cursor-pos cursor-speed (count redos) (count undos)])
                lels geoms])))
 
 ;--------------------------------------------------
@@ -153,14 +153,14 @@
                            (lel/pane-schem-key @schem keyEvent))]
         (.setAll (.getChildren pane) (draw-mode))
         (.consume keyEvent)
-        (.setText *label-debug* (state-text))
+        (.setText *label-debug* (state-text @schem))
         ))))
 
 (defn pane-schem [f-set-to-parent]
   (let [pane (Pane.)]
     (.setOnKeyPressed pane (pane-schem-key f-set-to-parent pane))
     (.setFocusTraversable pane true)
-    (.setAll (.getChildren pane) (draw-mode))
+    (.setAll (.getChildren pane) (draw-mode @schem))
     (f-set-to-parent pane)
     pane))
 
@@ -270,7 +270,7 @@
     (.setWrapText *label-debug* true)
     (.setTop topgroup menu)
     (.setBottom topgroup *label-debug*)
-    (.setText *label-debug* (state-text))
+    (.setText *label-debug* (state-text @schem))
     (doto stage
       (.setWidth 1024) (.setHeight 768)
       (.setScene (Scene. topgroup))
