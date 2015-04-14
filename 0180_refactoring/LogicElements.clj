@@ -11,21 +11,21 @@
 
 (defn lel-init [type]
   (case type
-    :in    {:type :in    :x 0 :y 0 :direction :right}
-    :out   {:type :out   :x 0 :y 0 :direction :right}
-    :inout {:type :inout :x 0 :y 0 :direction :horizontal}
-    :dot   {:type :dot   :x 0 :y 0}
-    :not   {:type :not   :x 0 :y 0 :direction :horizontal}
-    :buf   {:type :buf   :x 0 :y 0 :direction :right :width 4 :height 4}
-    :and   {:type :and   :x 0 :y 0 :direction :right :width 4 :height 4}
-    :or    {:type :or    :x 0 :y 0 :direction :right :width 4 :height 4}
-    :dff   {:type :dff   :x 0 :y 0 :width 4 :height 5 :async-reset :true}
-    :name  {:type :name  :x 0 :y 0
+    :in    {:type :in    :p [0 0] :direction :right}
+    :out   {:type :out   :p [0 0] :direction :right}
+    :inout {:type :inout :p [0 0] :direction :horizontal}
+    :dot   {:type :dot   :p [0 0]}
+    :not   {:type :not   :p [0 0] :direction :horizontal}
+    :buf   {:type :buf   :p [0 0] :direction :right :width 4 :height 4}
+    :and   {:type :and   :p [0 0] :direction :right :width 4 :height 4}
+    :or    {:type :or    :p [0 0] :direction :right :width 4 :height 4}
+    :dff   {:type :dff   :p [0 0] :width 4 :height 5 :async-reset :true}
+    :name  {:type :name  :p [0 0]
             :string "blah" :v-align :bottom :h-align :left}
-    :mux21 {:type :mux21 :x 0 :y 0 :direction :right :width 2 :height 6
+    :mux21 {:type :mux21 :p [0 0] :direction :right :width 2 :height 6
             :order01 :0->1}
-    :mux-n {:type :mux-n :x 0 :y 0 :direction :right :width 2 :height 6}
-    :op    {:type :op    :x 0 :y 0 :width 4 :height 4 :operator "+"}
+    :mux-n {:type :mux-n :p [0 0] :direction :right :width 2 :height 6}
+    :op    {:type :op    :p [0 0] :width 4 :height 4 :operator "+"}
     ))
 
 (defmulti width  (fn [lel] (:type lel)))
@@ -35,36 +35,32 @@
 (defmulti y-min  (fn [lel] (:type lel)))
 (defmulti y-max  (fn [lel] (:type lel)))
 
-(defmethod width  :default [lel]
-  (case (lel :direction)
-    (:up :down :vertical) (lel :height)
-    (lel :width)))
-(defmethod height :default [lel]
-  (case (lel :direction)
-    (:up :down :vertical) (lel :width)
-    (lel :height)))
-(defmethod x-min  :default [lel] (:x lel))
-(defmethod x-max  :default [lel] (+ (:x lel) (width lel)))
-(defmethod y-min  :default [lel] (:y lel))
-(defmethod y-max  :default [lel] (+ (:y lel) (height lel)))
+(defmethod width  :default [{d :direction h :height w :width}]
+  (case d (:up :down :vertical) h w))
+(defmethod height :default [{d :direction h :height w :width}]
+  (case d (:up :down :vertical) w h))
+(defmethod x-min  :default [{[x _] :p}] x)
+(defmethod x-max  :default [{[x _] :p}] (+ x (width lel)))
+(defmethod y-min  :default [{[_ y] :p}] y)
+(defmethod y-max  :default [{[_ y] :p}] (+ y (height lel)))
 
 ; for "in"
-(defmethod width  :in [lel]
-  (case (lel :direction) (:right :left) 3, (:up :down) 2))
-(defmethod height :in [lel]
-  (case (lel :direction) (:right :left) 2, (:up :down) 3))
+(defmethod width  :in [{d :direction}]
+  (case d (:right :left) 3, (:up :down) 2))
+(defmethod height :in [{d :direction}]
+  (case d (:right :left) 2, (:up :down) 3))
 
 ; for "out"
-(defmethod width  :out [lel]
-  (case (lel :direction) (:right :left) 3, (:up :down) 2))
-(defmethod height :out [lel]
-  (case (lel :direction) (:right :left) 2, (:up :down) 3))
+(defmethod width  :out [{d :direction}]
+  (case d (:right :left) 3, (:up :down) 2))
+(defmethod height :out [{d :direction}]
+  (case d (:right :left) 2, (:up :down) 3))
 
 ; for "inout"
-(defmethod width  :inout [lel]
-  (case (lel :direction) :horizontal 3, :vertical 2))
-(defmethod height :inout [lel]
-  (case (lel :direction) :horizontal 2, :vertical 3))
+(defmethod width  :inout [{d :direction}]
+  (case d :horizontal 3, :vertical 2))
+(defmethod height :inout [{d :direction}]
+  (case d :horizontal 2, :vertical 3))
 
 ; for "dot"
 (defmethod width  :dot [lel] 0)
@@ -76,49 +72,39 @@
 (defmethod height :name [lel] 0)
 
 ; for "not"
-(defmethod x-min  :not [lel]
-  (case (lel :direction)
-    :horizontal (:x lel)
-    :vertical   (dec (:x lel))))
-(defmethod x-max  :not [lel]
-  (case (lel :direction)
-    :horizontal (inc (:x lel))
-    :vertical   (inc (:x lel))))
-(defmethod y-min  :not [lel]
-  (case (lel :direction)
-    :horizontal (dec (:y lel))
-    :vertical   (dec (:y lel))))
-(defmethod y-max  :not [lel]
-  (case (lel :direction)
-    :horizontal (inc (:y lel))
-    :vertical   (:y lel)))
-(defmethod width  :not [lel]
-  (case (lel :direction) :horizontal 1, :vertical 2))
-(defmethod height :not [lel]
-  (case (lel :direction) :horizontal 2, :vertical 1))
+(defmethod x-min  :not [{d :direction [x _] :p}]
+  (case d :horizontal      x  :vertical (dec x)))
+(defmethod x-max  :not [{d :direction [x _] :p}]
+  (case d :horizontal (inc x) :vertical (inc x)))
+(defmethod y-min  :not [{d :direction [_ y] :p}]
+  (case d :horizontal (dec y) :vertical (dec y)))
+(defmethod y-max  :not [{d :direction [_ y] :p}]
+  (case d :horizontal (inc y) :vertical      y ))
+(defmethod width  :not [{d :direction}]
+  (case d :horizontal 1 :vertical 2))
+(defmethod height :not [{d :direction}]
+  (case d :horizontal 2 :vertical 1))
 
 (defn remove-lel-by-key [lels keys]
   (into {} (remove (fn [[k _]] (keys k)) lels)))
 
 (defn remove-geom-by-key [wires keys]
-  (into {} (remove (fn [[k _]] (= (keys k) #{:p0 :p1})) wires)))
+  (into {} (remove (fn [[k _]] (= (keys k) #{0 1})) wires)))
 
 ;--------------------------------------------------
 ; undo, redo
 ;--------------------------------------------------
 (let [undo-depth 64]
-  (defn push-undo [schem]
-    (-> schem
-        (dissoc :redos)
+  (defn push-undo [{:keys [lels geoms] :as schem}]
+    (-> (dissoc schem :redos)
         (update-in [:undos]
-         #(take undo-depth
-                (cons {:lels (:lels schem) :geoms (:geoms schem)} %)
-                )))))
-(defn undo-redo [schem from to]
+         #(take undo-depth (cons {:lels lels :geoms geoms} %))
+         )))
+(defn undo-redo [{keys [lels geoms] :as schem} from to]
   (if (empty? (schem from))
     schem
     (-> schem
-        (update-in [to] #(cons {:lels (:lels schem) :geoms (:geoms schem)} %))
+        (update-in [to] #(cons {:lels lels :geoms geoms} %))
         (assoc :lels  (:lels  (first (schem from))))
         (assoc :geoms (:geoms (first (schem from))))
         (update-in [from] next))))
@@ -144,7 +130,7 @@
                             :redos :undos])))
 
 (defn catalog-mode [schem]
-  {:mode :catalog :catalog-pos {:x 0 :y 0} :revert-schem schem})
+  {:mode :catalog :catalog-pos [0 0] :revert-schem schem})
 
 ;--------------------------------------------------
 ; move lels and geoms
@@ -153,45 +139,38 @@
 (defn move-lels [lels dir speed]
   (reduce #(update-in %1 [%2 dir] (partial + speed)) lels (keys lels)))
 
-(defn move-wire [wire dir speed points]
-  (let [[& coords] (case points
-                     #{:p0}     (case dir :x [:x0    ] :y [:y0    ])
-                     #{:p1}     (case dir :x [    :x1] :y [    :y1])
-                     #{:p0 :p1} (case dir :x [:x0 :x1] :y [:y0 :y1]))]
-    (reduce #(update-in %1 [%2] (partial + speed))
-            wire coords)))
+(defn move-wire [wire speed points]
+  (reduce (fn [wire p-idx]
+            (update-in wire [:p p-idx] #(vec (map + % speed))))
+          wire points))
 
-(defn move-geoms [wires dir speed]
-  (into {} (map (fn [[k v]] [k (move-wire v dir speed '#{:p0 :p1})])
+(defn move-geoms [wires speed]
+  (into {} (map (fn [[k v]] [k (move-wire v speed #{0 1})])
                 wires)))
 
-(defn move-geoms-by-vertices [wires moving-vertices dir speed]
+(defn move-geoms-by-vertices [wires moving-vertices speed]
   (reduce-kv (fn [wires k v]
-               (update-in wires [k] move-wire dir speed v))
+               (update-in wires [k] move-wire speed v))
              wires moving-vertices))
 
-(defn move-selected [schem dir speed]
+(defn move-selected [{mv :moving-vertices :as schem} speed]
   (-> schem
-      (update-in [:moving-lels ] move-lels  dir speed)
-      (update-in [:moving-geoms] move-geoms dir speed)
-      (update-in [:geoms] move-geoms-by-vertices
-                 (:moving-vertices schem) dir speed
-                 )))
+      (update-in [:moving-lels ] move-lels  speed)
+      (update-in [:moving-geoms] move-geoms speed)
+      (update-in [:geoms] move-geoms-by-vertices mv speed)))
 
-(defn move-mode [{sl :selected-lels sg :selected-geoms :as schem}]
+(defn move-mode
+  [{sl :selected-lels sg :selected-geoms :keys [lels geoms] :as schem}]
   (if (and (empty? sl) (empty? sg))
     schem
     (let [{:keys [ml nl]} ; ml: moved lel, nl: not moved lel
-           (group-by #(if (sl (% 0)) :ml :nl)
-                     (:lels schem))
+          (group-by (fn [[k _]] (if (sl k) :ml :nl)) lels)
           {:keys [mg ng]} ; mg: moved geom, ng: not moved geom
-           (group-by #(if (= (sg (% 0)) #{:p0 :p1}) :mg :ng)
-                     (:geoms schem))]
+          (group-by (fn [[k _]] (if (= (sg k) #{0 1}) :mg :ng)) geoms)
       (conj {:mode :move, :lels (into {} nl), :geoms (into {} ng)
              :moving-lels     (into {} ml)
              :moving-geoms    (into {} mg)
-             :moving-vertices (into {} (filter #(not= #{:p0 :p1} (% 1))
-                                               sg))
+             :moving-vertices (into {} (remove (fn [[k _]] (= #{0 1} k)) sg))
              :revert-schem    schem}
             (select-keys schem [:cursor-pos :cursor-speed :undos :redos])
             ))))
@@ -207,38 +186,28 @@
 ; select
 ;--------------------------------------------------
 
-(defn find-lel-by-pos [lels {posx :x posy :y}]
-  (some (fn [[k {x :x y :y}]]
+(defn find-lel-by-pos [lels [posx posy]]
+  (some (fn [[k [x y]]]
           (when (= [posx posy] [x y]) k))
         lels))
 
-(defn wire-vs-cursor [wire cur]
+(defn wire-vs-cursor [{[[x0 y0] [x1 y1]] :p} [xc yc]]
   (let [fcomp (fn [qc q0 q1]
-                (let [[q0 q1 inv] (if (< q0 q1)
-                                    [q0 q1 false]
-                                    [q1 q0 true ])]
-                  (cond (< qc q0) nil
-                        (< q1 qc) nil
-
-                        (< (- q1 q0) 4)
-                        (cond (= qc q0) (if inv #{:p1} #{:p0})
-                              (= qc q1) (if inv #{:p0} #{:p1})
-                              :else     #{:p0 :p1})
-
-                        (<= qc (+ q0 1)) (if inv #{:p1} #{:p0})
-                        (<= (- q1 1) qc) (if inv #{:p0} #{:p1})
-                        :else #{:p0 :p1}
+                (let [[q0 q1 inv] (if (< q0 q1) [q0 q1 false] [q1 q0 true])]
+                  (cond (< qc q0)        nil
+                        (< q1 qc)        nil
+                        (< (- q1 q0) 4)  (cond (= qc q0) (if inv #{1} #{0})
+                                               (= qc q1) (if inv #{0} #{1})
+                                               :else     #{0 1})
+                        (<= qc (+ q0 1)) (if inv #{1} #{0})
+                        (<= (- q1 1) qc) (if inv #{0} #{1})
+                        :else            #{0 1}
                         )))]
-    (cond (= (map #(cur %) [:x :y]) (map #(wire %) [:x0 :y0])) #{:p0}
-          (= (map #(cur %) [:x :y]) (map #(wire %) [:x1 :y1])) #{:p1}
-
-          (= (:x cur) (:x0 wire) (:x1 wire))
-          (fcomp (:y cur) (:y0 wire) (:y1 wire))
-
-          (= (:y cur) (:y0 wire) (:y1 wire))
-          (fcomp (:x cur) (:x0 wire) (:x1 wire))
-
-          :else nil)))
+    (cond (= [xc yc] [x0 y0]) #{0}
+          (= [xc yc] [x1 y1]) #{1}
+          (= xc x0 x1)        (fcomp yc y0 y1)
+          (= yc y0 y1)        (fcomp xc x0 x1)
+          :else               nil)))
 
 (defn find-geoms-by-pos [wires pos]
   (reduce-kv (fn [acc k v] (if-let [p (wire-vs-cursor v pos)]
@@ -246,19 +215,19 @@
              {} wires))
 
 ; An edge of a line should be selected by surrounding it.
-(defn rectangular-select [lels wires {x0 :x y0 :y} {x1 :x y1 :y}]
+(defn rectangular-select [lels wires [x0 y0] [x1 y1]]
   (let [xmin (min x0 x1) xmax (max x0 x1)
         ymin (min y0 y1) ymax (max y0 y1)
         lels (filter (fn [[k v]]
                        (and (<= xmin (x-min v)) (<= (x-max v) xmax)
                             (<= ymin (y-min v)) (<= (y-max v) ymax)))
                      lels)
-        wires (filter (fn [[k {x0 :x0 y0 :y0 x1 :x1 y1 :y1}]]
+        wires (filter (fn [[k [[x0 y0] [x1 y1]]]]
                         (and (<= xmin (min x0 x1)) (<= (max x0 x1) xmax)
                              (<= ymin (min y0 y1)) (<= (max y0 y1) ymax)))
                       wires)]
     {:lels (set (keys lels))
-     :geoms (zipmap (keys wires) (repeat #{:p0 :p1}))
+     :geoms (zipmap (keys wires) (repeat #{0 1}))
      }))
 
 (defn select
@@ -316,13 +285,10 @@
    (= (.getCode keyEvent) KeyCode/ESCAPE) (cursor-mode schem)
    ; no mode change
    (= (.getCode keyEvent) KeyCode/ENTER)
-   (-> schem
-       push-undo
+   (-> schem push-undo
        (update-in [:lels]
-        #(conj % {(gensym) (conj (:lel schem)
-                                 {:x (get-in schem [:cursor-pos :x])
-                                  :y (get-in schem [:cursor-pos :y])
-                                  })})))
+        #(conj % {(gensym) (assoc (:lel schem) :p (:cursor-pos schem))})
+        ))
    :else nil))
 
 (defn key-command-move-mode [schem keyEvent]
@@ -349,18 +315,18 @@
    :else nil))
 
 (defn key-command-wire-mode
-  [{{x0 :x y0 :y} :wire-p0 {x1 :x y1 :y} :cursor-pos :as schem} keyEvent]
+  [{[x0 y0] :wire-p0 [x1 y1] :cursor-pos :as schem} keyEvent]
   (cond
    ; wire -> cursor
    (= (.getCode keyEvent) KeyCode/ESCAPE) (cursor-mode schem)
    ; no mode change
    (= (.getCode keyEvent) KeyCode/ENTER)
    (-> schem push-undo
-       (update-in [:geoms] conj {(gensym) {:x0 x0 :y0 y0 :x1 x1 :y1 y1}})
+       (update-in [:geoms] conj {(gensym) {:p [[x0 y0] [x1 y1]]}})
        (assoc :wire-p0 (:cursor-pos schem)))
    :else nil))
 
-(defn key-command-catalog-mode [{{x :x y :y} :catalog-pos :as schem} keyEvent]
+(defn key-command-catalog-mode [{[x y] :catalog-pos :as schem} keyEvent]
   (cond
    ; catalog -> add
    (= (.getCode keyEvent) KeyCode/ENTER)
@@ -384,7 +350,7 @@
 ; move-cursor
 ;--------------------------------------------------
 
-(defn lels-on-line [dir {cx :x cy :y :as cursor-pos} lels]
+(defn lels-on-line [dir [cx cy] lels]
   (let [on-h-line #(<= (y-min %) cy (y-max %))
         on-v-line #(<= (x-min %) cx (x-max %))]
     (filter (case dir
@@ -394,15 +360,20 @@
               :down  #(and (on-v-line %) (< cy (y-max %))))
             lels)))
 
-(defn wires-on-line [dir {cx :x cy :y :as cursor-pos} wires]
-  (let [on-h-line #(or (<= (:y0 %) cy (:y1 %)) (<= (:y1 %) cy (:y0 %)))
-        on-v-line #(or (<= (:x0 %) cx (:x1 %)) (<= (:x1 %) cx (:x0 %)))]
-    (filter (case dir
-              :left  #(and (on-h-line %) (< (min (:x0 %) (:x1 %)) cx))
-              :right #(and (on-h-line %) (< cx (max (:x0 %) (:x1 %))))
-              :up    #(and (on-v-line %) (< (min (:y0 %) (:y1 %)) cy))
-              :down  #(and (on-v-line %) (< cy (max (:y0 %) (:y1 %)))))
-            wires)))
+(defn wires-on-line [dir [cx cy] wires]
+  (let [on-h-line (fn [{[[_ y0] [_ y1]] :p}] (or (<= y0 cy y1) (<= y1 cy y0)))
+        on-v-line (fn [{[[x0 _] [x1 _]] :p}] (or (<= x0 cx x1) (<= x1 cx x0)))]
+    (filter
+     (case dir
+       :left
+       (fn [{[[x0 _] [x1 _]] :p :as w}] (and (on-h-line w) (< (min x0 x1) cx))
+       :right
+       (fn [{[[x0 _] [x1 _]] :p :as w}] (and (on-h-line w) (< cx (max x0 x1)))
+       :up
+       (fn [{[[_ y0] [_ y1]] :p :as w}] (and (on-v-line w) (< (min y0 y1) cy))
+       :down
+       (fn [{[[_ y0] [_ y1]] :p :as w}] (and (on-v-line w) (< cy (max y0 y1)))
+     wires)))
 
 (defn coordinates [dir lels wires]
   (let [[lelc0 lelc1 wirec0 wirec1]
