@@ -451,7 +451,7 @@
                   (#{KeyCode/UP    KeyCode/K} kc) :up
                   (#{KeyCode/DOWN  KeyCode/J} kc) :down
                   :else                           nil)]
-    (when dir
+    (when (and dir (#{:cursor :add :wire :move :copy} mode))
       (let [speed (cond (<= cursor-speed 0)
                         (jump-amount dir cursor-pos lels geoms)
                         ('#{:left :up} dir)  (- cursor-speed)
@@ -461,12 +461,21 @@
           (:cursor :add :wire) (move-cursor schem dir speed)
           (:move :copy)        (-> (move-cursor schem dir speed)
                                    (move-selected     dir speed))
-          :catalog (update-in schem [:catalog-pos dir]
-                    (if (neg? speed) dec inc))
           nil)))))
+
+(defn pane-schem-catalog-move [schem keyEvent]
+  (let [kc (.getCode keyEvent)
+        [dir f] (cond (#{KeyCode/LEFT  KeyCode/H} kc) [:x dec]
+                      (#{KeyCode/RIGHT KeyCode/L} kc) [:x inc]
+                      (#{KeyCode/UP    KeyCode/K} kc) [:y dec]
+                      (#{KeyCode/DOWN  KeyCode/J} kc) [:y inc]
+                      :else                           nil)]
+    (if (and dir (= (:mode schem) :catalog))
+      (update-in schem [:catalog-pos dir] f))))
 
 (defn pane-schem-key [schem keyEvent]
   (or (pane-schem-cursor-move  schem keyEvent)
+      (pane-schem-catalog-move schem keyEvent)
       (pane-schem-cursor-speed schem keyEvent)
       (let [f (key-command (:mode schem))]
         (when f (f schem keyEvent)))))
