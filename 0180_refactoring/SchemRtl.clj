@@ -149,14 +149,16 @@
 (defn pane-schem-key [f-set-to-parent pane]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (when-let [schem-updated (or (pane-schem-goto-dialog
-                                    keyEvent pane f-set-to-parent)
-                                   (lel/pane-schem-key @schem keyEvent))]
-        (dosync (ref-set schem schem-updated))
-        (.setAll (.getChildren pane) (draw-mode @schem))
-        (.consume keyEvent)
-        (.setText *label-debug* (state-text @schem))
-        ))))
+      (cond (pane-schem-goto-dialog keyEvent pane f-set-to-parent)
+            (.consume keyEvent)
+            (when-let [schem-updated (lel/pane-schem-key @schem keyEvent)]
+              (dosync
+                (ref-set schem schem-updated)
+                (.setAll (.getChildren pane) (draw-mode @schem))
+                (.setText *label-debug* (state-text @schem)))
+              (.consume keyEvent)
+              true)
+            :done))))
 
 (defn pane-schem [f-set-to-parent]
   (let [pane (Pane.)]
