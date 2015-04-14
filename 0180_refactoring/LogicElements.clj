@@ -489,18 +489,10 @@
           :catalog (update-in schem [:catalog-pos dir]
                     (if (neg? speed) dec inc))
           nil)))))
-;
-;(defn pane-schem-key [f-set-to-parent pane]
-;  (proxy [EventHandler] []
-;    (handle [keyEvent]
-;      (or (pane-schem-goto-dialog  keyEvent pane f-set-to-parent)
-;          (pane-schem-cursor-move  keyEvent pane)
-;          (pane-schem-cursor-speed keyEvent)
-;          (let [f (key-command (:mode @mode))]
-;            (when (and f (not= (f keyEvent) :no-consume))
-;              (.setAll (.getChildren pane) (draw-mode))
-;              (.consume keyEvent))))
-;      (.setText *label-debug* (state-text))
-;      )))
 
+(defn pane-schem-key [schem keyEvent]
+  (or (pane-schem-cursor-move  schem keyEvent)
+      (pane-schem-cursor-speed schem keyEvent)
+      (let [f (key-command (:mode schem))]
+        (when f (f schem keyEvent)))))
 
