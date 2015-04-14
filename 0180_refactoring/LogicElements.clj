@@ -296,7 +296,8 @@
         rect-keys (if rect-p0
                     (rectangular-select lels geoms rect-p0 cursor-pos)
                     {})
-        sl (reduce into [selected-lels lels (if lel-key #{lel-key} #{})])
+        sl (reduce into [selected-lels (:lels rect-keys)
+                         (if lel-key #{lel-key} #{})])
         sw (reduce (partial merge-with into)
             [selected-geoms (:geoms rect-keys) geom-keys])]
     (-> (conj schem {:selected-lels sl :selected-geoms sw})
