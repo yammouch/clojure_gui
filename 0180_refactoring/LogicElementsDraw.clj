@@ -287,26 +287,26 @@
 ;--------------------------------------------------
 
 (defn draw-mode-cursor
-  [mode cursor-pos lels selected-lels wires selected-wires]
+  [{:keys [mode cursor-pos lels selected-lels geoms selected-geoms rect-p0]}]
   (into-array Node
    (concat
     [(draw-dot cursor-pos 9 Color/BLUE)]
     (mapcat (fn [[k {type :type :as v}]]
               (case type
-                :wire (let [selected (selected-wires k)]
+                :wire (let [selected (selected-geoms k)]
                         (if selected
                           (draw-wire-selected v selected)
                           [(draw-wire v Color/BLACK)]))
                 :rect [(draw-rect v Color/BLACK)]))
-            wires)
+            geoms)
     (mapcat (fn [[k v]]
               (lel-draw v (if (selected-lels k) Color/RED Color/BLACK)))
             lels)
-    (when (mode :rect-p0)
-      (let [x (Math/min (cursor-pos :x) (get-in mode [:rect-p0 :x]))
-            y (Math/min (cursor-pos :y) (get-in mode [:rect-p0 :y]))
-            width  (Math/abs (- (cursor-pos :x) (get-in mode [:rect-p0 :x])))
-            height (Math/abs (- (cursor-pos :y) (get-in mode [:rect-p0 :y])))
+    (when rect-p0
+      (let [x (Math/min (cursor-pos :x) (rect-p0 :x))
+            y (Math/min (cursor-pos :y) (rect-p0 :y))
+            width  (Math/abs (- (cursor-pos :x) (rect-p0 :x)))
+            height (Math/abs (- (cursor-pos :y) (rect-p0 :y)))
             rect (Rectangle. (* x pix-per-grid)
                              (* y pix-per-grid)
                              (* width pix-per-grid)
@@ -318,7 +318,7 @@
         [rect])))))
 
 (defn draw-mode-move
-  [cursor-pos lels moving-lels wires moving-wires moving-vertices]
+  [{:keys [cursor-pos lels moving-lels geoms moving-geoms moving-vertices]}]
   (into-array Node
    (concat
     [(draw-dot cursor-pos 9 Color/BLUE)]
@@ -327,26 +327,26 @@
                 (if vertices
                   (draw-wire-selected v vertices)
                   [(draw-wire v Color/BLACK)])))
-            wires)
+            geoms)
     (mapcat (fn [[_ v]] (lel-draw v Color/BLACK)) lels)
-    (map (fn [[_ v]] (draw-wire v Color/RED)) moving-wires)
+    (map (fn [[_ v]] (draw-wire v Color/RED)) moving-geoms)
     (mapcat (fn [[_ v]] (lel-draw v Color/RED)) moving-lels)
     )))
 
-(defn draw-mode-add [mode cursor-pos lels wires]
+(defn draw-mode-add [{:keys [mode cursor-pos lels geoms] :as schem}]
   (into-array Node
    (concat
     [(draw-dot cursor-pos 9 Color/BLUE)]
-    (map (fn [[k v]] (draw-wire v Color/BLACK)) wires)
+    (map (fn [[k v]] (draw-wire v Color/BLACK)) geoms)
     (mapcat (fn [[k v]] (lel-draw v Color/BLACK)) lels)
-    (lel-draw (conj (:lel mode) cursor-pos)
+    (lel-draw (conj (:lel schem) cursor-pos)
               Color/RED))))
 
-(defn draw-mode-wire [cursor-pos lels wires wire-p0]
+(defn draw-mode-wire [{:keys [cursor-pos lels geoms wire-p0]}]
   (into-array Node
    (concat
     [(draw-dot cursor-pos 9 Color/BLUE)]
-    (map (fn [[k v]] (draw-wire v Color/BLACK)) wires)
+    (map (fn [[k v]] (draw-wire v Color/BLACK)) geoms)
     (mapcat (fn [[k v]] (lel-draw v Color/BLACK)) lels)
     [(draw-wire {:x0 (wire-p0 :x) :y0 (wire-p0 :y)
                  :x1 (cursor-pos :x) :y1 (cursor-pos :y)}
@@ -357,7 +357,7 @@
    [:buf   :and   :or    :dff :name]
    [:mux21 :mux-n :op              ]])
 
-(defn draw-mode-catalog [catalog-pos]
+(defn draw-mode-catalog [{catalog-pos :catalog-pos}]
   (let [parts (mapcat (fn [idx0 parts]
                         (map (fn [idx1 part]
                                {:idx0 idx0, :idx1 idx1, :part part})
