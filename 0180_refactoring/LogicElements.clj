@@ -481,7 +481,8 @@
       (let [speed (cond (<= cursor-speed 0)
                         (jump-amount dir cursor-pos lels geoms)
                         ('#{:left :up} dir)  (- cursor-speed)
-                        :else                cursor-speed)]
+                        :else                cursor-speed)
+            dir (case dir (:left :right) :x :y)]
         (case mode
           (:cursor :add :wire) (move-cursor schem dir speed)
           (:move :copy)        (-> (move-cursor schem dir speed)

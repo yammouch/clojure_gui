@@ -113,7 +113,7 @@
 
 (defn pane-schem-revert [f-set-to-parent pane]
   (f-set-to-parent pane)
-  (.setAll (.getChildren pane) (draw-mode))
+  (.setAll (.getChildren pane) (draw-mode @schem))
   (.setFocusTraversable pane true)
   (.requestFocus pane))
 
@@ -151,9 +151,9 @@
       (when-let [schem (or (pane-schem-goto-dialog
                             keyEvent pane f-set-to-parent)
                            (lel/pane-schem-key @schem keyEvent))]
-        (.setAll (.getChildren pane) (draw-mode))
+        (.setAll (.getChildren pane) (draw-mode schem))
         (.consume keyEvent)
-        (.setText *label-debug* (state-text @schem))
+        (.setText *label-debug* (state-text schem))
         ))))
 
 (defn pane-schem [f-set-to-parent]
