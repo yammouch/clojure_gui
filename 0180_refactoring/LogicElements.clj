@@ -154,27 +154,24 @@
       (update-in [:geoms] move-geoms-by-vertices mv speed)))
 
 (defn move-mode
-  [{sl :selected-lels sg :selected-geoms :keys [lels geoms] :as schem}]
+  [{sl :selected-lels sg :selected-geoms :keys [lels geoms] :as schem}
+   & [copy?]]
   (if (and (empty? sl) (empty? sg))
     schem
     (let [{:keys [ml nl]} ; ml: moved lel, nl: not moved lel
           (group-by (fn [[k _]] (if (sl k) :ml :nl)) lels)
           {:keys [mg ng]} ; mg: moved geom, ng: not moved geom
           (group-by (fn [[k _]] (if (= (sg k) #{0 1}) :mg :ng)) geoms)]
-      (conj {:mode :move, :lels (into {} nl), :geoms (into {} ng)
-             :moving-lels     (into {} ml)
-             :moving-geoms    (into {} mg)
-             :moving-vertices (into {} (remove (fn [[_ v]] (= #{0 1} v)) sg))
-             :revert-schem    schem}
+      (conj {:mode         (if copy? :copy :move)
+             :lels         (if copy? lels (into {} nl))
+             :geoms        (if copy? geoms (into {} ng))
+             :moving-lels  (into {} ml)
+             :moving-geoms (into {} mg)
+             :moving-vertices
+             (if copy? {} (into {} (remove (fn [[_ v]] (= #{0 1} v)) sg)))
+             :revert-schem schem}
             (select-keys schem [:cursor-pos :cursor-speed :undos :redos])
             )))))
-
-(defn copy-mode [schem]
-  (let [mm (move-mode schem)]
-    (if (= :move (:mode mm))
-      (conj (dissoc mm :revert-schem)
-            {:mode :copy, :moving-vertices {}})
-      schem)))
 
 ;--------------------------------------------------
 ; select
@@ -250,7 +247,7 @@
    ; cursor -> move
    (= (.getCode keyEvent) KeyCode/M) (move-mode schem)
    ; cursor -> copy
-   (= (.getCode keyEvent) KeyCode/C) (copy-mode schem)
+   (= (.getCode keyEvent) KeyCode/C) (move-mode schem true)
    ; cursor -> wire
    (= (.getCode keyEvent) KeyCode/W) (wire-mode schem)
    ; no mode change

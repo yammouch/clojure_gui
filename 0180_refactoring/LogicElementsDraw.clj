@@ -320,7 +320,7 @@
     [(draw-dot cursor-pos 9 Color/BLUE)]
     (map (fn [[_ {p :p}]] (draw-wire p Color/BLACK)) geoms)
     (mapcat (fn [[_ v]] (lel-draw v Color/BLACK)) lels)
-    (lel-draw (conj (:lel schem) cursor-pos)
+    (lel-draw (assoc (:lel schem) :p cursor-pos)
               Color/RED))))
 
 (defn draw-mode-wire [{:keys [cursor-pos lels geoms wire-p0]}]
@@ -353,12 +353,12 @@
      (concat
       (mapcat (fn [{idx0 :idx0 idx1 :idx1 part :part}]
                 (let [lel (lel/lel-init part)]
-                  (lel-draw (conj lel
-                                  {:x (- (+ (* 10 idx1) 6)
-                                         (int (/ (lel/width lel) 2)))
-                                   :y (- (+ (* 10 idx0) 6)
-                                         (int (/ (lel/height lel) 2))
-                                         )})
+                  (lel-draw (assoc lel :p
+                                   [(- (+ (* 10 idx1) 6)
+                                       (int (/ (lel/width lel) 2)))
+                                    (- (+ (* 10 idx0) 6)
+                                       (int (/ (lel/height lel) 2))
+                                       )])
                             Color/BLACK)))
               parts)
       [rect]))))
