@@ -169,7 +169,7 @@
              :moving-geoms (into {} mg)
              :moving-vertices
              (if copy? {} (into {} (remove (fn [[_ v]] (= #{0 1} v)) sg)))
-             :revert-schem schem}
+             :revert-schem (if copy? {} schem)}
             (select-keys schem [:cursor-pos :cursor-speed :undos :redos])
             )))))
 

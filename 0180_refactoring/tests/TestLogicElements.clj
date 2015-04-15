@@ -148,9 +148,6 @@
   (print "result  : ")
   (println (into (sorted-map) result)))
 
-;--------------------------------------------------
-(println "tests copy-mode")
-
 (def schem
   {:mode  :cursor
    :lels  {'G0 :g0 'G1 :g1}
@@ -160,14 +157,15 @@
    })
 (def schem-copy-mode
   {:mode :copy
-   :lels {'G1 :g1}
-   :geoms {'G3 :g3 'G4 :g4 'G5 :g5}
+   :lels {'G0 :g0 'G1 :g1}
+   :geoms {'G2 :g2 'G3 :g3 'G4 :g4 'G5 :g5}
    :moving-lels {'G0 :g0}
    :moving-geoms {'G2 :g2}
    :moving-vertices {}
+   :revert-schem {}
    })
 (def test-patts
-  [[(dut/copy-mode schem) schem-copy-mode]
+  [[(dut/move-mode schem true) schem-copy-mode]
    [(dut/key-command-cursor-mode schem
      (KeyEvent. KeyEvent/KEY_PRESSED "c" "c" KeyCode/C
       false false false false))
@@ -176,7 +174,7 @@
 (def schem (reduce #(dissoc %1 %2) schem [:selected-lels :selected-geoms]))
 (def test-patts
   (into test-patts
-   [[(dut/copy-mode schem) schem]
+   [[(dut/move-mode schem true) schem]
     [(dut/key-command-cursor-mode schem
       (KeyEvent. KeyEvent/KEY_PRESSED "c" "c" KeyCode/C
        false false false false))
