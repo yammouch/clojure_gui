@@ -164,7 +164,7 @@
       (conj {:mode :move, :lels (into {} nl), :geoms (into {} ng)
              :moving-lels     (into {} ml)
              :moving-geoms    (into {} mg)
-             :moving-vertices (into {} (remove (fn [[k _]] (= #{0 1} k)) sg))
+             :moving-vertices (into {} (remove (fn [[_ v]] (= #{0 1} v)) sg))
              :revert-schem    schem}
             (select-keys schem [:cursor-pos :cursor-speed :undos :redos])
             )))))
