@@ -17,6 +17,8 @@
                          LineTo)
   '(javafx.stage         Stage))
 
+(set! *warn-on-reflection* true)
+
 (def origin (ref [0 0]))
 (def grid 8.0)
 
