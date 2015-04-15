@@ -15,7 +15,7 @@
          G_010 {:type :dot  , :p [30 29]}
          G_011 {:type :dff  , :p [55 26], :width 4, :height 5,
                 :async-reset :false}
-         G_013 {:type :mux21, :p [48 24], :direction :right,
+         G_012 {:type :mux21, :p [48 24], :direction :right,
                 :width 2, :height 6, :order01 :1->0}}
  :geoms {G_100 {:type :wire, :p [[36 24] [41 24]]}
          G_101 {:type :wire, :p [[46 29] [48 29]]}
