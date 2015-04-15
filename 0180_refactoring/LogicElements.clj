@@ -181,7 +181,7 @@
 ;--------------------------------------------------
 
 (defn find-lel-by-pos [lels [posx posy]]
-  (some (fn [[k [x y]]]
+  (some (fn [[k {[x y] :p}]]
           (when (= [posx posy] [x y]) k))
         lels))
 
@@ -371,7 +371,7 @@
             (mapcat (fn [{p :p}] (map #(% dir) p)) wires)
             )))
 
-(defn jump-amount [dir {cx :x cy :y :as cursor-pos} lels wires]
+(defn jump-amount [dir [cx cy :as cursor-pos] lels wires]
   (let [lol (lels-on-line dir cursor-pos (vals lels))
         wol (wires-on-line dir cursor-pos (vals wires))
         [fil pick move-dir] (case dir :left  [#(< % cx) #(apply max %) 0]
