@@ -32,7 +32,7 @@
 
 (def schem (ref (conj (read-string (slurp "sample_design00.rtc"))
                       {:mode :cursor :selected-lels #{} :selected-geoms {}
-                       :cursor-pos {:x 5 :y 5} :cursor-speed 1
+                       :cursor-pos [5 5] :cursor-speed 1
                        :redos '() :undos '()})))
 
 ;--------------------------------------------------
@@ -186,7 +186,7 @@
               (ref-set schem
                        (conj (read rd)
                         {:mode :cursor :selected-lels #{} :selected-geoms {}
-                         :cursor-pos {:x 5 :y 5} :cursor-speed 1
+                         :cursor-pos [5 5] :cursor-speed 1
                          :redos '() :undos '()})))
             (reset! prev-path (.getParentFile file))
             (.close rd)
