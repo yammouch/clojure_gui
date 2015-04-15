@@ -39,28 +39,22 @@
   (case d (:up :down :vertical) h w))
 (defmethod height :default [{d :direction h :height w :width}]
   (case d (:up :down :vertical) w h))
-(defmethod x-min  :default [{[x _] :p}] x)
-(defmethod x-max  :default [{[x _] :p}] (+ x (width lel)))
-(defmethod y-min  :default [{[_ y] :p}] y)
-(defmethod y-max  :default [{[_ y] :p}] (+ y (height lel)))
+(defmethod x-min  :default [{[x _] :p        }]    x             )
+(defmethod x-max  :default [{[x _] :p :as lel}] (+ x (width lel)))
+(defmethod y-min  :default [{[_ y] :p        }]    y             )
+(defmethod y-max  :default [{[_ y] :p :as lel}] (+ y (height lel)))
 
 ; for "in"
-(defmethod width  :in [{d :direction}]
-  (case d (:right :left) 3, (:up :down) 2))
-(defmethod height :in [{d :direction}]
-  (case d (:right :left) 2, (:up :down) 3))
+(defmethod width  :in [{d :direction}] (case d (:right :left) 3 2))
+(defmethod height :in [{d :direction}] (case d (:right :left) 2 3))
 
 ; for "out"
-(defmethod width  :out [{d :direction}]
-  (case d (:right :left) 3, (:up :down) 2))
-(defmethod height :out [{d :direction}]
-  (case d (:right :left) 2, (:up :down) 3))
+(defmethod width  :out [{d :direction}] (case d (:right :left) 3 2))
+(defmethod height :out [{d :direction}] (case d (:right :left) 2 3))
 
 ; for "inout"
-(defmethod width  :inout [{d :direction}]
-  (case d :horizontal 3, :vertical 2))
-(defmethod height :inout [{d :direction}]
-  (case d :horizontal 2, :vertical 3))
+(defmethod width  :inout [{d :direction}] (case d :horizontal 3 2))
+(defmethod height :inout [{d :direction}] (case d :horizontal 2 3))
 
 ; for "dot"
 (defmethod width  :dot [lel] 0)
@@ -100,7 +94,7 @@
         (update-in [:undos]
          #(take undo-depth (cons {:lels lels :geoms geoms} %))
          )))
-(defn undo-redo [{keys [lels geoms] :as schem} from to]
+(defn undo-redo [{:keys [lels geoms] :as schem} from to]
   (if (empty? (schem from))
     schem
     (-> schem
@@ -136,12 +130,12 @@
 ; move lels and geoms
 ;--------------------------------------------------
 
-(defn move-lels [lels dir speed]
-  (reduce #(update-in %1 [%2 dir] (partial + speed)) lels (keys lels)))
+(defn move-lels [lels speed]
+  (reduce (fn [lels k] (update-in lels [k :p] #(vec (map + % speed))))
+          lels (keys lels)))
 
 (defn move-wire [wire speed points]
-  (reduce (fn [wire p-idx]
-            (update-in wire [:p p-idx] #(vec (map + % speed))))
+  (reduce (fn [wire p-idx] (update-in wire [:p p-idx] #(vec (map + % speed))))
           wire points))
 
 (defn move-geoms [wires speed]
@@ -166,14 +160,14 @@
     (let [{:keys [ml nl]} ; ml: moved lel, nl: not moved lel
           (group-by (fn [[k _]] (if (sl k) :ml :nl)) lels)
           {:keys [mg ng]} ; mg: moved geom, ng: not moved geom
-          (group-by (fn [[k _]] (if (= (sg k) #{0 1}) :mg :ng)) geoms)
+          (group-by (fn [[k _]] (if (= (sg k) #{0 1}) :mg :ng)) geoms)]
       (conj {:mode :move, :lels (into {} nl), :geoms (into {} ng)
              :moving-lels     (into {} ml)
              :moving-geoms    (into {} mg)
              :moving-vertices (into {} (remove (fn [[k _]] (= #{0 1} k)) sg))
              :revert-schem    schem}
             (select-keys schem [:cursor-pos :cursor-speed :undos :redos])
-            ))))
+            )))))
 
 (defn copy-mode [schem]
   (let [mm (move-mode schem)]
@@ -222,7 +216,7 @@
                        (and (<= xmin (x-min v)) (<= (x-max v) xmax)
                             (<= ymin (y-min v)) (<= (y-max v) ymax)))
                      lels)
-        wires (filter (fn [[k [[x0 y0] [x1 y1]]]]
+        wires (filter (fn [[k {[[x0 y0] [x1 y1]] :p}]]
                         (and (<= xmin (min x0 x1)) (<= (max x0 x1) xmax)
                              (<= ymin (min y0 y1)) (<= (max y0 y1) ymax)))
                       wires)]
@@ -363,44 +357,37 @@
 (defn wires-on-line [dir [cx cy] wires]
   (let [on-h-line (fn [{[[_ y0] [_ y1]] :p}] (or (<= y0 cy y1) (<= y1 cy y0)))
         on-v-line (fn [{[[x0 _] [x1 _]] :p}] (or (<= x0 cx x1) (<= x1 cx x0)))]
-    (filter
-     (case dir
-       :left
-       (fn [{[[x0 _] [x1 _]] :p :as w}] (and (on-h-line w) (< (min x0 x1) cx))
-       :right
-       (fn [{[[x0 _] [x1 _]] :p :as w}] (and (on-h-line w) (< cx (max x0 x1)))
-       :up
-       (fn [{[[_ y0] [_ y1]] :p :as w}] (and (on-v-line w) (< (min y0 y1) cy))
-       :down
-       (fn [{[[_ y0] [_ y1]] :p :as w}] (and (on-v-line w) (< cy (max y0 y1)))
-     wires)))
+    (->> (filter (case dir (:left :right) on-h-line on-v-line) wires)
+         (filter (case dir
+                   :left  (fn [{[[x0 _] [x1 _]] :p}] (< (min x0 x1) cx))
+                   :right (fn [{[[x0 _] [x1 _]] :p}] (< cx (max x0 x1)))
+                   :up    (fn [{[[_ y0] [_ y1]] :p}] (< (min y0 y1) cy))
+                   :down  (fn [{[[_ y0] [_ y1]] :p}] (< cy (max y0 y1)))
+                   )))))
 
 (defn coordinates [dir lels wires]
-  (let [[lelc0 lelc1 wirec0 wirec1]
-        (case dir :x [x-min x-max :x0 :x1] :y [y-min y-max :y0 :y1])]
-    (concat (map lelc0  lels)  (map lelc1  lels)
-            (map wirec0 wires) (map wirec1 wires))))
+  (let [[lelc0 lelc1] (case dir 0 [x-min x-max] 1 [y-min y-max])]
+    (concat (map lelc0 lels) (map lelc1 lels)
+            (mapcat (fn [{p :p}] (map #(% dir) p)) wires)
+            )))
 
 (defn jump-amount [dir {cx :x cy :y :as cursor-pos} lels wires]
   (let [lol (lels-on-line dir cursor-pos (vals lels))
         wol (wires-on-line dir cursor-pos (vals wires))
-        [fil pick move-dir]
-        (case dir
-          :left  [#(< % cx) #(apply max %) :x]
-          :right [#(< cx %) #(apply min %) :x]
-          :up    [#(< % cy) #(apply max %) :y]
-          :down  [#(< cy %) #(apply min %) :y])
-        filtered (filter fil (apply coordinates move-dir
-                               (if (and (empty? lol) (empty? wol))
-                                 [(vals lels) (vals wires)]
-                                 [lol wol])))]
-    (if (empty? filtered)
-      0
-      (- (pick filtered) (move-dir cursor-pos))
-      )))
+        [fil pick move-dir] (case dir :left  [#(< % cx) #(apply max %) 0]
+                                      :right [#(< cx %) #(apply min %) 0]
+                                      :up    [#(< % cy) #(apply max %) 1]
+                                      :down  [#(< cy %) #(apply min %) 1])
+        filtered (->> (if (and (empty? lol) (empty? wol))
+                        [(vals lels) (vals wires)]
+                        [lol wol])
+                      (apply coordinates move-dir)
+                      (filter fil))]
+    (if (empty? filtered) 0 (- (pick filtered) (cursor-pos move-dir)))
+    ))
 
-(defn move-cursor [schem dir speed]
-  (update-in schem [:cursor-pos dir] #(+ speed %)))
+(defn move-cursor [schem speed]
+  (update-in schem [:cursor-pos] #(vec (map + speed %))))
 
 (defn pane-schem-cursor-speed
   [{cursor-speed :cursor-speed :as schem} keyEvent]
@@ -427,19 +414,20 @@
                         (jump-amount dir cursor-pos lels geoms)
                         ('#{:left :up} dir)  (- cursor-speed)
                         :else                cursor-speed)
-            dir (case dir (:left :right) :x :y)]
+            speed (case dir (:left :right) [speed 0] [0 speed])
+            dir (case dir (:left :right) 0 1)]
         (case mode
-          (:cursor :add :wire) (move-cursor schem dir speed)
-          (:move :copy)        (-> (move-cursor schem dir speed)
-                                   (move-selected     dir speed))
+          (:cursor :add :wire) (move-cursor schem speed)
+          (:move :copy)        (-> (move-cursor schem speed)
+                                   (move-selected     speed))
           nil)))))
 
 (defn pane-schem-catalog-move [schem keyEvent]
   (let [kc (.getCode keyEvent)
-        [dir f] (cond (#{KeyCode/LEFT  KeyCode/H} kc) [:x dec]
-                      (#{KeyCode/RIGHT KeyCode/L} kc) [:x inc]
-                      (#{KeyCode/UP    KeyCode/K} kc) [:y dec]
-                      (#{KeyCode/DOWN  KeyCode/J} kc) [:y inc]
+        [dir f] (cond (#{KeyCode/LEFT  KeyCode/H} kc) [0 dec]
+                      (#{KeyCode/RIGHT KeyCode/L} kc) [0 inc]
+                      (#{KeyCode/UP    KeyCode/K} kc) [1 dec]
+                      (#{KeyCode/DOWN  KeyCode/J} kc) [1 inc]
                       :else                           nil)]
     (if (and dir (= (:mode schem) :catalog))
       (update-in schem [:catalog-pos dir] f))))
