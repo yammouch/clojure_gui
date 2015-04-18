@@ -248,6 +248,7 @@
   (-> schem
       (update-in [:lels ] #(into #{} (vals %)))
       (update-in [:geoms] #(into #{} (vals %)))
+      (dissoc :undos)
       ))
 
 (doseq [[result expected] test-patts]

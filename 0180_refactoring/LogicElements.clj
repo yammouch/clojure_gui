@@ -276,8 +276,8 @@
 (defn add-mode-enter [schem]
   (let [np (-> schem :lel :type num-p)
         [add-to final-points]
-        (cond (=  np 1)                   [:lels  :cursor-pos]
-              (<= np (-> schem :p count)) [:geoms :p         ]
+        (cond (=  np 1)                   [:lels  (:cursor-pos schem)]
+              (<= np (-> schem :p count)) [:geoms (:p          schem)]
               :else                       nil)]
     (if final-points
       (-> schem push-undo
