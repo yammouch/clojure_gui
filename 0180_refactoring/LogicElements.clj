@@ -119,7 +119,7 @@
                             :redos :undos])))
 
 (defn add-mode [schem lel-type]
-  (conj {:mode :add :lel (lel-init lel-type)}
+  (conj {:mode :add :lel (lel-init lel-type) :p []}
         (select-keys schem [:lels :geoms :cursor-pos :cursor-speed
                             :redos :undos])))
 
@@ -273,16 +273,20 @@
     (:wire :rect) 2
     1))
 
-(defn add-mode-enter [schem]
+(defn add-mode-enter [{cursor-pos :cursor-pos :as schem}]
   (let [np (-> schem :lel :type num-p)
         [add-to final-points]
-        (cond (=  np 1)                   [:lels  (:cursor-pos schem)]
-              (<= np (-> schem :p count)) [:geoms (:p          schem)]
-              :else                       nil)]
+        (cond (= np 1)
+              [:lels cursor-pos]
+              (<= (dec np) (-> schem :p count))
+              [:geoms (conj (:p schem) cursor-pos)]
+              :else nil)]
+    (println final-points)
     (if final-points
       (-> schem push-undo
           (update-in [add-to] conj
-           {(gensym) (assoc (:lel schem) :p final-points)}))
+           {(gensym) (assoc (:lel schem) :p final-points)})
+          (assoc :p []))
       (update-in schem [:p] conj (:cursor-pos schem))
       )))
  

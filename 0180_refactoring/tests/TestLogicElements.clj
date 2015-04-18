@@ -241,8 +241,23 @@
       :lels {} :geoms {}}
      (KeyEvent. KeyEvent/KEY_PRESSED "\n" "\n" KeyCode/ENTER
       false false false false))
-    {:mode :add :cursor-pos [1 2] :p [] :lel {:type :dff}
-     :lels {'g-0 {:type :dff :p [1 2]}} :geoms {}}]])
+    { :mode :add :cursor-pos [1 2] :p [] :lel {:type :dff}
+      :lels {'g-0 {:type :dff :p [1 2]}} :geoms {}}]
+   [(dut/key-command-add-mode
+     {:mode :add :cursor-pos [1 2] :p [] :lel {:type :wire}
+      :lels {} :geoms {}}
+     (KeyEvent. KeyEvent/KEY_PRESSED "\n" "\n" KeyCode/ENTER
+      false false false false))
+    { :mode :add :cursor-pos [1 2] :p [[1 2]] :lel {:type :wire}
+      :lels {} :geoms {}}]
+   [(dut/key-command-add-mode
+     {:mode :add :cursor-pos [3 4] :p [[1 2]] :lel {:type :wire}
+      :lels {} :geoms {}}
+     (KeyEvent. KeyEvent/KEY_PRESSED "\n" "\n" KeyCode/ENTER
+      false false false false))
+    { :mode :add :cursor-pos [3 4] :p [] :lel {:type :wire}
+      :lels {} :geoms {'g-0 {:type :wire :p [[1 2] [3 4]]}}
+      }]])
 
 (defn gensym-map-to-set [schem]
   (-> schem
