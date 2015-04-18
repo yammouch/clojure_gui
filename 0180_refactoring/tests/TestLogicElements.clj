@@ -232,3 +232,31 @@
   (print "result  : ")
   (println (into (sorted-map) result)))
 
+;--------------------------------------------------
+(println "tests add mode, pressing enter key")
+
+(def test-patts
+  [[(dut/key-command-add-mode
+     {:mode :add :cursor-pos [1 2] :p [] :lel {:type :dff}
+      :lels {} :geoms {}}
+     (KeyEvent. KeyEvent/KEY_PRESSED "\n" "\n" KeyCode/ENTER
+      false false false false))
+    {:mode :add :cursor-pos [1 2] :p [] :lel {:type :dff}
+     :lels {'g-0 {:type :dff :p [1 2]}} :geoms {}}]])
+
+(defn gensym-map-to-set [schem]
+  (-> schem
+      (update-in [:lels ] #(into #{} (vals %)))
+      (update-in [:geoms] #(into #{} (vals %)))
+      ))
+
+(doseq [[result expected] test-patts]
+  (if (= (gensym-map-to-set result)
+         (gensym-map-to-set expected))
+    (print "[OK] ")
+    (do
+      (print "[ER]\nexpected: ")
+      (println (into (sorted-map) expected))))
+  (print "result  : ")
+  (println (into (sorted-map) result)))
+

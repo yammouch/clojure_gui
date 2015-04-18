@@ -268,6 +268,24 @@
         (.isControlDown keyEvent))   (undo-redo schem :redos :undos)
    :else nil)) ; cond, defn
 
+(defn num-p [lel-type]
+  (case lel-type
+    (:wire :rect) 2
+    1))
+
+(defn add-mode-enter [schem]
+  (let [np (-> schem :lel :type num-p)
+        [add-to final-points]
+        (cond (=  np 1)                   [:lels  :cursor-pos]
+              (<= np (-> schem :p count)) [:geoms :p         ]
+              :else                       nil)]
+    (if final-points
+      (-> schem push-undo
+          (update-in [add-to] conj
+           {(gensym) (assoc (:lel schem) :p final-points)}))
+      (update-in schem [:p] conj (:cursor-pos schem))
+      )))
+ 
 (defn key-command-add-mode [schem keyEvent]
   (cond
    ; add -> catalog
@@ -275,11 +293,7 @@
    ; add -> cursor
    (= (.getCode keyEvent) KeyCode/ESCAPE) (cursor-mode schem)
    ; no mode change
-   (= (.getCode keyEvent) KeyCode/ENTER)
-   (-> schem push-undo
-       (update-in [:lels]
-        #(conj % {(gensym) (assoc (:lel schem) :p (:cursor-pos schem))})
-        ))
+   (= (.getCode keyEvent) KeyCode/ENTER) (add-mode-enter schem)
    :else nil))
 
 (defn key-command-move-mode [schem keyEvent]
