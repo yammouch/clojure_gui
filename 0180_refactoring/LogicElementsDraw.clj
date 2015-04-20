@@ -112,6 +112,8 @@
 ;--------------------------------------------------
 (defmulti lel-draw (fn [lel color & xs] (:type lel)))
 
+(defmethod lel-draw nil [_] [])
+
 (defn unidirectional-port-symbol [{[x y] :p d :direction :as lel} color]
   (let [symbol (Polygon. (double-array (apply concat
                 (map #(grid2screen (map + (rotate-ofs % 3 2 d) [x y]))
@@ -335,17 +337,12 @@
                 (assoc (:lel schem) :p (conj (:p schem) cursor-pos)))
               Color/RED))))
 
-(def catalog-table
-  [[:in    :out   :inout :dot :not ]
-   [:buf   :and   :or    :dff :name]
-   [:mux21 :mux-n :op              ]])
-
 (defn draw-mode-catalog [{catalog-pos :catalog-pos}]
   (let [parts (mapcat (fn [idx0 parts]
                         (map (fn [idx1 part]
                                {:idx0 idx0, :idx1 idx1, :part part})
                              (range) parts))
-                      (range) catalog-table)
+                      (range) lel/catalog-table)
         rect (Rectangle. (* pix-per-grid (+ (* 10 (catalog-pos 0)) 1))
                          (* pix-per-grid (+ (* 10 (catalog-pos 1)) 1))
                          (* pix-per-grid 10)
@@ -356,13 +353,17 @@
     (into-array Node
      (concat
       (mapcat (fn [{idx0 :idx0 idx1 :idx1 part :part}]
-                (let [lel (lel/lel-init part)]
-                  (lel-draw (assoc lel :p
-                                   [(- (+ (* 10 idx1) 6)
-                                       (int (/ (lel/width lel) 2)))
-                                    (- (+ (* 10 idx0) 6)
-                                       (int (/ (lel/height lel) 2))
-                                       )])
+                (let [lel (lel/lel-init part)
+                      offset [(- (+ (* 10 idx1) 6)
+                                 (int (/ (lel/width lel) 2)))
+                              (- (+ (* 10 idx0) 6)
+                                 (int (/ (lel/height lel) 2))
+                                 )]]
+                  (lel-draw (if (= (-> lel :type lel/num-p) 1)
+                              (assoc lel :p offset)
+                              (update-in lel [:p]
+                                #(map (fn [p1] (map + offset p1)) %)
+                                ))
                             Color/BLACK)))
               parts)
       [rect]))))

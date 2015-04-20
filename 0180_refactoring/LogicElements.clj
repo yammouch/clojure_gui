@@ -30,6 +30,11 @@
     :rect  {:type :rect  :p [[0 0] [5 4]]}
     ))
 
+(defn num-p [lel-type]
+  (case lel-type
+    (:wire :rect) 2
+    1))
+
 (defmulti width  (fn [lel] (:type lel)))
 (defmulti height (fn [lel] (:type lel)))
 (defmulti x-min  (fn [lel] (:type lel)))
@@ -37,14 +42,30 @@
 (defmulti y-min  (fn [lel] (:type lel)))
 (defmulti y-max  (fn [lel] (:type lel)))
 
-(defmethod width  :default [{d :direction h :height w :width}]
-  (case d (:up :down :vertical) h w))
-(defmethod height :default [{d :direction h :height w :width}]
-  (case d (:up :down :vertical) w h))
-(defmethod x-min  :default [{[x _] :p        }]    x             )
-(defmethod x-max  :default [{[x _] :p :as lel}] (+ x (width lel)))
-(defmethod y-min  :default [{[_ y] :p        }]    y             )
-(defmethod y-max  :default [{[_ y] :p :as lel}] (+ y (height lel)))
+(defmethod width  :default [{d :direction h :height w :width :as lel}]
+  (if (= (num-p (:type lel)) 1)
+    (case d (:up :down :vertical) h w)
+    (- (x-max lel) (x-min lel))))
+(defmethod height :default [{d :direction h :height w :width :as lel}]
+  (if (= (num-p (:type lel)) 1)
+    (case d (:up :down :vertical) w h)
+    (- (y-max lel) (y-min lel))))
+(defmethod x-min  :default [{p :p :as lel}]
+  (if (= (num-p (:type lel)) 1)
+    (p 0)
+    (apply min (map #(% 0) p))))
+(defmethod x-max  :default [{p :p :as lel}]
+  (if (= (num-p (:type lel)) 1)
+    (+ (p 0) (width lel))
+    (apply max (map #(% 0) p))))
+(defmethod y-min  :default [{p :p :as lel}]
+  (if (= (num-p (:type lel)) 1)
+    (p 1)
+    (apply min (map #(% 1) p))))
+(defmethod y-max  :default [{p :p :as lel}]
+  (if (= (num-p (:type lel)) 1)
+    (+ (p 1) (height lel))
+    (apply max (map #(% 1) p))))
 
 ; for "in"
 (defmethod width  :in [{d :direction}] (case d (:right :left) 3 2))
@@ -106,17 +127,12 @@
         (update-in [from] next))))
 
 (def catalog-table
-  [[:in    :out   :inout :dot :not ]
-   [:buf   :and   :or    :dff :name]
-   [:mux21 :mux-n :op              ]])
+  [[:wire :wire :in    :out   :inout]
+   [:dot  :not  :buf   :and   :or   ]
+   [:dff  :name :mux21 :mux-n :op   ]])
 
 (defn cursor-mode [schem]
   (conj {:mode :cursor :selected-lels #{} :selected-geoms {}}
-        (select-keys schem [:lels :geoms :cursor-pos :cursor-speed
-                            :redos :undos])))
-
-(defn wire-mode [schem]
-  (conj {:mode :wire :wire-p0 (:cursor-pos schem)}
         (select-keys schem [:lels :geoms :cursor-pos :cursor-speed
                             :redos :undos])))
 
@@ -250,8 +266,6 @@
    (= (.getCode keyEvent) KeyCode/M) (move-mode schem)
    ; cursor -> copy
    (= (.getCode keyEvent) KeyCode/C) (move-mode schem true)
-   ; cursor -> wire
-   (= (.getCode keyEvent) KeyCode/W) (add-mode schem :wire)
    ; no mode change
    (= (.getCode keyEvent) KeyCode/R)
    (if (schem :rect-p0)
@@ -269,11 +283,6 @@
    (and (= (.getCode keyEvent) KeyCode/Y)
         (.isControlDown keyEvent))   (undo-redo schem :redos :undos)
    :else nil)) ; cond, defn
-
-(defn num-p [lel-type]
-  (case lel-type
-    (:wire :rect) 2
-    1))
 
 (defn add-mode-enter [{cursor-pos :cursor-pos :as schem}]
   (let [np (-> schem :lel :type num-p)
