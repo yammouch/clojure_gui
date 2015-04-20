@@ -45,7 +45,6 @@
     :move    (ld/draw-mode-move    schem)
     :copy    (ld/draw-mode-move    schem)
     :add     (ld/draw-mode-add     schem)
-    :wire    (ld/draw-mode-wire    schem)
     :catalog (ld/draw-mode-catalog schem)
     ))
 

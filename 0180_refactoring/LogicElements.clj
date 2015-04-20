@@ -26,6 +26,8 @@
             :order01 :0->1}
     :mux-n {:type :mux-n :p [0 0] :direction :right :width 2 :height 6}
     :op    {:type :op    :p [0 0] :width 4 :height 4 :operator "+"}
+    :wire  {:type :wire  :p [[0 0] [5 4]]}
+    :rect  {:type :rect  :p [[0 0] [5 4]]}
     ))
 
 (defmulti width  (fn [lel] (:type lel)))
@@ -249,7 +251,7 @@
    ; cursor -> copy
    (= (.getCode keyEvent) KeyCode/C) (move-mode schem true)
    ; cursor -> wire
-   (= (.getCode keyEvent) KeyCode/W) (wire-mode schem)
+   (= (.getCode keyEvent) KeyCode/W) (add-mode schem :wire)
    ; no mode change
    (= (.getCode keyEvent) KeyCode/R)
    (if (schem :rect-p0)
@@ -281,7 +283,6 @@
               (<= (dec np) (-> schem :p count))
               [:geoms (conj (:p schem) cursor-pos)]
               :else nil)]
-    (println final-points)
     (if final-points
       (-> schem push-undo
           (update-in [add-to] conj
@@ -323,18 +324,6 @@
                                      (:moving-geoms schem))))
    :else nil))
 
-(defn key-command-wire-mode
-  [{[x0 y0] :wire-p0 [x1 y1] :cursor-pos :as schem} keyEvent]
-  (cond
-   ; wire -> cursor
-   (= (.getCode keyEvent) KeyCode/ESCAPE) (cursor-mode schem)
-   ; no mode change
-   (= (.getCode keyEvent) KeyCode/ENTER)
-   (-> schem push-undo
-       (update-in [:geoms] conj {(gensym) {:p [[x0 y0] [x1 y1]]}})
-       (assoc :wire-p0 (:cursor-pos schem)))
-   :else nil))
-
 (defn key-command-catalog-mode [{[x y] :catalog-pos :as schem} keyEvent]
   (cond
    ; catalog -> add
@@ -351,7 +340,6 @@
    :add     key-command-add-mode
    :move    key-command-move-mode
    :copy    key-command-copy-mode
-   :wire    key-command-wire-mode
    :catalog key-command-catalog-mode
    })
 

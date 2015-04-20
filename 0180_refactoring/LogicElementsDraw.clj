@@ -263,6 +263,16 @@
                 color :center :center)
      rect]))
 
+; for "wire"
+(defmethod lel-draw :wire [{p :p} color]
+  (if (<= (lel/num-p :wire) (count p))
+    [(draw-wire p color)]))
+
+; for "rect"
+(defmethod lel-draw :rect [{p :p} color]
+  (if (<= (lel/num-p :rect) (count p))
+    [(draw-rect p color)]))
+
 ;--------------------------------------------------
 ; draw-mode-*
 ;--------------------------------------------------
@@ -320,16 +330,10 @@
     [(draw-dot cursor-pos 9 Color/BLUE)]
     (map (fn [[_ {p :p}]] (draw-wire p Color/BLACK)) geoms)
     (mapcat (fn [[_ v]] (lel-draw v Color/BLACK)) lels)
-    (lel-draw (assoc (:lel schem) :p cursor-pos)
+    (lel-draw (if (= (-> schem :lel :type lel/num-p) 1)
+                (assoc (:lel schem) :p cursor-pos)
+                (assoc (:lel schem) :p (conj (:p schem) cursor-pos)))
               Color/RED))))
-
-(defn draw-mode-wire [{:keys [cursor-pos lels geoms wire-p0]}]
-  (into-array Node
-   (concat
-    [(draw-dot cursor-pos 9 Color/BLUE)]
-    (map (fn [[_ {p :p}]] (draw-wire p Color/BLACK)) geoms)
-    (mapcat (fn [[_ v]] (lel-draw v Color/BLACK)) lels)
-    [(draw-wire [wire-p0 cursor-pos] Color/RED)])))
 
 (def catalog-table
   [[:in    :out   :inout :dot :not ]
