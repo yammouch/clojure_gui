@@ -61,7 +61,8 @@
               (.setFocusTraversable dialog true)
               (.requestFocus dialog)
               (.consume keyEvent))
-           (= (.getCode keyEvent) KeyCode/A) (auto-key-events stage)
+           (= (.getCode keyEvent) KeyCode/A)
+           (.start (Thread. #(auto-key-events stage)))
            :else nil ; do nothing
            ))))
 
@@ -78,7 +79,7 @@
       (.setTitle "Schematic Dialog Box Unit Test")
       (.show))
     (.requestFocus label)
-    (auto-key-events stage)))
+    (.start (Thread. #(auto-key-events stage)))))
 
 (defn -main [& args]
   (Application/launch (Class/forName "tests.TestSchemDialog")
