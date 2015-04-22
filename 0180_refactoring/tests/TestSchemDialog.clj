@@ -1,4 +1,3 @@
-;(ns tests.TestSchemDialog)
 (ns tests.TestSchemDialog)
 
 (gen-class
@@ -21,7 +20,7 @@
 
 (defn auto-key-events [stage]
   (Thread/sleep 500)
-  (let [fn-label #(.. stage getScene getRoot getCenter)
+  (let [fn-label #(.. stage getScene getRoot)
         fn-dialog #(.. stage getScene getRoot getCenter)
         fn-textarea #(.. stage getScene getRoot getCenter getBottom)]
     (doseq [[fn-target e]
@@ -45,33 +44,28 @@
       (Platform/runLater #(.fireEvent (fn-target) e))
       )))
 
-(defn label-revert [f-set-to-parent label]
-  (f-set-to-parent label)
-  (.setFocusTraversable label true)
-  (.requestFocus label))
-
-(defn label-key [f-set-to-parent label stage]
+(defn label-key [set-to-self-pos label stage]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (print "[Label] received ") (println (.toString keyEvent))
       (cond (= (.getCode keyEvent) KeyCode/D)
             (let [lel {:radio1 :FM-Iruka :radio2 :NHK2 :frequency 88.8}
+                  borderpane (BorderPane.)
                   dialog (sd/pane-dialog
-                          f-set-to-parent
-                          #(label-revert f-set-to-parent label)
+                          #(.setCenter borderpane %)
+                          #(sd/revert-from-split label set-to-self-pos)
                           [[:radio :radio1 :NHK :Air-G :Northwave :FM-Iruka]
                            [:radio :radio2 :NHK1 :NHK2 :HBC :STV]
                            [:edstr :frequency read-string]]
                           lel clojure.pprint/pprint)]
-              (.setFocusTraversable label false)
-              (f-set-to-parent dialog)
-              (.setFocusTraversable dialog true)
-              (.requestFocus dialog)
+              (sd/split-pane label set-to-self-pos
+               #(doto borderpane (.setCenter %2) (.setTop %1))
+               dialog)
               (.consume keyEvent))
-           (= (.getCode keyEvent) KeyCode/A)
-           (.start (Thread. #(auto-key-events stage)))
-           :else nil ; do nothing
-           ))))
+            (= (.getCode keyEvent) KeyCode/A)
+            (.start (Thread. #(auto-key-events stage)))
+            :else nil ; do nothing
+            ))))
 
 (defn stage-key []
   (proxy [EventHandler] []
@@ -79,16 +73,14 @@
       (print "[Stage] received ") (println (.toString keyEvent))
       )))
 
-(defn -start [self stage]
-  (let [toppane (BorderPane.)
-        label (Label. "Press D key to open dialog")]
-    (.setOnKeyPressed label
-                      (label-key #(.setCenter toppane %) label stage))
-    (.setCenter toppane label)
+(defn -start [_ stage]
+  (let [label (Label. "Press D key to open dialog")
+        scene (Scene. label)]
+    (.setOnKeyPressed label (label-key #(.setRoot scene %) label stage))
     (.setFocusTraversable label true)
     (doto stage
       (.setWidth 640) (.setHeight 480)
-      (.setScene (Scene. toppane))
+      (.setScene scene)
       (.setTitle "Schematic Dialog Box Unit Test")
       (.show))
     (.requestFocus label)
