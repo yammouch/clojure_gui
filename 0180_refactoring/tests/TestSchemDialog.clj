@@ -7,8 +7,8 @@
   :extends javafx.application.Application)
 
 (import
-  '(javafx.application   Application)
-  '(javafx.event         EventHandler)
+  '(javafx.application   Application Platform)
+  '(javafx.event         Event EventHandler)
   '(javafx.scene.input   KeyCode KeyEvent)
   '(javafx.scene.layout  BorderPane)
   '(javafx.scene.control Label)
@@ -21,8 +21,9 @@
 
 (defn auto-key-events [stage label]
   (Thread/sleep 500)
-  (.fireEvent label (KeyEvent. KeyEvent/KEY_PRESSED "d" "d" KeyCode/D
-                     false false false false)))
+  (Platform/runLater
+   #(.fireEvent label (KeyEvent. KeyEvent/KEY_PRESSED "d" "d" KeyCode/D
+                       false false false false))))
   ;(doseq [e (map #(KeyEvent. nil (% 0) KeyEvent/KEY_PRESSED (% 1) (% 1) (% 2)
   ;                 (% 3) false false false) ; shift ctrl alt meta
   ;               [[label  "d"  KeyCode/D     false]
