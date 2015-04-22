@@ -12,13 +12,41 @@
   '(javafx.scene.control Label TextArea RadioButton ToggleGroup Button))
 
 ;--------------------------------------------------
+; splits panes
+;--------------------------------------------------
+(defn split-pane [self set-to-self-pos create-container child]
+  (set-to-self-pos (create-container self child))
+  (.setFocusTraversable self false)
+  (.setFocusTraversable child true)
+  (.requestFocus child))
+
+(defn revert-from-split [self set-to-self-pos]
+  (set-to-self-pos self)
+  (.setFocusTraversable self true)
+  (.requestFocus self))
+
+;--------------------------------------------------
 ; text area
 ;--------------------------------------------------
 
-(defn pane-text [f-set-to-parent str]
-  (let [textarea (TextArea. str)]
-    (.setFocusTraversable textarea true)
-    (f-set-to-parent textarea)
+(defn pane-text-key-dialog [revert textarea label]
+  (proxy [EventHandler] []
+    (handle [keyEvent]
+      (let [op (cond (and (= (.getCode keyEvent) KeyCode/ENTER)
+                          (.isShiftDown keyEvent))
+                     :ok
+                     (= (.getCode keyEvent) KeyCode/ESCAPE)
+                     :cancel
+                     :else nil)]
+        (when op
+          (when (= op :ok) (.setText label (.getText textarea)))
+          (.consume keyEvent)
+          (revert)
+          )))))
+
+(defn pane-text [revert label]
+  (let [textarea (TextArea. (.getText label))]
+    (.setOnKeyPressed textarea (pane-text-key-dialog revert textarea label))
     textarea))
 
 ;--------------------------------------------------
@@ -46,78 +74,43 @@
         [prv nxt] (prev-next #(.isSelected %) toggles)]
     (.selectToggle toggleGroup (case dir :left prv, :right nxt))))
 
-(defn pane-text-key-dialog [f-revert textarea label-on-dialog]
+(defn selected-row [rows] ; cursored-row?
+  (first (filter #(not= (.getFill (:cursor %)) Color/TRANSPARENT)
+                 rows)))
+
+(defn suck-from-dialog [rows]
+  (map (fn [r]
+         [(:label r)
+          (case (:type r)
+            :edstr ((:cast r) (.getText (:str r)))
+            :radio (keyword (.. (:togglegroup r)
+                                getSelectedToggle getText)))])
+       rows))
+
+(defn pane-dialog-key [set-to-self-pos revert self rows lel f-retval]
   (proxy [EventHandler] []
     (handle [keyEvent]
-      (let [op (cond (and (= (.getCode keyEvent) KeyCode/ENTER)
-                          (.isShiftDown keyEvent))
-                     :ok
-                     (= (.getCode keyEvent) KeyCode/ESCAPE)
-                     :cancel
-                     :else nil)]
-        (when op
-          (when (= op :ok) (.setText label-on-dialog (.getText textarea)))
-          (.consume keyEvent)
-          (f-revert)
-          )))))
+      (cond
+       (= (.getCode keyEvent) KeyCode/ENTER)
+       (do (f-retval (into lel (suck-from-dialog rows)))
+           (revert))
+       (= (.getCode keyEvent) KeyCode/ESCAPE)
+       (revert)
+       (= (.getCode keyEvent) KeyCode/SPACE)
+       (let [row (selected-row rows)] (when (= (:type row) :edstr)
+         (split-pane self set-to-self-pos #(BorderPane. %1 nil %2 nil nil)
+          (pane-text #(revert-from-split self set-to-self-pos) (:str row))
+          )))
+       (#{KeyCode/J KeyCode/K} (.getCode keyEvent))
+       (pane-dialog-cursor-move (map #(:cursor %) rows)
+        (if (= (.getCode keyEvent) KeyCode/J) :down :up))
+       (#{KeyCode/H KeyCode/L} (.getCode keyEvent))
+       (let [row (selected-row rows)] (when (= (:type row) :radio)
+         (pane-dialog-radio-button-move (:togglegroup row)
+          (if (= (.getCode keyEvent) KeyCode/H) :left :right)
+          )))))))
 
-(defn pane-dialog-revert [f-set-to-parent pane]
-  (f-set-to-parent pane)
-  (.setFocusTraversable pane true)
-  (.requestFocus pane))
-
-(defn pane-dialog-key [f-set-to-parent f-revert pane rows lel f-retval]
-  (proxy [EventHandler] []
-    (handle [keyEvent]
-      (let [kc (.getCode keyEvent)]
-        (cond (= KeyCode/ENTER kc)
-                (do
-                  (f-retval
-                    (into lel
-                     (map (fn [r]
-                            [(:label r)
-                             (case (:type r)
-                               :edstr ((:cast r) (.getText (:str r)))
-                               :radio (keyword
-                                       (.. (:togglegroup r)
-                                           getSelectedToggle getText)))])
-                          rows)))
-                  (f-revert))
-              (= KeyCode/ESCAPE kc)
-                (f-revert)
-              (= KeyCode/SPACE kc)
-                (let [row (first (filter #(not= (.getFill (:cursor %))
-                                                Color/TRANSPARENT)
-                                         rows))]
-                  (when (= (:type row) :edstr)
-                    (let [borderpane (BorderPane.)
-                          textarea
-                            (pane-text #(.setBottom borderpane %)
-                                       (.getText (:str row)))]
-                      (.setOnKeyPressed textarea
-                       (pane-text-key-dialog
-                        #(pane-dialog-revert f-set-to-parent pane)
-                        textarea (:str row)))
-                      (.setFocusTraversable pane false)
-                      (.setCenter borderpane pane)
-                      (f-set-to-parent borderpane)
-                      (.setFocusTraversable textarea true)
-                      (.requestFocus textarea))))
-              (#{KeyCode/J KeyCode/K} kc)
-                (pane-dialog-cursor-move (map #(:cursor %) rows)
-                 (if (= kc KeyCode/J) :down :up))
-              (#{KeyCode/H KeyCode/L} kc)
-                (let [row (first (filter
-                                  #(not= (.getFill (:cursor %))
-                                         Color/TRANSPARENT)
-                                  rows))]
-                  (when (= (:type row) :radio)
-                    (pane-dialog-radio-button-move
-                     (:togglegroup row)
-                     (if (= kc KeyCode/H) :left :right))))
-              )))))
-
-(defn pane-dialog [f-set-to-parent f-revert table lel f-retval]
+(defn pane-dialog [set-to-self-pos revert table lel f-retval]
   (let [pane (VBox.)
         rows (map (fn [x]
                     (conj
@@ -152,7 +145,5 @@
       (.. pane getChildren (add (:flowpane r))))
     (.setFill (:cursor (first rows)) Color/BLACK)
     (.setOnKeyPressed pane
-                      (pane-dialog-key f-set-to-parent f-revert pane
-                                       rows lel f-retval))
-    (f-set-to-parent pane)
+     (pane-dialog-key set-to-self-pos revert pane rows lel f-retval))
     pane))
