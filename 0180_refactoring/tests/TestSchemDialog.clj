@@ -47,6 +47,7 @@
 (defn label-key [f-set-to-parent label stage]
   (proxy [EventHandler] []
     (handle [keyEvent]
+      (print "[Label] received ") (println (.toString keyEvent))
       (cond (= (.getCode keyEvent) KeyCode/D)
             (let [lel {:radio1 :FM-Iruka :radio2 :NHK2 :frequency 88.8}
                   dialog (sd/pane-dialog
@@ -66,6 +67,12 @@
            :else nil ; do nothing
            ))))
 
+(defn stage-key []
+  (proxy [EventHandler] []
+    (handle [keyEvent]
+      (print "[Stage] received ") (println (.toString keyEvent))
+      )))
+
 (defn -start [self stage]
   (let [toppane (BorderPane.)
         label (Label. "Press D key to open dialog")]
@@ -79,6 +86,7 @@
       (.setTitle "Schematic Dialog Box Unit Test")
       (.show))
     (.requestFocus label)
+    (.addEventHandler stage KeyEvent/KEY_PRESSED (stage-key))
     (.start (Thread. #(auto-key-events stage)))))
 
 (defn -main [& args]
