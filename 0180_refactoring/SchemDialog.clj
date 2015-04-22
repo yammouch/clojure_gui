@@ -98,7 +98,7 @@
        (revert)
        (= (.getCode keyEvent) KeyCode/SPACE)
        (let [row (selected-row rows)] (when (= (:type row) :edstr)
-         (split-pane self set-to-self-pos #(BorderPane. %1 nil %2 nil nil)
+         (split-pane self set-to-self-pos #(BorderPane. %1 nil nil %2 nil)
           (pane-text #(revert-from-split self set-to-self-pos) (:str row))
           )))
        (#{KeyCode/J KeyCode/K} (.getCode keyEvent))
