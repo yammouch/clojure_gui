@@ -20,9 +20,9 @@
 
 (defn auto-key-events [stage]
   (Thread/sleep 500)
-  (let [fn-label #(.. stage getScene getRoot)
-        fn-dialog #(.. stage getScene getRoot getCenter)
-        fn-textarea #(.. stage getScene getRoot getCenter getBottom)]
+  (let [fn-label #(.. stage getScene getRoot getCenter)
+        fn-dialog #(.. stage getScene getRoot getCenter getCenter)
+        fn-textarea #(.. stage getScene getRoot getCenter getCenter getBottom)]
     (doseq [[fn-target e]
             (map #(vector (% 0)
                           (KeyEvent. KeyEvent/KEY_PRESSED (% 1) (% 1) (% 2)
@@ -75,12 +75,12 @@
 
 (defn -start [_ stage]
   (let [label (Label. "Press D key to open dialog")
-        scene (Scene. label)]
-    (.setOnKeyPressed label (label-key #(.setRoot scene %) label stage))
+        borderpane (BorderPane. label)]
+    (.setOnKeyPressed label (label-key #(.setCenter borderpane %) label stage))
     (.setFocusTraversable label true)
     (doto stage
       (.setWidth 640) (.setHeight 480)
-      (.setScene scene)
+      (.setScene (Scene. borderpane))
       (.setTitle "Schematic Dialog Box Unit Test")
       (.show))
     (.requestFocus label)
