@@ -19,28 +19,31 @@
 (alias 'sd 'SchemDialog)
 (require 'clojure.pprint)
 
-(defn auto-key-events [stage label]
+(defn auto-key-events [stage]
   (Thread/sleep 500)
-  (Platform/runLater
-   #(.fireEvent label (KeyEvent. KeyEvent/KEY_PRESSED "d" "d" KeyCode/D
-                       false false false false))))
-  ;(doseq [e (map #(KeyEvent. nil (% 0) KeyEvent/KEY_PRESSED (% 1) (% 1) (% 2)
-  ;                 (% 3) false false false) ; shift ctrl alt meta
-  ;               [[label  "d"  KeyCode/D     false]
-  ;                [nil    "l"  KeyCode/L     false]
-  ;                [nil    "j"  KeyCode/J     false]
-  ;                [nil    "l"  KeyCode/L     false]
-  ;                [nil    "l"  KeyCode/L     false]
-  ;                [nil    "j"  KeyCode/J     false]
-  ;                [nil    " "  KeyCode/SPACE false]
-  ;                [nil    "f"  KeyCode/F     false]
-  ;                [nil    "o"  KeyCode/O     false]
-  ;                [nil    "o"  KeyCode/O     false]
-  ;                [nil    "\n" KeyCode/ENTER true ]
-  ;                [nil    "\n" KeyCode/ENTER false]])]
-  ;  (Thread/sleep 500)
-  ;  (print "Fires ") (println (.toString e))
-  ;  (.fireEvent stage e)))
+  (let [fn-label #(.. stage getScene getRoot getCenter)
+        fn-dialog #(.. stage getScene getRoot getCenter)
+        fn-textarea #(.. stage getScene getRoot getCenter getBottom)]
+    (doseq [[fn-target e]
+            (map #(vector (% 0)
+                          (KeyEvent. KeyEvent/KEY_PRESSED (% 1) (% 1) (% 2)
+                           (% 3) false false false)) ; shift ctrl alt meta
+                 [[fn-label    "d"  KeyCode/D     false]
+                  [fn-dialog   "h"  KeyCode/H     false]
+                  [fn-dialog   "j"  KeyCode/J     false]
+                  [fn-dialog   "l"  KeyCode/L     false]
+                  [fn-dialog   "l"  KeyCode/L     false]
+                  [fn-dialog   "j"  KeyCode/J     false]
+                  [fn-dialog   " "  KeyCode/SPACE false]
+                  [fn-textarea "f"  KeyCode/F     false]
+                  [fn-textarea "o"  KeyCode/O     false]
+                  [fn-textarea "o"  KeyCode/O     false]
+                  [fn-textarea "\n" KeyCode/ENTER true ]
+                  [fn-dialog   "\n" KeyCode/ENTER false]])]
+      (Thread/sleep 500)
+      (print "Fires ") (println (.toString e))
+      (Platform/runLater #(.fireEvent (fn-target) e))
+      )))
 
 (defn label-revert [f-set-to-parent label]
   (f-set-to-parent label)
@@ -66,7 +69,7 @@
               (.requestFocus dialog)
               (.consume keyEvent))
            (= (.getCode keyEvent) KeyCode/A)
-           (.start (Thread. #(auto-key-events stage label)))
+           (.start (Thread. #(auto-key-events stage)))
            :else nil ; do nothing
            ))))
 
@@ -90,7 +93,7 @@
       (.show))
     (.requestFocus label)
     (.addEventHandler stage KeyEvent/KEY_PRESSED (stage-key))
-    (.start (Thread. #(auto-key-events stage label)))))
+    (.start (Thread. #(auto-key-events stage)))))
 
 (defn -main [& args]
   (Application/launch (Class/forName "tests.TestSchemDialog")
