@@ -19,12 +19,32 @@
 (alias 'sd 'SchemDialog)
 (require 'clojure.pprint)
 
+(defn auto-key-events [stage]
+  (Thread/sleep 500)
+  (doseq [e (map #(KeyEvent. KeyEvent/KEY_PRESSED (% 0) (% 0) (% 1)
+                   (% 2) false false false) ; shift ctrl alt meta
+                 [["d"  KeyCode/D     false]
+                  ["l"  KeyCode/L     false]
+                  ["j"  KeyCode/J     false]
+                  ["l"  KeyCode/L     false]
+                  ["l"  KeyCode/L     false]
+                  ["j"  KeyCode/J     false]
+                  [" "  KeyCode/SPACE false]
+                  ["f"  KeyCode/F     false]
+                  ["o"  KeyCode/O     false]
+                  ["o"  KeyCode/O     false]
+                  ["\n" KeyCode/ENTER true ]
+                  ["\n" KeyCode/ENTER false]])]
+    (Thread/sleep 500)
+    (print "Fires ") (println (.toString e))
+    (.fireEvent stage e)))
+
 (defn label-revert [f-set-to-parent label]
   (f-set-to-parent label)
   (.setFocusTraversable label true)
   (.requestFocus label))
 
-(defn label-key [f-set-to-parent label]
+(defn label-key [f-set-to-parent label stage]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (cond (= (.getCode keyEvent) KeyCode/D)
@@ -41,7 +61,7 @@
               (.setFocusTraversable dialog true)
               (.requestFocus dialog)
               (.consume keyEvent))
-
+           (= (.getCode keyEvent) KeyCode/A) (auto-key-events stage)
            :else nil ; do nothing
            ))))
 
@@ -49,7 +69,7 @@
   (let [toppane (BorderPane.)
         label (Label. "Press D key to open dialog")]
     (.setOnKeyPressed label
-                      (label-key #(.setCenter toppane %) label))
+                      (label-key #(.setCenter toppane %) label stage))
     (.setCenter toppane label)
     (.setFocusTraversable label true)
     (doto stage
@@ -57,7 +77,8 @@
       (.setScene (Scene. toppane))
       (.setTitle "Schematic Dialog Box Unit Test")
       (.show))
-    (.requestFocus label)))
+    (.requestFocus label)
+    (auto-key-events stage)))
 
 (defn -main [& args]
   (Application/launch (Class/forName "tests.TestSchemDialog")
