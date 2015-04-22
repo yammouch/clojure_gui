@@ -19,22 +19,22 @@
 (alias 'sd 'SchemDialog)
 (require 'clojure.pprint)
 
-(defn auto-key-events [stage]
+(defn auto-key-events [stage label]
   (Thread/sleep 500)
-  (doseq [e (map #(KeyEvent. KeyEvent/KEY_PRESSED (% 0) (% 0) (% 1)
-                   (% 2) false false false) ; shift ctrl alt meta
-                 [["d"  KeyCode/D     false]
-                  ["l"  KeyCode/L     false]
-                  ["j"  KeyCode/J     false]
-                  ["l"  KeyCode/L     false]
-                  ["l"  KeyCode/L     false]
-                  ["j"  KeyCode/J     false]
-                  [" "  KeyCode/SPACE false]
-                  ["f"  KeyCode/F     false]
-                  ["o"  KeyCode/O     false]
-                  ["o"  KeyCode/O     false]
-                  ["\n" KeyCode/ENTER true ]
-                  ["\n" KeyCode/ENTER false]])]
+  (doseq [e (map #(KeyEvent. nil (% 0) KeyEvent/KEY_PRESSED (% 1) (% 1) (% 2)
+                   (% 3) false false false) ; shift ctrl alt meta
+                 [[label  "d"  KeyCode/D     false]
+                  [nil    "l"  KeyCode/L     false]
+                  [nil    "j"  KeyCode/J     false]
+                  [nil    "l"  KeyCode/L     false]
+                  [nil    "l"  KeyCode/L     false]
+                  [nil    "j"  KeyCode/J     false]
+                  [nil    " "  KeyCode/SPACE false]
+                  [nil    "f"  KeyCode/F     false]
+                  [nil    "o"  KeyCode/O     false]
+                  [nil    "o"  KeyCode/O     false]
+                  [nil    "\n" KeyCode/ENTER true ]
+                  [nil    "\n" KeyCode/ENTER false]])]
     (Thread/sleep 500)
     (print "Fires ") (println (.toString e))
     (.fireEvent stage e)))
@@ -63,7 +63,7 @@
               (.requestFocus dialog)
               (.consume keyEvent))
            (= (.getCode keyEvent) KeyCode/A)
-           (.start (Thread. #(auto-key-events stage)))
+           (.start (Thread. #(auto-key-events stage label)))
            :else nil ; do nothing
            ))))
 
@@ -87,7 +87,7 @@
       (.show))
     (.requestFocus label)
     (.addEventHandler stage KeyEvent/KEY_PRESSED (stage-key))
-    (.start (Thread. #(auto-key-events stage)))))
+    (.start (Thread. #(auto-key-events stage label)))))
 
 (defn -main [& args]
   (Application/launch (Class/forName "tests.TestSchemDialog")
