@@ -99,12 +99,6 @@
 ; schematic pane
 ;--------------------------------------------------
 
-(defn pane-schem-revert [f-set-to-parent pane]
-  (f-set-to-parent pane)
-  (.setAll (.getChildren pane) (draw-mode @schem))
-  (.setFocusTraversable pane true)
-  (.requestFocus pane))
-
 (defn pane-schem-goto-dialog [keyEvent pane f-set-to-parent]
   (when-let [[lel lel-update-fn]
              (when (= KeyCode/V (.getCode keyEvent))
@@ -124,12 +118,11 @@
       (.setFocusTraversable pane false)
       (let [borderpane (BorderPane.)
             dialog (sd/pane-dialog #(.setRight borderpane %)
-                   #(pane-schem-revert f-set-to-parent pane)
+                   #(do (sd/revert-from-split pane f-set-to-parent)
+                        (.setAll (.getChildren pane) (draw-mode @schem)))
                    dt lel lel-update-fn)]
-        (.setCenter borderpane pane)
-        (f-set-to-parent borderpane)
-        (.setFocusTraversable dialog true)
-        (.requestFocus dialog)
+        (sd/split-pane pane f-set-to-parent
+         #(doto borderpane (.setCenter %1) (.setRight %2)) dialog)
         (.consume keyEvent)
         true))))
 
