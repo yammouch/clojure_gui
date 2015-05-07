@@ -17,15 +17,15 @@
 
 (def schem-1
   {:mode :cursor
-   :cursor-pos [2 2]
+   :cursor-pos [6 5]
    :lels  {'G_000 {:type :in  :p [1 1] :direction :right}
-           'G_001 {:type :out :p [2 1] :direction :right}
-           'G_002 {:type :and :p [3 1] :direction :right}}
+           'G_001 {:type :out :p [5 1] :direction :right}
+           'G_002 {:type :and :p [9 1] :direction :right :width 4 :height 4}}
    :geoms {'G_100 {:type :wire :p [[1 5] [5 5]]}
            'G_101 {:type :wire :p [[1 6] [5 6]]}
            'G_102 {:type :wire :p [[1 7] [5 7]]}
            'G_103 {:type :wire :p [[1 8] [5 8]]}}
-   :rect-p0 [4 4]
+   :rect-p0 [10 9]
    :selected-lels  #{'G_002}
    :selected-geoms {'G_100 #{0 1}
                     'G_101 #{0}
