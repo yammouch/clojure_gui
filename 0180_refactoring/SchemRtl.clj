@@ -119,7 +119,7 @@
       (let [borderpane (BorderPane.)
             dialog (sd/pane-dialog #(.setRight borderpane %)
                    #(do (sd/revert-from-split pane f-set-to-parent)
-                        (.setAll (.getChildren pane) (draw-mode @schem)))
+                        (.setAll (.getChildren pane) (ld/draw-mode @schem)))
                    dt lel lel-update-fn)]
         (sd/split-pane pane f-set-to-parent
          #(doto borderpane (.setCenter %1) (.setRight %2)) dialog)
@@ -134,7 +134,7 @@
             (when-let [schem-updated (lel/pane-schem-key @schem keyEvent)]
               (dosync
                 (ref-set schem schem-updated)
-                (.setAll (.getChildren pane) (draw-mode @schem))
+                (.setAll (.getChildren pane) (ld/draw-mode @schem))
                 (.setText *label-debug* (state-text @schem)))
               (.consume keyEvent)
               true)
@@ -144,7 +144,7 @@
   (let [pane (Pane.)]
     (.setOnKeyPressed pane (pane-schem-key f-set-to-parent pane))
     (.setFocusTraversable pane true)
-    (.setAll (.getChildren pane) (draw-mode @schem))
+    (.setAll (.getChildren pane) (ld/draw-mode @schem))
     (f-set-to-parent pane)
     pane))
 

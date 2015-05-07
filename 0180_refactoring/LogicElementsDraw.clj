@@ -368,3 +368,11 @@
               parts)
       [rect]))))
 
+(defn draw-mode [schem]
+  (case (:mode schem)
+    :cursor  (draw-mode-cursor  schem)
+    :move    (draw-mode-move    schem)
+    :copy    (draw-mode-move    schem)
+    :add     (draw-mode-add     schem)
+    :catalog (draw-mode-catalog schem)
+    ))
