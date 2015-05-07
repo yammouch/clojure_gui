@@ -7,10 +7,12 @@
 
 (import
   '(javafx.application  Application)
-  '(javafx.scene.layout Pane)
+  '(javafx.scene.layout GridPane Pane)
   '(javafx.scene        Scene)
   '(javafx.stage        Stage))
 
+(require 'LogicElements)
+(alias 'lel 'LogicElements)
 (require 'LogicElementsDraw)
 (alias 'ld 'LogicElementsDraw)
 (require 'clojure.pprint)
@@ -32,14 +34,21 @@
                     'G_102 #{1}
                     }})
 
+(def schem-2 (lel/move-mode schem-1))
+
 (defn -start [_ stage]
-  (let [pane (Pane.)]
+  (let [pane1 (Pane.)
+        pane2 (Pane.)
+        gridpane (GridPane.)]
+    (.add gridpane pane1 0 0)
+    (.add gridpane pane2 1 0)
     (doto stage
       (.setWidth 640) (.setHeight 480)
-      (.setScene (Scene. pane))
+      (.setScene (Scene. gridpane))
       (.setTitle "Unit Tests for LogicElementsDraw")
       (.show))
-    (.setAll (.getChildren pane) (ld/draw-mode schem-1))
+    (.setAll (.getChildren pane1) (ld/draw-mode schem-1))
+    (.setAll (.getChildren pane2) (ld/draw-mode schem-2))
     ))
 
 (defn -main [& args]
