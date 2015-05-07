@@ -8,5 +8,6 @@
 (def force-toolkit-init (javafx.embed.swing.JFXPanel.))
 (binding [*compile-path* "classes_tests"]
   (compile 'SchemDialog)
-  (compile 'tests.TestSchemDialog))
+  (compile 'tests.TestSchemDialog)
+  (compile 'tests.TestLogicElementsDraw))
 (System/exit 0)
