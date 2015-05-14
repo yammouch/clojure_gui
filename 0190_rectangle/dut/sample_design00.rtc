@@ -1,0 +1,38 @@
+{:lels  {G_000 {:type :name , :p [ 5 20],
+                :string "hoge", :v-align :bottom, :h-align :left}
+         G_001 {:type :in   , :p [25 28], :direction :right}
+         G_002 {:type :in   , :p [25 22], :direction :right}
+         G_003 {:type :and  , :p [32 28], :direction :right,
+                :width 4, :height 4}
+         G_004 {:type :or   , :p [40 23], :direction :right,
+                :width 4, :height 4}
+         G_005 {:type :in   , :p [25 30], :direction :right}
+         G_006 {:type :in   , :p [25 36], :direction :right}
+         G_007 {:type :out  , :p [62 26], :direction :right}
+         G_008 {:type :in   , :p [25 34], :direction :right}
+         G_009 {:type :and  , :p [32 22], :direction :right,
+                :width 4, :height 4}
+         G_010 {:type :dot  , :p [30 29]}
+         G_011 {:type :dff  , :p [55 26], :width 4, :height 5,
+                :async-reset :false}
+         G_012 {:type :mux21, :p [48 24], :direction :right,
+                :width 2, :height 6, :order01 :1->0}}
+ :geoms {G_100 {:type :wire, :p [[36 24] [41 24]]}
+         G_101 {:type :wire, :p [[46 29] [48 29]]}
+         G_102 {:type :wire, :p [[28 29] [32 29]]}
+         G_103 {:type :wire, :p [[46 35] [46 29]]}
+         G_104 {:type :wire, :p [[30 29] [30 25]]}
+         G_105 {:type :wire, :p [[28 37] [49 37]]}
+         G_106 {:type :wire, :p [[36 30] [38 30]]}
+         G_107 {:type :wire, :p [[49 37] [49 29]]}
+         G_108 {:type :wire, :p [[50 27] [55 27]]}
+         G_109 {:type :wire, :p [[28 23] [32 23]]}
+         G_110 {:type :wire, :p [[28 31] [32 31]]}
+         G_111 {:type :wire, :p [[28 35] [46 35]]}
+         G_112 {:type :wire, :p [[44 25] [48 25]]}
+         G_113 {:type :wire, :p [[44 25] [44 25]]}
+         G_114 {:type :wire, :p [[38 30] [38 26]]}
+         G_115 {:type :wire, :p [[59 27] [62 27]]}
+         G_116 {:type :wire, :p [[30 25] [32 25]]}
+         G_117 {:type :wire, :p [[38 26] [41 26]]}
+         G_118 {:type :rect, :p [[50  5] [60 10]]}}}
