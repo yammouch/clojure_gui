@@ -127,7 +127,7 @@
         (update-in [from] next))))
 
 (def catalog-table
-  [[:wire :wire :in    :out   :inout]
+  [[:wire :rect :in    :out   :inout]
    [:dot  :not  :buf   :and   :or   ]
    [:dff  :name :mux21 :mux-n :op   ]])
 

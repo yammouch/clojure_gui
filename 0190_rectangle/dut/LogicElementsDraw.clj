@@ -283,12 +283,12 @@
 ; for "wire"
 (defmethod lel-draw :wire [{p :p} selected]
   (if (<= (lel/num-p :wire) (count p))
-    [(draw-wire p selected)]))
+    (draw-wire p selected)))
 
 ; for "rect"
 (defmethod lel-draw :rect [{p :p} selected]
   (if (<= (lel/num-p :rect) (count p))
-    [(draw-rect p selected)]))
+    (draw-rect p selected)))
 
 ;--------------------------------------------------
 ; draw-mode-*

@@ -36,17 +36,20 @@
                     'G_102 #{1}
                     }})
 
-(def schem-2 (lel/move-mode schem-1))
-(def schem-3 (lel/move-mode schem-1 true))
-(def schem-4 (lel/add-mode  schem-1 :and))
+(def schem-2 (lel/move-mode    schem-1))
+(def schem-3 (lel/move-mode    schem-1 true))
+(def schem-4 (lel/add-mode     schem-1 :and))
+(def schem-5 (lel/catalog-mode schem-1))
 
 (defn -start [_ stage]
   (let [pane1 (Pane.) pane2 (Pane.) pane3 (Pane.) pane4 (Pane.)
+        pane5 (Pane.)
         gridpane (GridPane.)]
     (.add gridpane pane1 0 0)
     (.add gridpane pane2 1 0)
-    (.add gridpane pane3 0 1)
-    (.add gridpane pane4 1 1)
+    (.add gridpane pane3 2 0)
+    (.add gridpane pane4 0 1)
+    (.add gridpane pane5 2 1)
     (doto stage
       (.setWidth 640) (.setHeight 480)
       (.setScene (Scene. gridpane))
@@ -56,6 +59,7 @@
     (.setAll (.getChildren pane2) (ld/draw-mode schem-2))
     (.setAll (.getChildren pane3) (ld/draw-mode schem-3))
     (.setAll (.getChildren pane4) (ld/draw-mode schem-4))
+    (.setAll (.getChildren pane5) (ld/draw-mode schem-5))
     ))
 
 (defn -main [& args]
