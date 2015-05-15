@@ -49,9 +49,9 @@
     (.add gridpane pane2 1 0)
     (.add gridpane pane3 2 0)
     (.add gridpane pane4 0 1)
-    (.add gridpane pane5 2 1)
+    (.add gridpane pane5 1 1)
     (doto stage
-      (.setWidth 640) (.setHeight 480)
+      (.setWidth 800) (.setHeight 600)
       (.setScene (Scene. gridpane))
       (.setTitle "Unit Tests for LogicElementsDraw")
       (.show))

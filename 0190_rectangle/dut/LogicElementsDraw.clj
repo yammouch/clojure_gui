@@ -249,7 +249,7 @@
   [{[x y] :p d :direction w :width h :height :as lel} selected]
   (let [color (if selected color-sel color-def)]
     (concat
-     (lel-draw (assoc lel :type :mux-n) color)
+     (lel-draw (assoc lel :type :mux-n) selected)
      (let [[[ax ay] [bx by]] (map #(map + (rotate-ofs % w h d) [x y])
                                   [[(* 0.5 w) 2] [(* 0.5 w) (- h 2)]]
                                   )]
@@ -385,7 +385,7 @@
                               (update-in lel [:p]
                                 #(map (fn [p1] (map + offset p1)) %)
                                 ))
-                            color-def)))
+                            nil)))
               parts)
       [rect]))))
 
