@@ -304,8 +304,7 @@
                 :wire (draw-wire p (selected-geoms k))
                 :rect (draw-rect p (selected-geoms k))))
             geoms)
-    (mapcat (fn [[k v]]
-              (lel-draw v (if (selected-lels k) Color/RED Color/BLACK)))
+    (mapcat (fn [[k v]] (lel-draw v (selected-lels k)))
             lels)
     (when rect-p0
       (let [x (Math/min (cursor-pos 0) (rect-p0 0))
@@ -327,7 +326,7 @@
   (into-array Node
    (concat
     [(draw-dot cursor-pos 9 Color/BLUE)]
-    (mapcat (fn [[_ v]] (lel-draw v Color/BLACK)) lels)
+    (mapcat (fn [[_ v]] (lel-draw v nil)) lels)
     (mapcat (fn [[_ {type :type p :p}]]
               (case type
                 :wire (draw-wire p #{0 1})
