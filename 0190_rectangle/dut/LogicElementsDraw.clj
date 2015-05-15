@@ -345,11 +345,11 @@
   (into-array Node
    (concat
     [(draw-dot cursor-pos 9 Color/BLUE)]
-    (map (fn [[_ {type :type p :p}]]
-           (case type
-             :wire (draw-wire p nil)
-             :rect (draw-rect p nil)))
-         geoms)
+    (mapcat (fn [[_ {type :type p :p}]]
+              (case type
+                :wire (draw-wire p nil)
+                :rect (draw-rect p nil)))
+            geoms)
     (mapcat (fn [[_ v]] (lel-draw v nil)) lels)
     (lel-draw (if (= (-> schem :lel :type lel/num-p) 1)
                 (assoc (:lel schem) :p cursor-pos)
