@@ -65,11 +65,19 @@
   {:moving-lels  {'G0 {:p [ 0  1]}
                   'G1 {:p [10 11]}}
    :moving-geoms {'G2 {:type :wire :p [[20 21] [22 23]]}
-                  'G3 {:type :wire :p [[30 31] [32 33]]}}
+                  'G3 {:type :rect :p [[30 31] [32 33]]}}
    :geoms        {'G4 {:type :wire :p [[40 41] [42 43]]}
-                  'G5 {:type :wire :p [[50 51] [52 53]]}}
+                  'G5 {:type :wire :p [[50 51] [52 53]]}
+                  'G6 {:type :rect :p [[60 61] [62 63]]}
+                  'G7 {:type :rect :p [[70 71] [72 73]]}
+                  'G8 {:type :rect :p [[80 81] [82 83]]}
+                  'G9 {:type :rect :p [[90 91] [92 93]]}}
    :moving-vertices {'G4 #{0}
                      'G5 #{1}
+                     'G6 #{[0 0]}
+                     'G7 #{[0 1]}
+                     'G8 #{[1 0]}
+                     'G9 #{[1 1]}
                      }})
 
 (def test-patts
@@ -82,7 +90,9 @@
         (update-in [:moving-geoms 'G3 :p 0] #(vec (map + [2 0] %)))
         (update-in [:moving-geoms 'G3 :p 1] #(vec (map + [2 0] %)))
         (update-in [:geoms        'G4 :p 0] #(vec (map + [2 0] %)))
-        (update-in [:geoms        'G5 :p 1] #(vec (map + [2 0] %))))]
+        (update-in [:geoms        'G5 :p 1] #(vec (map + [2 0] %)))
+        (update-in [:geoms        'G6 :p 0] #(vec (map + [2 0] %)))
+        (update-in [:geoms        'G8 :p 1] #(vec (map + [2 0] %))))]
    [(dut/move-selected schem [0 -3])
     (-> schem
         (update-in [:moving-lels  'G0 :p  ] #(vec (map + % [0 -3])))
@@ -93,6 +103,8 @@
         (update-in [:moving-geoms 'G3 :p 1] #(vec (map + % [0 -3])))
         (update-in [:geoms        'G4 :p 0] #(vec (map + % [0 -3])))
         (update-in [:geoms        'G5 :p 1] #(vec (map + % [0 -3])))
+        (update-in [:geoms        'G7 :p 0] #(vec (map + % [0 -3])))
+        (update-in [:geoms        'G9 :p 1] #(vec (map + % [0 -3])))
         )]])
 
 (doseq [[result expected] test-patts]
