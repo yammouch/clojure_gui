@@ -210,7 +210,7 @@
              (if copy?
                {}
                (into {} (remove (fn [[k v]]
-                                  (= v (case (geoms k)
+                                  (= v (case (-> geoms k :type)
                                          :wire #{0 1}
                                          :rect #{[0 0] [0 1] [1 0] [1 1]})))
                                 sg)))

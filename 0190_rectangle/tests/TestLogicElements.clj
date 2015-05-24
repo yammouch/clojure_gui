@@ -64,10 +64,10 @@
 (def schem
   {:moving-lels  {'G0 {:p [ 0  1]}
                   'G1 {:p [10 11]}}
-   :moving-geoms {'G2 {:p [[20 21] [22 23]]}
-                  'G3 {:p [[30 31] [32 33]]}}
-   :geoms        {'G4 {:p [[40 41] [42 43]]}
-                  'G5 {:p [[50 51] [52 53]]}}
+   :moving-geoms {'G2 {:type :wire :p [[20 21] [22 23]]}
+                  'G3 {:type :wire :p [[30 31] [32 33]]}}
+   :geoms        {'G4 {:type :wire :p [[40 41] [42 43]]}
+                  'G5 {:type :wire :p [[50 51] [52 53]]}}
    :moving-vertices {'G4 #{0}
                      'G5 #{1}
                      }})
@@ -110,16 +110,21 @@
 (def schem
   {:mode  :cursor
    :lels  {'G0 :g0 'G1 :g1}
-   :geoms {'G2 :g2 'G3 :g3 'G4 :g4 'G5 :g5}
+   :geoms {'G2 {:type :wire :p :g2}
+           'G3 {:type :wire :p :g3}
+           'G4 {:type :wire :p :g4}
+           'G5 {:type :wire :p :g5}}
    :selected-lels #{'G0}
    :selected-geoms {'G2 #{0 1} 'G3 #{0} 'G4 #{1}}
    })
 (def schem-move-mode
   {:mode :move
    :lels {'G1 :g1}
-   :geoms {'G3 :g3 'G4 :g4 'G5 :g5}
+   :geoms {'G3 {:type :wire :p :g3}
+           'G4 {:type :wire :p :g4}
+           'G5 {:type :wire :p :g5}}
    :moving-lels {'G0 :g0}
-   :moving-geoms {'G2 :g2}
+   :moving-geoms {'G2 {:type :wire :p :g2}}
    :moving-vertices {'G3 #{0} 'G4 #{1}}
    :revert-schem schem
    })
@@ -151,16 +156,22 @@
 (def schem
   {:mode  :cursor
    :lels  {'G0 :g0 'G1 :g1}
-   :geoms {'G2 :g2 'G3 :g3 'G4 :g4 'G5 :g5}
+   :geoms {'G2 {:type :wire :p :g2}
+           'G3 {:type :wire :p :g3}
+           'G4 {:type :wire :p :g4}
+           'G5 {:type :wire :p :g5}}
    :selected-lels #{'G0}
    :selected-geoms {'G2 #{0 1} 'G3 #{0} 'G4 #{1}}
    })
 (def schem-copy-mode
   {:mode :copy
    :lels {'G0 :g0 'G1 :g1}
-   :geoms {'G2 :g2 'G3 :g3 'G4 :g4 'G5 :g5}
+   :geoms {'G2 {:type :wire :p :g2}
+           'G3 {:type :wire :p :g3}
+           'G4 {:type :wire :p :g4}
+           'G5 {:type :wire :p :g5}}
    :moving-lels {'G0 :g0}
-   :moving-geoms {'G2 :g2}
+   :moving-geoms {'G2 {:type :wire :p :g2}}
    :moving-vertices {}
    :revert-schem {}
    })
@@ -179,25 +190,6 @@
       (KeyEvent. KeyEvent/KEY_PRESSED "c" "c" KeyCode/C
        false false false false))
      schem]]))
-
-(doseq [[result expected] test-patts]
-  (if (= result expected)
-    (print "[OK] ")
-    (do
-      (print "[ER]\nexpected: ")
-      (println (into (sorted-map) expected))))
-  (print "result  : ")
-  (println (into (sorted-map) result)))
-
-;--------------------------------------------------
-(println "tests cursor mode -> wire mode")
-
-(def schem {:mode :cursor :cursor-pos :foo})
-(def test-patts
-  [[(dut/key-command-cursor-mode schem
-     (KeyEvent. KeyEvent/KEY_PRESSED "w" "w" KeyCode/W
-      false false false false))
-    {:mode :wire :cursor-pos :foo :wire-p0 :foo}]])
 
 (doseq [[result expected] test-patts]
   (if (= result expected)
