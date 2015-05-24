@@ -152,18 +152,34 @@
   (reduce (fn [lels k] (update-in lels [k :p] #(vec (map + % speed))))
           lels (keys lels)))
 
-(defn move-wire [wire speed points]
+(defn move-wire [wire speed selected]
   (reduce (fn [wire p-idx] (update-in wire [:p p-idx] #(vec (map + % speed))))
-          wire points))
+          wire selected))
 
-(defn move-geoms [wires speed]
-  (into {} (map (fn [[k v]] [k (move-wire v speed #{0 1})])
-                wires)))
+; Code gets more dirty.... They need to be refactored.
+(defn move-rect [{p :p :as rect} [sx sy] selected] ; sx, sy: moving speed
+  (let [p (if (selected [0 0]) (update-in p [0 0] + sx) p)
+        p (if (selected [0 1]) (update-in p [0 1] + sy) p)
+        p (if (selected [1 0]) (update-in p [1 0] + sx) p)
+        p (if (selected [1 1]) (update-in p [1 1] + sy) p)]
+    (assoc rect :p p)))
 
-(defn move-geoms-by-vertices [wires moving-vertices speed]
-  (reduce-kv (fn [wires k v]
-               (update-in wires [k] move-wire speed v))
-             wires moving-vertices))
+(defn move-geoms [geoms speed]
+  (into {} (map (fn [[k {type :type :as v}]]
+                  [k (case type
+                       :wire (move-wire v speed #{0 1})
+                       :rect (move-rect v speed #{[0 0] [0 1] [1 0] [1 1]})
+                       v)])
+                geoms)))
+
+(defn move-geoms-by-vertices [geoms moving-vertices speed]
+  (reduce-kv (fn [geoms k selected]
+               (update-in geoms [k]
+                (case (-> geoms k :type)
+                  :wire move-wire
+                  :rect move-rect)
+                speed selected))
+             geoms moving-vertices))
 
 (defn move-selected [{mv :moving-vertices :as schem} speed]
   (-> schem
@@ -179,14 +195,25 @@
     (let [{:keys [ml nl]} ; ml: moved lel, nl: not moved lel
           (group-by (fn [[k _]] (if (sl k) :ml :nl)) lels)
           {:keys [mg ng]} ; mg: moved geom, ng: not moved geom
-          (group-by (fn [[k _]] (if (= (sg k) #{0 1}) :mg :ng)) geoms)]
+          (group-by (fn [[k {type :type :as v}]]
+                      (if (= (sg k) (case type
+                                      :wire #{0 1}
+                                      :rect #{[0 0] [0 1] [1 0] [1 1]}))
+                        :mg :ng))
+                    geoms)]
       (conj {:mode         (if copy? :copy :move)
              :lels         (if copy? lels (into {} nl))
              :geoms        (if copy? geoms (into {} ng))
              :moving-lels  (into {} ml)
              :moving-geoms (into {} mg)
              :moving-vertices
-             (if copy? {} (into {} (remove (fn [[_ v]] (= #{0 1} v)) sg)))
+             (if copy?
+               {}
+               (into {} (remove (fn [[k v]]
+                                  (= v (case (geoms k)
+                                         :wire #{0 1}
+                                         :rect #{[0 0] [0 1] [1 0] [1 1]})))
+                                sg)))
              :revert-schem (if copy? {} schem)}
             (select-keys schem [:cursor-pos :cursor-speed :undos :redos])
             )))))
