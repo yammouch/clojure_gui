@@ -113,19 +113,26 @@
    :geoms {'G2 {:type :wire :p :g2}
            'G3 {:type :wire :p :g3}
            'G4 {:type :wire :p :g4}
-           'G5 {:type :wire :p :g5}}
+           'G5 {:type :wire :p :g5}
+           'G6 {:type :rect :p :g6}
+           'G7 {:type :rect :p :g7}
+           'G8 {:type :rect :p :g8}}
    :selected-lels #{'G0}
-   :selected-geoms {'G2 #{0 1} 'G3 #{0} 'G4 #{1}}
+   :selected-geoms {'G2 #{0 1} 'G3 #{0} 'G4 #{1}
+                    'G6 #{[0 0] [0 1] [1 0] [1 1]} 'G7 #{[0 0]}}
    })
 (def schem-move-mode
   {:mode :move
    :lels {'G1 :g1}
    :geoms {'G3 {:type :wire :p :g3}
            'G4 {:type :wire :p :g4}
-           'G5 {:type :wire :p :g5}}
+           'G5 {:type :wire :p :g5}
+           'G7 {:type :rect :p :g7}
+           'G8 {:type :rect :p :g8}}
    :moving-lels {'G0 :g0}
-   :moving-geoms {'G2 {:type :wire :p :g2}}
-   :moving-vertices {'G3 #{0} 'G4 #{1}}
+   :moving-geoms {'G2 {:type :wire :p :g2}
+                  'G6 {:type :rect :p :g6}}
+   :moving-vertices {'G3 #{0} 'G4 #{1} 'G7 #{[0 0]}}
    :revert-schem schem
    })
 (def test-patts
@@ -159,19 +166,27 @@
    :geoms {'G2 {:type :wire :p :g2}
            'G3 {:type :wire :p :g3}
            'G4 {:type :wire :p :g4}
-           'G5 {:type :wire :p :g5}}
+           'G5 {:type :wire :p :g5}
+           'G6 {:type :rect :p :g6}
+           'G7 {:type :rect :p :g7}
+           'G8 {:type :rect :p :g8}}
    :selected-lels #{'G0}
-   :selected-geoms {'G2 #{0 1} 'G3 #{0} 'G4 #{1}}
-   })
+   :selected-geoms {'G2 #{0 1} 'G3 #{0} 'G4 #{1}
+                    'G6 #{[0 0] [0 1] [1 0] [1 1]} 'G7 #{[0 0]}
+                    }})
 (def schem-copy-mode
   {:mode :copy
    :lels {'G0 :g0 'G1 :g1}
    :geoms {'G2 {:type :wire :p :g2}
            'G3 {:type :wire :p :g3}
            'G4 {:type :wire :p :g4}
-           'G5 {:type :wire :p :g5}}
+           'G5 {:type :wire :p :g5}
+           'G6 {:type :rect :p :g6}
+           'G7 {:type :rect :p :g7}
+           'G8 {:type :rect :p :g8}}
    :moving-lels {'G0 :g0}
-   :moving-geoms {'G2 {:type :wire :p :g2}}
+   :moving-geoms {'G2 {:type :wire :p :g2}
+                  'G6 {:type :rect :p :g6}}
    :moving-vertices {}
    :revert-schem {}
    })
