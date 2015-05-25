@@ -263,20 +263,23 @@
              {} geoms))
 
 ; An edge of a line should be selected by surrounding it.
-(defn rectangular-select [lels wires [x0 y0] [x1 y1]]
+(defn rectangular-select [lels geoms [x0 y0] [x1 y1]]
   (let [xmin (min x0 x1) xmax (max x0 x1)
         ymin (min y0 y1) ymax (max y0 y1)
         lels (filter (fn [[k v]]
                        (and (<= xmin (x-min v)) (<= (x-max v) xmax)
                             (<= ymin (y-min v)) (<= (y-max v) ymax)))
                      lels)
-        wires (filter (fn [[k {[[x0 y0] [x1 y1]] :p}]]
+        geoms (filter (fn [[k {[[x0 y0] [x1 y1]] :p}]]
                         (and (<= xmin (min x0 x1)) (<= (max x0 x1) xmax)
                              (<= ymin (min y0 y1)) (<= (max y0 y1) ymax)))
-                      wires)]
+                      geoms)]
     {:lels (set (keys lels))
-     :geoms (zipmap (keys wires) (repeat #{0 1}))
-     }))
+     :geoms (zipmap (keys geoms)
+                    (map (fn [[_ v]] (case (:type v)
+                                       :wire #{0 1}
+                                       :rect #{[0 0] [0 1] [1 0] [1 1]}))
+                         geoms))}))
 
 (defn select
   [{:keys [cursor-pos lels geoms rect-p0 selected-lels selected-geoms]

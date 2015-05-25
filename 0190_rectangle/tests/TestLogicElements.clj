@@ -10,8 +10,8 @@
 
 (def lels '{g-000 {:type :dff :p [10 10] :width 4 :height 5}
             g-001 {:type :and :p [20 10] :width 4 :height 4}})
-(def wires '{g-100 {:p [[10 20] [20 20]]}
-             g-101 {:p [[10 20] [10 30]]}})
+(def wires '{g-100 {:type :wire :p [[10 20] [20 20]]}
+             g-101 {:type :wire :p [[10 20] [10 30]]}})
 
 (def test-patts
   [[(dut/rectangular-select lels wires [10 10] [14 15])
