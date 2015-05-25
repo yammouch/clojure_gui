@@ -245,10 +245,22 @@
           (= yc y0 y1)        (fcomp xc x0 x1)
           :else               nil)))
 
-(defn find-geoms-by-pos [wires pos]
-  (reduce-kv (fn [acc k v] (if-let [p (wire-vs-cursor v pos)]
-                             (conj acc {k p}) acc))
-             {} wires))
+(defn rect-vs-cursor [{[[x0 y0] [x1 y1]] :p} [xc yc]]
+  (let [in-ul (or (<= y0 yc y1) (<= y1 yc y0))
+        in-lr (or (<= x0 xc x1) (<= x1 xc x0))
+        on-x0 (if (and (= x0 xc) in-ul) [0 0])
+        on-x1 (if (and (= x1 xc) in-ul) [1 0])
+        on-y0 (if (and (= y0 yc) in-lr) [0 1])
+        on-y1 (if (and (= y1 yc) in-lr) [1 1])]
+    (into #{} (filter identity [on-x0 on-x1 on-y0 on-y1]))))
+
+(defn find-geoms-by-pos [geoms pos]
+  (reduce-kv (fn [acc k v]
+               (let [p ((case (:type v) :wire wire-vs-cursor
+                                        :rect rect-vs-cursor)
+                        v pos)]
+                 (if (empty? p) acc (conj acc {k p}))))
+             {} geoms))
 
 ; An edge of a line should be selected by surrounding it.
 (defn rectangular-select [lels wires [x0 y0] [x1 y1]]
