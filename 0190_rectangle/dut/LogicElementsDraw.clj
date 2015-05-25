@@ -69,15 +69,21 @@
            (* y pix-per-grid)
            (* 0.5 size) color))
 
-(defn draw-rect [[[x0 y0] [x1 y1]] selected] ; drawing color is determined by selected
-  (let [x (* pix-per-grid (min x0 x1))
-        y (* pix-per-grid (min y0 y1))
-        w (* pix-per-grid (Math/abs (- x1 x0)))
-        h (* pix-per-grid (Math/abs (- y1 y0)))
-        rect (Rectangle. x y w h)]
-    (doto rect
-      (.setStroke color-def) (.setFill Color/TRANSPARENT))
-    [rect]))
+(defn draw-rect [[[x0 y0] [x1 y1]] selected]
+  (let [x0 (* pix-per-grid x0)
+        x1 (* pix-per-grid x1)
+        y0 (* pix-per-grid y0)
+        y1 (* pix-per-grid y1)
+        lx0 (Line. x0 y0 x0 y1)
+        lx1 (Line. x1 y0 x1 y1)
+        ly0 (Line. x0 y0 x1 y0)
+        ly1 (Line. x0 y1 x1 y1)]
+    (when selected
+      (when (selected [0 0]) (.setStroke lx0 color-sel))
+      (when (selected [0 1]) (.setStroke ly0 color-sel))
+      (when (selected [1 0]) (.setStroke lx1 color-sel))
+      (when (selected [1 1]) (.setStroke ly1 color-sel)))
+    [lx0 lx1 ly0 ly1]))
 
 (defn draw-wire-partially-selected [[[x0 y0] [x1 y1]] selected]
   (let [x- (- x1 x0) y- (- y1 y0)

@@ -34,6 +34,7 @@
    :selected-geoms {'G_100 #{0 1}
                     'G_101 #{0}
                     'G_102 #{1}
+                    'G_105 #{[1 1] [0 1]}
                     }})
 
 (def schem-2 (lel/move-mode    schem-1))
