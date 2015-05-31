@@ -1,7 +1,7 @@
-(ns canvas_size_show)
+(ns canvas_size_bind)
 
 (gen-class
-  :name "canvas_size_show"
+  :name "canvas_size_bind"
   :main true
   :extends javafx.application.Application)
 
@@ -105,5 +105,5 @@
     (.requestFocus pane)))
 
 (defn -main [& args]
-  (Application/launch (Class/forName "canvas_size_show")
+  (Application/launch (Class/forName "canvas_size_bind")
                       (into-array String [])))
