@@ -83,7 +83,7 @@
           )))))
 
 (defn pane-schem [f-set-to-parent]
-  (let [canvas (Canvas. 300.0 200.0)]
+  (let [canvas (Canvas.)]
     (.setOnKeyPressed canvas
                       (pane-schem-key f-set-to-parent canvas))
     (.setFocusTraversable canvas true)
@@ -96,10 +96,16 @@
 ;--------------------------------------------------
 (defn -start [self stage]
   (let [topgroup (BorderPane.)
-        pane (pane-schem #(.setCenter topgroup %))]
+        scene (Scene. topgroup)
+        pane (pane-schem #(do (.setCenter topgroup %)
+                              (.. % widthProperty
+                                  (bind (.widthProperty scene)))
+                              (.. % heightProperty
+                                  (bind (.heightProperty scene))
+                                  )))]
     (doto stage
       (.setWidth 400) (.setHeight 300)
-      (.setScene (Scene. topgroup))
+      (.setScene scene)
       (.setTitle "Draws a lot of objects")
       (.show))
     (.requestFocus pane)))
