@@ -44,15 +44,23 @@
   (.closePath gc)
   (.stroke gc))
 
-(defn draw-objects [gc [xorg yorg]]
-  (mapcat (fn [y-in-grid]
-            (let [y (+ (* y-in-grid grid) yorg)]
-              (map (fn [x fdraw] (fdraw gc [x y]))
-                   (take 10 (iterate #(+ % grid) xorg))
-                   (drop (mod y-in-grid 4)
-                         (cycle [draw-square draw-circle
-                                 draw-triangle draw-and])))))
-          (range 10)))
+(defn draw-objects [canvas [xorg yorg]]
+  (let [gc (.getGraphicsContext2D canvas)]
+    (.clearRect gc 0.0 0.0 (.getWidth canvas) (.getHeight canvas))
+    (.setFill gc Color/TRANSPARENT)
+    (.setStroke gc Color/BLUE)
+    (.setLineWidth gc 5.0)
+    (.strokeRect gc 0.0 0.0 (.getWidth canvas) (.getHeight canvas))
+    (.setStroke gc Color/BLACK)
+    (.setLineWidth gc 1.0)
+    (mapcat (fn [y-in-grid]
+              (let [y (+ (* y-in-grid grid) yorg)]
+                (map (fn [x fdraw] (fdraw gc [x y]))
+                     (take 10 (iterate #(+ % grid) xorg))
+                     (drop (mod y-in-grid 4)
+                           (cycle [draw-square draw-circle
+                                   draw-triangle draw-and])))))
+            (range 10))))
 
 ;--------------------------------------------------
 ; schematic pane
@@ -64,28 +72,22 @@
    KeyCode/UP    (fn [] (alter origin update-in [1] #(- % grid)))
    KeyCode/DOWN  (fn [] (alter origin update-in [1] #(+ % grid)))})
 
-(defn pane-schem-key [f-set-to-parent gc canvas]
+(defn pane-schem-key [f-set-to-parent canvas]
   (proxy [EventHandler] []
     (handle [keyEvent]
       (let [f (key-commands (.getCode keyEvent))]
         (when f
           (dosync (f))
-          (.clearRect gc 0.0 0.0 (.getWidth canvas) (.getHeight canvas))
-          (dorun (draw-objects gc @origin))
-          (.strokeRect gc 0 0 (.getWidth canvas) (.getHeight canvas))
+          (dorun (draw-objects canvas @origin))
           (.consume keyEvent)
           )))))
 
 (defn pane-schem [f-set-to-parent]
-  (let [canvas (Canvas. 400.0 300.0)
-        gc (.getGraphicsContext2D canvas)]
-    (.setStroke gc Color/BLACK)
-    (.setFill gc Color/TRANSPARENT)
+  (let [canvas (Canvas. 300.0 200.0)]
     (.setOnKeyPressed canvas
-                      (pane-schem-key f-set-to-parent gc canvas))
+                      (pane-schem-key f-set-to-parent canvas))
     (.setFocusTraversable canvas true)
-    (dorun (draw-objects gc @origin))
-    (.strokeRect gc 0 0 (.getWidth canvas) (.getHeight canvas))
+    (dorun (draw-objects canvas @origin))
     (f-set-to-parent canvas)
     canvas))
 
