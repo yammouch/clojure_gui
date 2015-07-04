@@ -15,27 +15,33 @@
     [:sety 2]
     [:adjacents 1]
     [:prog2 2]
-    [:prog3 3]
-    [:boundary 0]
-    [:finish 0]])
+    [:prog3 3]])
 
 (def rand-obj (java.util.Random.))
 
+(defn gen-terminal []
+  (let [x (.nextInt rand-obj 64)]
+    (case x
+      0  (:boundary)
+      1  (:finish)
+      (.nextInt rand-obj))))
+
 (defn distribute [i n]
   "Distributes i into n-element array. i must be > 0, n must be >= 0."
-  (if (<= n 0)
-    []
-    (let [rands (sort (concat [0 i]
-                              (map (fn [_] (.nextInt rand-obj i))
-                                   (range (dec n))
-                                   )))]
-      (map (fn [[x y]] (- y x)) (partition 2 1 rands))
-      )))
+  (cond (<= n 0) []
+        (<= i 0) (repeat n 0)
+        :else
+        (let [rands (sort (concat [0 i]
+                                  (map (fn [_] (.nextInt rand-obj i))
+                                       (range (dec n))
+                                       )))]
+          (map (fn [[x y]] (- y x)) (partition 2 1 rands))
+          )))
 
 (defn gen-tree [n-nt]
   "n-nt is the number of non-terminal"
   (if (<= n-nt 0)
-    (.nextInt rand-obj)
+    (gen-terminal)
     (let [[nt-symbol n-children]
           (non-terminals (.nextInt rand-obj (count non-terminals)))]
       (cons nt-symbol
