@@ -20,11 +20,12 @@
 (def rand-obj (java.util.Random.))
 
 (defn gen-terminal []
-  (let [x (.nextInt rand-obj 64)]
+  (let [x (.nextInt rand-obj 128)]
     (case x
-      0  (:boundary)
-      1  (:finish)
-      (.nextInt rand-obj))))
+      0                '(:finish)
+      (1 2 3 4 5 6 7)  '(:boundary)
+      (int (Math/floor (+ 0.5 (* 8 (.nextGaussian rand-obj)))))
+      )))
 
 (defn distribute [i n]
   "Distributes i into n-element array. i must be > 0, n must be >= 0."
