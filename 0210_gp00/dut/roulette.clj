@@ -10,7 +10,7 @@
                (conj acc [new-sum (second (first l))])
                )))))
 
-(def rand-obj (java.util.Random.))
+(def rand-obj (java.util.Random. 1)) ; arg: seed
 
 (defn make-roulette-wheel-selector [l]
   "Return a function which generates random number with given probability
