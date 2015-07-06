@@ -7,7 +7,7 @@
       [sum acc]
       (let [new-sum (+ sum (ffirst l))]
         (recur (next l) new-sum
-               (conj acc [new-sum (nfirst l)])
+               (conj acc [new-sum (second (first l))])
                )))))
 
 (def rand-obj (java.util.Random.))
