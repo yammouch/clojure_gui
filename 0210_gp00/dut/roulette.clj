@@ -18,5 +18,7 @@ distribution. e.g. if argument if ((2 :a) (3 :b) (5 :c)), :a, :b and :c
 occurs with the probability of 20%, 30% and 50% respectively by calling
 returned function."
   (let [[sum sum-list] (sumup l)]
-    (fn [] (fnext (find-if #(> (first %) (.nextInt sum))
-                  sum-list)))
+    (fn [] (fnext (->> sum-list
+                       (filter #(> (first %) (.nextInt sum)))
+                       first)
+                  sum-list))))
