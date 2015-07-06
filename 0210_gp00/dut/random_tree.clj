@@ -17,7 +17,7 @@
     [:prog2 2]
     [:prog3 3]])
 
-(def rand-obj (java.util.Random.))
+(def rand-obj (java.util.Random. 1)) ; arg: seed
 
 (defn gen-terminal []
   (let [x (.nextInt rand-obj 128)]
