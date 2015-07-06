@@ -15,3 +15,4 @@
     (print " test case ")
     (println x)))
        
+(println (rtr/gen-tree 4))
