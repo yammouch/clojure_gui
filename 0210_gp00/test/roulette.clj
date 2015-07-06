@@ -12,10 +12,11 @@
   (let [result (rlt/sumup (:in x))]
     (if (= (:exp x) result)
       (print "[OK]")
-      (print "[ER]"))
+      (do (print "[ER]")
+          (print result)))
     (print " test case ")
     (println (:in x))))
 
 (let [f (rlt/make-roulette-wheel-selector (get-in test-cases 0 :in))]
   (println (->> (map (fn [_] (f)) (repeat 100 nil))
-                frequency sort)))
+                frequencies sort)))
