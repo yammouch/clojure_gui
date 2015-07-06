@@ -17,6 +17,6 @@
     (print " test case ")
     (println (:in x))))
 
-(let [f (rlt/make-roulette-wheel-selector (get-in test-cases 0 :in))]
+(let [f (rlt/make-roulette-wheel-selector (get-in test-cases [0 :in]))]
   (println (->> (map (fn [_] (f)) (repeat 100 nil))
                 frequencies sort)))
