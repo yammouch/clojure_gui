@@ -38,7 +38,7 @@
          [2 '(:- (:nth :foo 1) (:nth (:boundary) 0))]
          [3 '(:- (:nth (:boundary) :foo) (:nth (:boundary) 0))]
          [4 '(:- (:nth (:boundary) 1) :foo)]
-         [7 '(:- (:nth (:boundary) 1) (:nth (:boundary) :hoge))]
+         [6 '(:- (:nth (:boundary) 1) (:nth (:boundary) :foo))]
          ]]
   (let [result (hg/replace-node tree-3 i :foo)]
     (if (= result exp)
