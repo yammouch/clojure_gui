@@ -36,3 +36,13 @@
                         (fn [tr i] (if (= i n) tr))
                         (fn [_ l r _] (if l l r)))))
 
+(defn replace-node [tree new-node n]
+  (first (grec-num tree
+                   (fn [tr i] (if (= i n) new-node tr))
+                   (fn [tr children i]
+                     (if (= i n) new-node (cons tr children))
+                     ))))
+
+(defn crossover [t1 t2 pos1 pos2]
+  [(replace-node t1 (pickup-node t2 pos2) pos1)
+   (replace-node t2 (pickup-node t1 pos1) pos2)])
