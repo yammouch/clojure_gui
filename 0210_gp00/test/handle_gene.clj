@@ -15,3 +15,19 @@
           (print result)))
     (print " test case ")
     (println tr)))
+
+(doseq [[i exp]
+        [[0 tree-3]
+         [1 '(:nth (:boundary) 1)]
+         [2 '(:boundary)]
+         [3 1]
+         [4 '(:nth (:boundary) 0)]
+         [5 '(:boundary)]
+         [6 0]]]
+  (let [result (hg/pickup-node tree-3 i)]
+    (if (= result exp)
+      (print "[OK]")
+      (do (print "[ER]")
+          (print result)))
+    (print " test case ")
+    (println i)))
