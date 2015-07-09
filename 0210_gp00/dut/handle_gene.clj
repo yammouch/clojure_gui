@@ -33,7 +33,7 @@
 
 (defn pickup-node [tree n]
   (first (grec-num tree (fn [tr i] (if (= i n) tr))
-                        (fn [tr _ i] (if (= i n) tr))
+                        (fn [tr children i] (if (= i n) tr children))
                         (fn [_ l r _] (if l l r)))))
 
 (defn replace-node [tree new-node n]
