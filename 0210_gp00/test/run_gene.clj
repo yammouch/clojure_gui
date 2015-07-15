@@ -48,3 +48,24 @@
 (test-2-terms-op rg/gene-=
                  [[[32767 32768] 0]
                   [[65537     1] 1]])
+
+(println "test gene-pos")
+
+(def env-1
+  {:nodes [[-5 -4]
+           [ 3  2]
+           [ 0  0]]
+   :edges [[0 1]
+           [1 2]]})
+
+(def test-cases [[0 [-5 -4]]
+                 [1 [ 3  2]]
+                 [2 [ 0  0]]])
+
+(doseq [[inst-id exp] test-cases]
+  (let [[result _] (rg/gene-pos [inst-id] env-1)]
+    (if (= exp result)
+      (print "[OK]")
+      (print "[ER]" result))
+    (print " test case ")
+    (println inst-id)))
