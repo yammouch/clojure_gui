@@ -69,3 +69,17 @@
       (print "[ER]" result))
     (print " test case ")
     (println inst-id)))
+
+(println "test gene-nth")
+
+(def test-cases [[:foo       6  0]
+                 [[:a :b :c] 4 :b]
+                 [[]         3  0]])
+
+(doseq [[l n exp] test-cases]
+  (let [[result _] (rg/gene-nth [l n] nil)]
+    (if (= exp result)
+      (print "[OK]")
+      (print "[ER]" result))
+    (print " test case ")
+    (println l n)))
