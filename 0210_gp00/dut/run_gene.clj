@@ -53,7 +53,7 @@
    env])
 
 (defn gene-setpos [axis inst-id pos env]
-  (update-in env [:nodes (normalize-inst-id inst-id env) axis] pos))
+  (assoc-in env [:nodes (normalize-inst-id inst-id env) axis] pos))
 (defn gene-setx [[inst-id x] env] [0 (gene-setpos 0 inst-id x env)])
 (defn gene-sety [[inst-id y] env] [0 (gene-setpos 1 inst-id y env)])
 
