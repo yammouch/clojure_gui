@@ -23,6 +23,11 @@
       (- m 65536)
       m)))
 
+(defn normalize-inst-id [inst-id env]
+  (if (coll? inst-id)
+    0 (mod inst-id (count (:nodes env)))
+    ))
+
 (defn bool-to-int [x] (if x 1 0))
 
 (defn gene-< [[x y] env]
@@ -36,6 +41,38 @@
 (defn gene-* [[x y] env] [(into-16bits (* x y)) env])
 (defn gene-div [[x y] env]
   [(into-16bits (int (Math/floor (/ x y)))) env])
+
+(defn gene-pos [[inst-id] env]
+  [(get-in env [:nodes (if (coll? inst-id) 0 inst-id)])
+   env])
+(defn gene-nth [[l n] env]
+  (let [l-length (count l)]
+    [(cond (not (coll? l)) 0
+           (<= l-length 0) 0
+           :else (nth l (mod n l-length)))
+     env]))
+
+(defn gene-setpos [axis inst-id pos env]
+  (update-in env [:nodes (normalize-inst-id inst-id env) axis] pos))
+(defn gene-setx [[inst-id x] env] [0 (gene-setpos 0 inst-id x env)])
+(defn gene-sety [[inst-id y] env] [0 (gene-setpos 1 inst-id y env)])
+
+(defn gene-adjacents [[inst-id] env]
+  (let [ii (normalize-inst-id inst-id env)]
+    [(->> (:edges env)
+          (filter (fn [iis-edge] (some (partial = ii) iis-edge)))
+          (apply concat)
+          distinct
+          (remove (partial = ii)))
+     env]))
+
+(defn gene-prog2 [[x0 x1] env] [x1 env])
+(defn gene-prog3 [[x0 x1 x2] env] [x2 env])
+
+(defn gene-boundary [[] env]
+  (let [[xs ys] (map apply vector (:nodes env))]
+    [[(min xs) (min ys) (max xs) (max ys)]
+     env]))
  
 (def fn-table {})
 (defn eval-if [gene env]) 
