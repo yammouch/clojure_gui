@@ -70,6 +70,24 @@
     (print " test case ")
     (println inst-id)))
 
+(println "test gene-setx")
+
+(def test-cases [[0  100 [[100 -4] [  3 2] [  0 0]]]
+                 [1  200 [[ -5 -4] [200 2] [  0 0]]]
+                 [2  300 [[ -5 -4] [  3 2] [300 0]]]
+                 [3  400 [[400 -4] [  3 2] [  0 0]]]
+                 [[] 500 [[500 -4] [  3 2] [  0 0]]]
+                 [-1 600 [[ -5 -4] [  3 2] [600 0]]]
+                 ])
+
+(doseq [[inst-id x exp] test-cases]
+  (let [[val {nodes :nodes}] (rg/gene-setx [inst-id x] env-1)]
+    (if (and (= val 0) (= exp nodes))
+      (print "[OK]")
+      (print "[ER]" val nodes))
+    (print " test case ")
+    (println inst-id x)))
+
 (println "test gene-nth")
 
 (def test-cases [[:foo       6  0]
