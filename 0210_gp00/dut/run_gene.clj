@@ -19,7 +19,7 @@
 
 (defn into-16bits [x]
   (let [m (mod x 65536)]
-    (if (<= 32768 x)
+    (if (<= 32768 m)
       (- m 65536)
       m)))
 
@@ -28,9 +28,9 @@
 (defn gene-* [[x y] env] [(into-16bits (* x y)) env])
 (defn gene-div [[x y] env]
   [(into-16bits (int (Math/floor (/ x y)))) env])
-
+ 
 (def fn-table {})
-(defn eval-if [gene env])
+(defn eval-if [gene env]) 
 
 (defn eval-gene [gene env]
   (if (coll? gene)
