@@ -3,60 +3,48 @@
 (require 'run-gene)
 (alias 'rg 'run-gene)
 
-(println "test gene-+")
+(defn test-2-terms-op [f test-cases]
+  (doseq [[[x y] exp] test-cases]
+    (let [[result _] (f [x y] nil)]
+      (if (= exp result)
+        (print "[OK]")
+        (print "[ER]" result))
+      (print " test case ")
+      (println [x y]))))
 
-(def test-cases
- [[[32000 767]  32767]
-  [[32000 768] -32768]
-  [[32000 769] -32767]])
-  
-(doseq [[[x y] exp] test-cases]
-  (let [[result _] (rg/gene-+ [x y] nil)]
-    (if (= exp result)
-      (print "[OK]")
-      (print "[ER]" result))
-    (print " test case ")
-    (println [x y])))
+(println "test gene-+")
+(test-2-terms-op rg/gene-+
+                 [[[32000 767]  32767]
+                  [[32000 768] -32768]
+                  [[32000 769] -32767]])
 
 (println "test gene--")
-
-(def test-cases
- [[[-1 32766] -32767]
-  [[-1 32767] -32768]
-  [[-1 32768]  32767]])
+(test-2-terms-op rg/gene--
+                 [[[-1 32766] -32767]
+                  [[-1 32767] -32768]
+                  [[-1 32768]  32767]])
   
-(doseq [[[x y] exp] test-cases]
-  (let [[result _] (rg/gene-- [x y] nil)]
-    (if (= exp result)
-      (print "[OK]")
-      (print "[ER]" result))
-    (print " test case ")
-    (println [x y])))
-
 (println "test gene-*")
-
-(def test-cases
- [[[256 256]    0]
-  [[255 256] -256]])
+(test-2-terms-op rg/gene-*
+                 [[[256 256]    0]
+                  [[255 256] -256]])
   
-(doseq [[[x y] exp] test-cases]
-  (let [[result _] (rg/gene-* [x y] nil)]
-    (if (= exp result)
-      (print "[OK]")
-      (print "[ER]" result))
-    (print " test case ")
-    (println [x y])))
-
 (println "test gene-div")
-
-(def test-cases
- [[[   256 256] 1]
-  [[131072   2] 0]])
+(test-2-terms-op rg/gene-div
+                 [[[   256 256] 1]
+                  [[131072   2] 0]])
   
-(doseq [[[x y] exp] test-cases]
-  (let [[result _] (rg/gene-div [x y] nil)]
-    (if (= exp result)
-      (print "[OK]")
-      (print "[ER]" result))
-    (print " test case ")
-    (println [x y])))
+(println "test gene-<")
+(test-2-terms-op rg/gene-<
+                 [[[32767 32768] 0]
+                  [[32768 32767] 1]])
+  
+(println "test gene->")
+(test-2-terms-op rg/gene->
+                 [[[32767 32768] 1]
+                  [[32768 32767] 0]])
+
+(println "test gene-=")
+(test-2-terms-op rg/gene-=
+                 [[[32767 32768] 0]
+                  [[65537     1] 1]])

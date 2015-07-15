@@ -23,6 +23,14 @@
       (- m 65536)
       m)))
 
+(defn bool-to-int [x] (if x 1 0))
+
+(defn gene-< [[x y] env]
+  [(bool-to-int (apply < (map into-16bits [x y]))) env])
+(defn gene-> [[x y] env]
+  [(bool-to-int (apply > (map into-16bits [x y]))) env])
+(defn gene-= [[x y] env]
+  [(bool-to-int (apply = (map into-16bits [x y]))) env])
 (defn gene-+ [[x y] env] [(into-16bits (+ x y)) env])
 (defn gene-- [[x y] env] [(into-16bits (- x y)) env])
 (defn gene-* [[x y] env] [(into-16bits (* x y)) env])
