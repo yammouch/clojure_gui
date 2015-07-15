@@ -2,7 +2,7 @@
 
 (defn terminal? [x]
   (or (not (coll? x))
-      ('#{(:finish) (:boundary)} x)))
+      ('#{(:boundary)} x)))
 
 (defn non-terminal? [x]
   (#{:if :< :> := :+ :- :* :/ :pos :nth :setx :sety
@@ -44,5 +44,5 @@
                      ))))
 
 (defn crossover [t1 t2 pos1 pos2]
-  [(replace-node t1 (pickup-node t2 pos2) pos1)
-   (replace-node t2 (pickup-node t1 pos1) pos2)])
+  [(replace-node t1 pos1 (pickup-node t2 pos2))
+   (replace-node t2 pos2 (pickup-node t1 pos1))])

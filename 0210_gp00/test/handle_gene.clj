@@ -4,7 +4,7 @@
 (alias 'hg 'handle-gene)
 
 (def tree-1 '(:+ 1 2))
-(def tree-2 '(:finish))
+(def tree-2 '(:boundary))
 (def tree-3 '(:- (:nth (:boundary) 1) (:nth (:boundary) 0)))
 
 (doseq [[tr n-node] [[tree-1 3] [tree-2 1] [tree-3 7]]]
@@ -48,9 +48,6 @@
     (print " test case ")
     (println i)))
 
-;(def tree-1 '(:+ 1 2))
-;(def tree-2 '(:finish))
-;(def tree-3 '(:- (:nth (:boundary) 1) (:nth (:boundary) 0)))
 (doseq [[pos1 pos2 exp-t1 exp-t3]
         [[0 0 tree-3 tree-1]
          [0 1 '(:nth (:boundary) 1) '(:- (:+ 1 2) (:nth (:boundary) 0))]
