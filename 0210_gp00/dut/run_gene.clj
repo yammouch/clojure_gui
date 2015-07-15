@@ -46,11 +46,11 @@
   [(get-in env [:nodes (if (coll? inst-id) 0 inst-id)])
    env])
 (defn gene-nth [[l n] env]
-  (let [l-length (count l)]
-    [(cond (not (coll? l)) 0
-           (<= l-length 0) 0
-           :else (nth l (mod n l-length)))
-     env]))
+  [(if (coll? l)
+     (let [l-length (count l)]
+       (if (<= l-length 0) 0 (nth l (mod n l-length))))
+     0)
+   env])
 
 (defn gene-setpos [axis inst-id pos env]
   (update-in env [:nodes (normalize-inst-id inst-id env) axis] pos))
