@@ -17,30 +17,29 @@
 
 (ns run-gene)
 
-(defn into-16bits [x]
-  (let [m (mod x 65536)]
-    (if (<= 32768 m)
-      (- m 65536)
-      m)))
+; In the world for genes, numbers are restricted from -2^15 to 2^15-1
+(defn to-num [x]
+  (cond (number? x) (let [m (mod x 65536)]
+                      (if (<= 32768 m) (- m 65536) m))
+        (true? x) 1
+        :else 0))
 
 (defn normalize-inst-id [inst-id env]
   (if (coll? inst-id)
     0 (mod inst-id (count (:nodes env)))
     ))
 
-(defn bool-to-int [x] (if x 1 0))
-
 (defn gene-< [[x y] env]
-  [(bool-to-int (apply < (map into-16bits [x y]))) env])
+  [(to-num (apply < (map to-num [x y]))) env])
 (defn gene-> [[x y] env]
-  [(bool-to-int (apply > (map into-16bits [x y]))) env])
+  [(to-num (apply > (map to-num [x y]))) env])
 (defn gene-= [[x y] env]
-  [(bool-to-int (apply = (map into-16bits [x y]))) env])
-(defn gene-+ [[x y] env] [(into-16bits (+ x y)) env])
-(defn gene-- [[x y] env] [(into-16bits (- x y)) env])
-(defn gene-* [[x y] env] [(into-16bits (* x y)) env])
+  [(to-num (apply = (map to-num [x y]))) env])
+(defn gene-+ [[x y] env] [(to-num (apply + (map to-num [x y]))) env])
+(defn gene-- [[x y] env] [(to-num (apply - (map to-num [x y]))) env])
+(defn gene-* [[x y] env] [(to-num (apply * (map to-num [x y]))) env])
 (defn gene-div [[x y] env]
-  [(into-16bits (int (Math/floor (/ x y)))) env])
+  [(to-num (int (Math/floor (apply / (map to-num [x y]))))) env])
 
 (defn gene-pos [[inst-id] env]
   [(get-in env [:nodes (if (coll? inst-id) 0 inst-id)])
