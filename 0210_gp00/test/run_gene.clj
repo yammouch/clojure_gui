@@ -115,3 +115,15 @@
       (print "[ER]" result))
     (print " test case ")
     (println n)))
+
+(println "test gene-boundary")
+
+(def test-cases [[env-1 [-5 -4 3 2]]])
+
+(doseq [[env exp] test-cases]
+  (let [[result _] (rg/gene-boundary [] env-1)]
+    (if (= exp result)
+      (print "[OK]")
+      (print "[ER]" result))
+    (print " test case ")
+    (println env)))
