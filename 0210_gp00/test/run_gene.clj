@@ -127,3 +127,44 @@
       (print "[ER]" result))
     (print " test case ")
     (println env)))
+
+(println "test eval-gene")
+
+(def test-cases
+ [['(:if (:< (:pos 0 1) 6)
+      (:sety 1 (:+ (:pos 0 1) 1))
+      (:sety 1 (:- (:pos 0 1) 1)))
+   [0 {:nodes [[6 4] [-3 -2] [0 0]]
+       :edges [[0 1] [1 2]]}]]
+  ['(:if (:< (:pos 0 1) 2)
+      (:sety 1 (:+ (:pos 0 1) 1))
+      (:sety 1 (:- (:pos 0 1) 1)))
+   [0 {:nodes [[4 4] [-3 -2] [0 0]]
+       :edges [[0 1] [1 2]]}]]
+  ['(:adjacents 1)
+   [[0 2] env-1]]
+  ['(:setx (:nth (:adjacents 1) 1)
+           (:+ (:pos (:nth (:adjacents 1) 1) 0)
+               1))
+   [0 {:nodes [[5 4] [-3 -2] [1 0]]
+       :edges [[0 1] [1 2]]}]]
+  ['(:* 2 4) [8 env-1]]
+  ['(:/ 11 3) [3 env-1]]
+  ['(prog2 (:setx 0 1) (:sety 1 -1))
+   [0 {:nodes [[1 -1] [-3 -2] [1 0]]
+       :edges [[0 1] [1 2]]}]]
+  ['(prog2 5 4) [4 env-1]]
+  ['(prog3 (:setx 0 1) (:sety 0 -1) (:setx 1 -4))
+   [0 {:nodes [[1 -1] [-4 -2] [1 0]]
+       :edges [[0 1] [1 2]]}]]
+  ['(prog2 5 4 3) [3 env-1]]
+  ['(:boundary) [[-3 -2 5 4] env-1]]])
+
+(doseq [[[args env] exp] test-cases]
+  (let [[result result-env] (rg/gene-boundary args env-1)]
+    (if (= exp result)
+      (print "[OK]")
+      (print "[ER]" result))
+    (print " test case ")
+    (println args env)))
+
