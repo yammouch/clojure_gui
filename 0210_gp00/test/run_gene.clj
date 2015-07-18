@@ -101,3 +101,17 @@
       (print "[ER]" result))
     (print " test case ")
     (println l n)))
+
+(println "test gene-adjacents")
+
+(def test-cases [[0 [1  ]]
+                 [1 [0 2]]
+                 [2 [1  ]]])
+
+(doseq [[n exp] test-cases]
+  (let [[result _] (rg/gene-adjacents [n] env-1)]
+    (if (= exp result)
+      (print "[OK]")
+      (print "[ER]" result))
+    (print " test case ")
+    (println n)))
