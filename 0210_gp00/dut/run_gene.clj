@@ -69,9 +69,9 @@
 (defn gene-prog2 [[x0 x1] env] [x1 env])
 (defn gene-prog3 [[x0 x1 x2] env] [x2 env])
 
-(defn gene-boundary [[] env]
-  (let [[xs ys] (map apply vector (:nodes env))]
-    [[(min xs) (min ys) (max xs) (max ys)]
+(defn gene-boundary [_ env]
+  (let [[xs ys] (apply map vector (:nodes env))]
+    [[(apply min xs) (apply min ys) (apply max xs) (apply max ys)]
      env]))
  
 (def fn-table {})
