@@ -74,7 +74,22 @@
     [[(apply min xs) (apply min ys) (apply max xs) (apply max ys)]
      env]))
  
-(def fn-table {})
+(def fn-table
+ {:<         gene-<
+  :>         gene->
+  :=         gene-=
+  :+         gene-+
+  :-         gene--
+  :*         gene-*
+  :/         gene-div
+  :pos       gene-pos
+  :nth       gene-nth
+  :setx      gene-setx
+  :sety      gene-sety
+  :adjacents gene-adjacents
+  :prog2     gene-prog2
+  :prog3     gene-prog3
+  :boundary  gene-boundary})
 
 (def eval-gene)
 
