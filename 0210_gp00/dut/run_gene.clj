@@ -63,8 +63,9 @@
 (defn eval-if [gene env]
   (let [[pred-result env-new] (eval-gene (nth gene 1) env)]
     (if (= 0 pred-result)
-      (eval-gene (nth gene 2) env-new)
-      (eval-gene (nth gene 3) env-new))))
+      (eval-gene (nth gene 3) env-new) ; false clause
+      (eval-gene (nth gene 2) env-new) ; true clause
+      )))
 
 (defn eval-gene [gene env]
   (if (coll? gene)
