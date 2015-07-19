@@ -1,13 +1,12 @@
 (ns handle-gene)
 
-(defn terminal? [x]
-  (or (not (coll? x))
-      ('#{(:boundary)} x)))
+(use '[run-gene :as rg])
+
+(defn terminal? [x] (not (coll? x)))
 
 (defn non-terminal? [x]
-  (#{:if :< :> := :+ :- :* :/ :pos :nth :setx :sety
-     :adjacents :prog2 :prog3}
-   x))
+  (and (coll? x)
+       (contains? rg/fn-table (first x))))
 
 (defn grec-num
   ([tree term-fn non-term-fn]
@@ -18,7 +17,7 @@
    (letfn [(rec [tr i]
              (cond (nil? tr) [(null-fn i) i]
                    (terminal? tr) [(term-fn tr i) (inc i)]
-                   (non-terminal? (first tr))
+                   (non-terminal? tr)
                    (let [[children next-i] (rec (next tr) (inc i))]
                      [(non-term-fn tr children i) next-i])
                    :else
