@@ -1,19 +1,11 @@
-; (if pred t f)
-; (< x y)
-; (> x y)
-; (= x y)
-; (+ x y)
-; (- x y)
-; (* x y)
-; (/ x y)
-; (pos instance-id)
-; (nth seq n)
-; (setx instance-id x)
-; (sety instance-id y)
-; (adjacents instance-id)
-; (prog2 s0 s1)
-; (prog3 s0 s1 s2)
-; (boundary)
+; (:if pred t f)
+; (:prog2 s0 s1)
+; (:prog3 s0 s1 s2)
+; (:op op-type x y)
+; (:pos instance-id axis)
+; (:mov instance-id axis dir amount)
+; (:adjacents instance-id i)
+; (:boundary axis dir)
 
 (ns run-gene)
 
@@ -29,17 +21,13 @@
     0 (mod inst-id (count (:nodes env)))
     ))
 
-(defn gene-< [[x y] env]
-  [(to-num (apply < (map to-num [x y]))) env])
-(defn gene-> [[x y] env]
-  [(to-num (apply > (map to-num [x y]))) env])
-(defn gene-= [[x y] env]
-  [(to-num (apply = (map to-num [x y]))) env])
-(defn gene-+ [[x y] env] [(to-num (apply + (map to-num [x y]))) env])
-(defn gene-- [[x y] env] [(to-num (apply - (map to-num [x y]))) env])
-(defn gene-* [[x y] env] [(to-num (apply * (map to-num [x y]))) env])
-(defn gene-div [[x y] env]
-  [(to-num (int (Math/floor (apply / (map to-num [x y]))))) env])
+(defn gene-op [[op-type x y] env]
+  (let [fn-op (case (mod op-type 7)
+                0 <, 1 >, 2 =, 3 +, 4 -, 5 *,
+                6 (fn [x y] (int (Math/floor (/ x y))))
+                )]
+    [(to-num (apply fn-op (map to-num [x y]))) env]))
+
 
 (defn gene-pos [[inst-id] env]
   [(get-in env [:nodes (if (coll? inst-id) 0 inst-id)])
@@ -73,22 +61,23 @@
     [[(apply min xs) (apply min ys) (apply max xs) (apply max ys)]
      env]))
  
-(def fn-table
- {:<         gene-<
-  :>         gene->
-  :=         gene-=
-  :+         gene-+
-  :-         gene--
-  :*         gene-*
-  :/         gene-div
-  :pos       gene-pos
-  :nth       gene-nth
-  :setx      gene-setx
-  :sety      gene-sety
-  :adjacents gene-adjacents
-  :prog2     gene-prog2
-  :prog3     gene-prog3
-  :boundary  gene-boundary})
+(def fn-table)
+;(def fn-table
+; {:<         gene-<
+;  :>         gene->
+;  :=         gene-=
+;  :+         gene-+
+;  :-         gene--
+;  :*         gene-*
+;  :/         gene-div
+;  :pos       gene-pos
+;  :nth       gene-nth
+;  :setx      gene-setx
+;  :sety      gene-sety
+;  :adjacents gene-adjacents
+;  :prog2     gene-prog2
+;  :prog3     gene-prog3
+;  :boundary  gene-boundary})
 
 (def eval-gene)
 
