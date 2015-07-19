@@ -1,12 +1,3 @@
-; (:if pred t f)
-; (:prog2 s0 s1)
-; (:prog3 s0 s1 s2)
-; (:op op-type x y)
-; (:pos instance-id axis)
-; (:mov instance-id axis-dir amount)
-; (:adjacent instance-id i)
-; (:boundary axis-dir)
-
 (ns run-gene)
 
 ; In the world for genes, numbers are restricted from -2^15 to 2^15-1
@@ -28,15 +19,13 @@
                 )]
     [(to-num (apply fn-op (map to-num [x y]))) env]))
 
-(defn gene-pos [[inst-id axis] env]
-  [(get-in env [:nodes (normalize-inst-id inst-id env) (mod axis 2)])
+(defn gene-pos [[inst-id axes] env]
+  [(get-in env [:nodes (normalize-inst-id inst-id env) (mod axes 2)])
    env])
 
-(defn gene-mov [[inst-id axis-dir amount] env]
-  (let [[axis fn-dir] (case (mod axis-dir 4)
-                        0 [0 -], 1 [0 +], 2 [1 -], 3 [1 +])]
-    [0 (update-in env [:nodes (normalize-inst-id inst-id env) axis]
-                  fn-dir amount)]))
+(defn gene-mov [[inst-id axes amount] env]
+  [0 (update-in env [:nodes (normalize-inst-id inst-id env) (mod axes 2)]
+                + amount)])
 
 (defn gene-adjacent [[inst-id i] env]
   (let [ii (normalize-inst-id inst-id env)
@@ -52,29 +41,22 @@
 (defn gene-prog2 [[x0 x1] env] [x1 env])
 (defn gene-prog3 [[x0 x1 x2] env] [x2 env])
 
-(defn gene-boundary [[axis-dir] env]
-  (let [[axis fn-dir] (case (mod axis-dir 4)
-                        0 [0 min], 1 [0 max], 2 [1 min], 3 [1 max])]
-    [(apply fn-dir (map #(% axis) (:nodes env)))
+(defn gene-boundary [[axes dir] env]
+  (let [axes (mod axes 2)]
+    [(apply (case (mod dir 2) 0 min 1 max)
+            (map #(% axes) (:nodes env)))
      env]))
  
-(def fn-table)
-;(def fn-table
-; {:<         gene-<
-;  :>         gene->
-;  :=         gene-=
-;  :+         gene-+
-;  :-         gene--
-;  :*         gene-*
-;  :/         gene-div
-;  :pos       gene-pos
-;  :nth       gene-nth
-;  :setx      gene-setx
-;  :sety      gene-sety
-;  :adjacents gene-adjacents
-;  :prog2     gene-prog2
-;  :prog3     gene-prog3
-;  :boundary  gene-boundary})
+(def fn-table
+ {:op       {:fn gene-op       :arity 3} ; (:op op-type x y)
+  :pos      {:fn gene-pos      :arity 2} ; (:pos inst-id axes)
+  :mov      {:fn gene-mov      :arity 3} ; (:mov inst-id axes amount)
+  :adjacent {:fn gene-adjacent :arity 2} ; (:adjacent inst-id i)
+  :prog2    {:fn gene-prog2    :arity 2} ; (:prog2 s0 s1)
+  :prog3    {:fn gene-prog3    :arity 3} ; (:prog3 s0 s1 s2)
+  :boundary {:fn gene-boundary :arity 2} ; (:boundary axes dir)
+  :if       {:fn nil           :arity 3} ; (:if pred t f) - special form
+  })
 
 (def eval-gene)
 
@@ -88,7 +70,7 @@
   (if (coll? gene)
     (case (first gene)
       :if (eval-if gene env)
-      (apply (fn-table (first gene))
+      (apply (get-in fn-table [(first gene) :fn])
              (loop [args (next gene) evaled-args [] env env]
                (if (nil? args)
                  [evaled-args env]

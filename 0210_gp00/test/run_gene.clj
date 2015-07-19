@@ -44,33 +44,31 @@
                  [2 0  0]
                  [2 1  0]])
 
-(doseq [[inst-id axis exp] test-cases]
-  (let [[result _] (rg/gene-pos [inst-id axis] env-1)]
+(doseq [[inst-id axes exp] test-cases]
+  (let [[result _] (rg/gene-pos [inst-id axes] env-1)]
     (if (= exp result)
       (print "[OK]")
       (print "[ER]" result))
     (print " test case ")
-    (println inst-id axis)))
+    (println inst-id axes)))
 
 (println "test gene-mov")
 
-(def test-cases [[0  1 100 [[  95   -4] [  3 2] [  0 0]]]
-                 [0  0 100 [[-105   -4] [  3 2] [  0 0]]]
-                 [0  2 100 [[  -5 -104] [  3 2] [  0 0]]]
-                 [0  3 100 [[  -5   96] [  3 2] [  0 0]]]
-                 [1  1 200 [[  -5   -4] [203 2] [  0 0]]]
-                 [2  1 300 [[  -5   -4] [  3 2] [300 0]]]
-                 [3  1 400 [[ 395   -4] [  3 2] [  0 0]]]
-                 [-1 1 600 [[  -5   -4] [  3 2] [600 0]]]
+(def test-cases [[0  0 100 [[  95   -4] [  3 2] [  0 0]]]
+                 [0  1 100 [[  -5   96] [  3 2] [  0 0]]]
+                 [1  0 200 [[  -5   -4] [203 2] [  0 0]]]
+                 [2  0 300 [[  -5   -4] [  3 2] [300 0]]]
+                 [3  0 400 [[ 395   -4] [  3 2] [  0 0]]]
+                 [-1 0 600 [[  -5   -4] [  3 2] [600 0]]]
                  ])
 
-(doseq [[inst-id axis-dir amount exp] test-cases]
-  (let [[val {nodes :nodes}] (rg/gene-mov [inst-id axis-dir amount] env-1)]
+(doseq [[inst-id axes amount exp] test-cases]
+  (let [[val {nodes :nodes}] (rg/gene-mov [inst-id axes amount] env-1)]
     (if (and (= val 0) (= exp nodes))
       (print "[OK]")
       (print "[ER]" val nodes))
     (print " test case ")
-    (println inst-id axis-dir amount)))
+    (println inst-id axes amount)))
 
 (println "test gene-adjacent")
 
@@ -93,57 +91,60 @@
 
 (println "test gene-boundary")
 
-(def test-cases [[0 -5]
-                 [3  2]
-                 [4 -5]])
+(def test-cases [[0 0 -5]
+                 [1 2 -4]
+                 [2 1  3]])
 
-(doseq [[i exp] test-cases]
-  (let [[result _] (rg/gene-boundary [i] env-1)]
+(doseq [[axes dir exp] test-cases]
+  (let [[result _] (rg/gene-boundary [axes dir] env-1)]
     (if (= exp result)
       (print "[OK]")
       (print "[ER]" result))
     (print " test case ")
-    (println i)))
+    (println axes dir)))
 
 (println "test eval-gene")
+(def env-1
+  {:nodes [[-5 -4]
+           [ 3  2]
+           [ 0  0]]
+   :edges [[0 1]
+           [1 2]]})
 
 (def test-cases
  [[5 [5 env-1]]
   ['(:prog2 5 4) [4 env-1]]
   ['(:prog3 5 4 3) [3 env-1]]
-  ['(:adjacents 1)
-   [[0 2] env-1]]
-  ['(:boundary) [[-3 -2 5 4] env-1]]
-  ['(:* 2 4) [8 env-1]]
-  ['(:/ 11 3) [3 env-1]]
-  ['(:if (:< (:pos 0 1) 6)
-      (:sety 1 (:+ (:pos 0 1) 1))
-      (:sety 1 (:- (:pos 0 1) 1)))
-   [0 {:nodes [[6 4] [-3 -2] [0 0]]
+  ['(:adjacent 1 1) [2 env-1]]
+  ['(:boundary 1 1) [2 env-1]]
+  ['(:op 5 2 4) [8 env-1]] ; op 5 -> *
+  ['(:op 6 11 3) [3 env-1]] ; op 6 -> /
+  ['(:if (:op 0 (:pos 0 1) -6) ; op 0 -> <
+      (:mov 1 1  1)
+      (:mov 1 1 -1))
+   [0 {:nodes [[5 4] [-3 -3] [0 0]]
        :edges [[0 1] [1 2]]}]]
-  ['(:if (:< (:pos 0 1) 2)
-      (:sety 1 (:+ (:pos 0 1) 1))
-      (:sety 1 (:- (:pos 0 1) 1)))
-   [0 {:nodes [[4 4] [-3 -2] [0 0]]
+  ['(:if (:op 0 (:pos 0 1) -2)
+      (:mov 1 1  1)
+      (:mov 1 1 -1))
+   [0 {:nodes [[5 4] [-3 -5] [0 0]]
        :edges [[0 1] [1 2]]}]]
-  ['(:setx (:nth (:adjacents 1) 1)
-           (:+ (:pos (:nth (:adjacents 1) 1) 0)
-               1))
+  ['(:mov (:adjacent 1 1) 0 1)
    [0 {:nodes [[5 4] [-3 -2] [1 0]]
        :edges [[0 1] [1 2]]}]]
-  ['(:prog2 (:setx 0 1) (:sety 1 -1))
-   [0 {:nodes [[1 -1] [-3 -2] [1 0]]
+  ['(:prog2 (:mov 0 0 1) (:mov 1 1 -1))
+   [0 {:nodes [[6 -1] [-4 -2] [1 0]]
        :edges [[0 1] [1 2]]}]]
-  ['(:prog3 (:setx 0 1) (:sety 0 -1) (:setx 1 -4))
-   [0 {:nodes [[1 -1] [-4 -2] [1 0]]
+  ['(:prog3 (:mov 0 0 1) (:mov 1 1 -1) (:mov 1 1 -1))
+   [0 {:nodes [[6 -1] [-5 -2] [1 0]]
        :edges [[0 1] [1 2]]
        }]]])
 
-;(doseq [[gene exp] test-cases]
-;  (let [result (rg/eval-gene gene env-1)]
-;    (if (= exp result)
-;      (print "[OK]")
-;      (print "[ER]" result))
-;    (print " test case ")
-;    (println gene)))
+(doseq [[gene exp] test-cases]
+  (let [result (rg/eval-gene gene env-1)]
+    (if (= exp result)
+      (print "[OK]")
+      (print "[ER]" result))
+    (print " test case ")
+    (println gene)))
 
