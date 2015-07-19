@@ -3,9 +3,9 @@
 ; (:prog3 s0 s1 s2)
 ; (:op op-type x y)
 ; (:pos instance-id axis)
-; (:mov instance-id axis dir amount)
-; (:adjacents instance-id i)
-; (:boundary axis dir)
+; (:mov instance-id axis-dir amount)
+; (:adjacent instance-id i)
+; (:boundary axis-dir)
 
 (ns run-gene)
 
@@ -28,37 +28,34 @@
                 )]
     [(to-num (apply fn-op (map to-num [x y]))) env]))
 
-
-(defn gene-pos [[inst-id] env]
-  [(get-in env [:nodes (if (coll? inst-id) 0 inst-id)])
-   env])
-(defn gene-nth [[l n] env]
-  [(if (coll? l)
-     (let [l-length (count l)]
-       (if (<= l-length 0) 0 (nth l (mod n l-length))))
-     0)
+(defn gene-pos [[inst-id axis] env]
+  [(get-in env [:nodes (normalize-inst-id inst-id env) (mod axis 2)])
    env])
 
-(defn gene-setpos [axis inst-id pos env]
-  (assoc-in env [:nodes (normalize-inst-id inst-id env) axis] pos))
-(defn gene-setx [[inst-id x] env] [0 (gene-setpos 0 inst-id x env)])
-(defn gene-sety [[inst-id y] env] [0 (gene-setpos 1 inst-id y env)])
+(defn gene-mov [[inst-id axis-dir amount] env]
+  (let [[axis fn-dir] (case (mod axis-dir 4)
+                        0 [0 -], 1 [0 +], 2 [1 -], 3 [1 +])]
+    [0 (update-in env [:nodes (normalize-inst-id inst-id env) axis]
+                  fn-dir amount)]))
 
-(defn gene-adjacents [[inst-id] env]
-  (let [ii (normalize-inst-id inst-id env)]
-    [(->> (:edges env)
-          (filter (fn [iis-edge] (some (partial = ii) iis-edge)))
-          (apply concat)
-          distinct
-          (remove (partial = ii)))
+(defn gene-adjacent [[inst-id i] env]
+  (let [ii (normalize-inst-id inst-id env)
+        adjacents (->> (:edges env)
+                       (filter (fn [iis-edge]
+                                 (some (partial = ii) iis-edge)))
+                       (apply concat)
+                       distinct
+                       (remove (partial = ii)))]
+    [(nth adjacents (mod i (count adjacents)))
      env]))
 
 (defn gene-prog2 [[x0 x1] env] [x1 env])
 (defn gene-prog3 [[x0 x1 x2] env] [x2 env])
 
-(defn gene-boundary [_ env]
-  (let [[xs ys] (apply map vector (:nodes env))]
-    [[(apply min xs) (apply min ys) (apply max xs) (apply max ys)]
+(defn gene-boundary [[axis-dir] env]
+  (let [[axis fn-dir] (case (mod axis-dir 4)
+                        0 [0 min], 1 [0 max], 2 [1 min], 3 [1 max])]
+    [(apply fn-dir (map #(% axis) (:nodes env)))
      env]))
  
 (def fn-table)
