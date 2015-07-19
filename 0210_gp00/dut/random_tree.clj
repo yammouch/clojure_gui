@@ -1,21 +1,7 @@
 (ns random-tree)
 
-(def non-terminals
-  '[[:if 3]
-    [:< 2]
-    [:> 2]
-    [:= 2]
-    [:+ 2]
-    [:- 2]
-    [:* 2]
-    [:/ 2]
-    [:pos 1]
-    [:nth 2]
-    [:setx 2]
-    [:sety 2]
-    [:adjacents 1]
-    [:prog2 2]
-    [:prog3 3]])
+(use '[run-gene :as rg])
+(def non-terminals (map (fn [[k v]] [k (:arity v)]) (sort rg/fn-table)))
 
 (def rand-obj (java.util.Random. 1)) ; arg: seed
 
@@ -44,7 +30,7 @@
   (if (<= n-nt 0)
     (gen-terminal)
     (let [[nt-symbol n-children]
-          (non-terminals (.nextInt rand-obj (count non-terminals)))]
+          (nth non-terminals (.nextInt rand-obj (count non-terminals)))]
       (cons nt-symbol
             (map gen-tree
                  (distribute (dec n-nt) n-children)
