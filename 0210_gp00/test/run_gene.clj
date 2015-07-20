@@ -117,6 +117,7 @@
   ['(:prog3 5 4 3) [3 env-1]]
   ['(:adjacent 1 1) [2 env-1]]
   ['(:boundary 1 1) [2 env-1]]
+  ['(:finish) [:finish env-1]]
   ['(:op 5 2 4) [8 env-1]] ; op 5 -> *
   ['(:op 6 11 3) [3 env-1]] ; op 6 -> /
   ['(:op 0 (:pos 0 1) -6) [0 env-1]] ; op 0 -> <
@@ -131,6 +132,11 @@
       (:mov 0 1 -1))
    [0 {:nodes [[-5 -3] [3 2] [0 0]]
        :edges [[0 1] [1 2]]}]]
+  ['(:if (:finish) (:mov 0 1 1) (:mov 0 1 -1)) [:finish env-1]]
+  ['(:if 0 1 (:prog2 (:finish) (:mov 0 1 1))) [:finish env-1]]
+  ['(:if 0 1 (:prog2 (:mov 0 1 1) (:finish)))
+   [:finish {:nodes [[-5 -3] [3 2] [0 0]]
+             :edges [[0 1] [1 2]]}]]
   ['(:mov (:adjacent 1 1) 0 1)
    [0 {:nodes [[-5 -4] [3 2] [1 0]]
        :edges [[0 1] [1 2]]}]]
