@@ -1,7 +1,12 @@
 (ns random-tree)
 
 (use '[run-gene :as rg])
-(def non-terminals (map (fn [[k v]] [k (:arity v)]) (sort rg/fn-table)))
+(def non-terminals
+  (->> rg/fn-table
+       (sort)
+       (map (fn [[k v]] [k (:arity v)]))
+       (filter (fn [[k arity]] (< 0 arity)))
+       ))
 
 (def rand-obj (java.util.Random. 1)) ; arg: seed
 
@@ -9,7 +14,6 @@
   (let [x (.nextInt rand-obj 128)]
     (case x
       0                '(:finish)
-      (1 2 3 4 5 6 7)  '(:boundary)
       (int (Math/floor (+ 0.5 (* 8 (.nextGaussian rand-obj)))))
       )))
 
