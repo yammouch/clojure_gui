@@ -15,8 +15,11 @@
 (defn gene-op [[op-type x y] env]
   (let [fn-op (case (mod op-type 7)
                 0 <, 1 >, 2 =, 3 +, 4 -, 5 *,
-                6 (fn [x y] (int (Math/floor (/ x y))))
-                )]
+                6 (fn [x y]
+                    (if (zero? y)
+                      0
+                      (int (Math/floor (/ x y)))
+                      )))]
     [(to-num (apply fn-op (map to-num [x y]))) env]))
 
 (defn gene-pos [[inst-id axes] env]

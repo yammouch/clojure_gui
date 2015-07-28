@@ -120,6 +120,7 @@
   ['(:finish) [:finish env-1]]
   ['(:op 5 2 4) [8 env-1]] ; op 5 -> *
   ['(:op 6 11 3) [3 env-1]] ; op 6 -> /
+  ['(:op 6 11 0) [0 env-1]] ; op 6 -> /
   ['(:op 0 (:pos 0 1) -6) [0 env-1]] ; op 0 -> <
   ['(:op 0 (:pos 0 1) -2) [1 env-1]] ; op 0 -> <
   ['(:op 0 1 (:finish)) [:finish env-1]] ; op 0 -> <
