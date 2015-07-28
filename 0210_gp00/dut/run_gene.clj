@@ -79,12 +79,18 @@
       :prog2 (eval-prog (next gene) env)
       :prog3 (eval-prog (next gene) env)
       :finish [:finish env]
-      (apply (get-in fn-table [(first gene) :fn])
-             (loop [args (next gene) evaled-args [] env env]
-               (if (nil? args)
-                 [evaled-args env]
-                 (let [[evaled-arg env-new] (eval-gene (first args) env)]
-                   (recur (next args)
-                          (conj evaled-args evaled-arg)
-                          env-new))))))
+      (let [[args env]
+            (loop [args (next gene) evaled-args [] env env]
+              (if (nil? args)
+                [evaled-args env]
+                (let [[evaled-arg env-new] (eval-gene (first args) env)]
+                  (if (= evaled-arg :finish)
+                    [:finish env-new]
+                    (recur (next args)
+                           (conj evaled-args evaled-arg)
+                           env-new)))))]
+        (if (= args :finish)
+          [:finish env]
+          (apply (get-in fn-table [(first gene) :fn])
+                 [args env]))))
     [gene env]))
