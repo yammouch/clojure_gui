@@ -64,12 +64,18 @@
                    (conj retval child)
                    retval)))))))
 
-(defn -main [& args]
+;(defn -main [& args]
   (loop [i 0 pool (init-pool)]
-    (if (<= 100 i)
+    (when (= i 31) (spit "pool_g31.txt" pool))
+    (when (= i 2242) (spit "pool_g2242.txt" pool))
+    (if (<= 10000 i)
       pool
       (let [scores (score-genes pool)]
-        (println "generation: " i ", max score: " (apply max scores))
+        (printf "generation: %6d , max score: %3d , average score: %5.1f\n"
+                i (apply max scores)
+                (/ (float (apply + scores)) (count scores)))
+        (flush)
+        ;(println i)
         (recur (inc i)
                (next-pool (map vector scores pool))
-               )))))
+               ))));)

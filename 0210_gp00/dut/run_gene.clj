@@ -27,8 +27,11 @@
    env])
 
 (defn gene-mov [[inst-id axes amount] env]
-  [0 (update-in env [:nodes (normalize-inst-id inst-id env) (mod axes 2)]
-                + amount)])
+  (let [refer [:nodes (normalize-inst-id inst-id env) (mod axes 2)]
+        moved-pos (+ (get-in env refer) amount)]
+    [0 (assoc-in env refer (cond (<= 32767 moved-pos)  32767
+                                 (<= moved-pos -32768) -32768
+                                 :else                 moved-pos))]))
 
 (defn gene-adjacent [[inst-id i] env]
   (let [ii (normalize-inst-id inst-id env)
