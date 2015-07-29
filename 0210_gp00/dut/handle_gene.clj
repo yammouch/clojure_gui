@@ -1,5 +1,8 @@
 (ns handle-gene)
 
+(gen-class
+  :name "handle_gene")
+
 (use '[run-gene :as rg])
 
 (defn terminal? [x] (not (coll? x)))

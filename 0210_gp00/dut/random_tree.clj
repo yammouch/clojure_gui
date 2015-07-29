@@ -1,5 +1,8 @@
 (ns random-tree)
 
+(gen-class
+  :name "random-tree")
+
 (use '[run-gene :as rg])
 (def non-terminals
   (->> rg/fn-table

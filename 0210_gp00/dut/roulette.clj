@@ -1,5 +1,8 @@
 (ns roulette)
 
+(gen-class
+  :name "roulette")
+
 (defn sumup [l]
   "e.g. ((2 :a) (3 :b) (4 :c)) -> (9 ((2 :a) (5 :b) (9 :c)))"
   (loop [l l, sum 0, acc []] 

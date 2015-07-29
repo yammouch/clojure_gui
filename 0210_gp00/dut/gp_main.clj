@@ -1,5 +1,9 @@
 (ns gp-main)
 
+(gen-class
+  :name "gp_main"
+  :main true)
+
 (require 'roulette)    (alias 'rl 'roulette)
 (require 'handle-gene) (alias 'hg 'handle-gene)
 (require 'run-gene)    (alias 'rg 'run-gene)
@@ -64,7 +68,7 @@
                    (conj retval child)
                    retval)))))))
 
-;(defn -main [& args]
+(defn -main [& args]
   (loop [i 0 pool (init-pool)]
     (when (= i 31) (spit "pool_g31.txt" pool))
     (when (= i 2242) (spit "pool_g2242.txt" pool))
@@ -78,4 +82,4 @@
         ;(println i)
         (recur (inc i)
                (next-pool (map vector scores pool))
-               ))));)
+               )))))

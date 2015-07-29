@@ -1,5 +1,8 @@
 (ns run-gene)
 
+(gen-class
+  :name "run_gene")
+
 ; In the world for genes, numbers are restricted from -2^15 to 2^15-1
 (defn to-num [x]
   (cond (number? x) (let [m (mod x 65536)]

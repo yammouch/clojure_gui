@@ -1,0 +1,5 @@
+(compile 'gp-main)
+(compile 'handle-gene)
+(compile 'random-tree)
+(compile 'roulette)
+(compile 'run-gene)
