@@ -19,6 +19,6 @@ distribution. e.g. if argument if ((2 :a) (3 :b) (5 :c)), :a, :b and :c
 occurs with the probability of 20%, 30% and 50% respectively by calling
 returned function."
   (let [[sum sum-list] (sumup l)]
-    (fn [x] (->> sum-list
-                 (filter #(> (first %) (mod x sum)))
-                 first second))))
+    (fn [rnd] (->> sum-list
+                   (filter #(> (first %) (mod rnd sum)))
+                   first second))))
