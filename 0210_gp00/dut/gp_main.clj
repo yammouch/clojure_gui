@@ -4,29 +4,29 @@
   :name "gp_main"
   :main true)
 
+(require 'utils)       (alias 'ut 'utils)
 (require 'roulette)    (alias 'rl 'roulette)
 (require 'handle-gene) (alias 'hg 'handle-gene)
 (require 'run-gene)    (alias 'rg 'run-gene)
 (require 'random-tree) (alias 'rt 'random-tree)
-;(use '[roulette    :as rl])
-;(use '[handle-gene :as hg])
-;(use '[run-gene    :as rg])
-;(use '[random-tree :as rt])
 
-(def rand-obj (java.util.Random. 1))
-
-(def pool-size 2000)
-(def gene-size-limit 100)
+(def pool-size 500)
+(def gene-size-limit 500)
 (def mutation-prob 0.01)
 (def max-iteration 20)
 
-(defn init-pool []
-  (map (fn [_] (rt/gen-tree 6))
-       (range pool-size)))
+(defn init-pool [rnd-seq]
+  (loop [i 0, rs rnd-seq, acc []]
+    (if (<= pool-size i)
+      [acc rs]
+      (let [[tree rs-next] (rt/gen-tree 6 rs)]
+        (recur (inc i) rs-next (conj acc tree))
+        ))))
 
 (defn score-schem [{[[x1 y1] [x2 y2]] :nodes}]
-  (int (Math/floor (/ 500.0 (+ (* 8 (Math/abs (- y2 y1)))
-                               (Math/abs (- x2 x1 8)) 5)))))
+  (int (Math/floor (+ (/ 495.0 (+ (* 8 (Math/abs (- y2 y1)))
+                                  (Math/abs (- x2 x1 8)) 5))
+                      1))))
 
 (def schem-1
   {:nodes [[10 10] [-10 -10]]
@@ -46,32 +46,32 @@
 (defn score-genes [pool]
   (map (comp score-schem manip-schem) pool))
 
-(defn mutate [gene]
+(defn mutate [gene rnd]
   (let [nn (hg/count-node gene)
         mutant-src (rt/gen-tree 6)]
-    (hg/replace-node gene (.nextInt rand-obj nn) mutant-src)))
+    (hg/replace-node gene (mod rnd nn) mutant-src)))
 
-(defn next-pool [scored-pool]
+(defn next-pool [scored-pool rnd-seq]
   (let [roulette (rl/make-roulette-wheel-selector scored-pool)]
-    (loop [retval []]
+    (loop [retval [], rs rnd-seq]
       (if (<= pool-size (count retval))
-        retval
-        (let [mother (roulette) mother-nn (hg/count-node mother)
-              father (roulette) father-nn (hg/count-node father)
+        [retval rs]
+        (let [[r0 r1 r2 r3 r4 r5] (take 6 rnd-seq)
+              mother (roulette r0) mother-nn (hg/count-node mother)
+              father (roulette r1) father-nn (hg/count-node father)
               [child _] (hg/crossover mother father
-                                      (.nextInt rand-obj mother-nn)
-                                      (.nextInt rand-obj father-nn))
-              child (if (< (/ (.nextInt rand-obj 65536) 65536.0)
-                           mutation-prob)
-                      (mutate child) child)]
+                                      (mod r2 mother-nn)
+                                      (mod r3 father-nn))
+              child (if (< (/ (mod r4 65536) 65536.0) mutation-prob)
+                      (mutate child r5) child)]
           (recur (if (<= (hg/count-node child) gene-size-limit)
                    (conj retval child)
-                   retval)))))))
+                   retval)
+                 (drop 6 rnd-seq)
+                 ))))))
 
 (defn -main [& args]
-  (loop [i 0 pool (init-pool)]
-    (when (= i 31) (spit "pool_g31.txt" pool))
-    (when (= i 2242) (spit "pool_g2242.txt" pool))
+  (loop [i 0 [pool rnd-seq] (init-pool (ut/lcg 0))]
     (if (<= 10000 i)
       pool
       (let [scores (score-genes pool)]
@@ -81,5 +81,5 @@
         (flush)
         ;(println i)
         (recur (inc i)
-               (next-pool (map vector scores pool))
+               (next-pool (map vector scores pool) rnd-seq)
                )))))

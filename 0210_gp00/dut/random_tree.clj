@@ -12,10 +12,10 @@
        ))
 
 (defn gen-terminal [rnd]
-  (let [rnd (mod rnd 128)]
+  (let [rnd (mod rnd 21)]
     (case rnd
       0                '(:finish)
-      (- rnd 64))))
+      (- rnd 10))))
 
 (defn distribute [i n rnd-seq]
   "Distributes i into n-element array. i must be > 0, n must be >= 0."
