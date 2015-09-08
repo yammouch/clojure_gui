@@ -7,6 +7,16 @@
     (org.jocl.CL/clGetPlatformIDs num-entries platforms num-platforms)
     (take (nth num-platforms 0) platforms)))
 
+(defn clGetDeviceIDs [platform]
+  (let [num-devices (int-array 1)
+        _ (org.jocl.CL/clGetDeviceIDs
+           platform org.jocl.CL/CL_DEVICE_TYPE_ALL 0 nil num-devices)
+        devices (make-array org.jocl.cl_device_id (nth num-devices 0))]
+    (org.jocl.CL/clGetDeviceIDs
+     platform org.jocl.CL/CL_DEVICE_TYPE_ALL (nth num-devices 0)
+     devices num-devices)
+    (seq devices)))
+
 (defn clGetPlatformInfo [platform param-name]
   (let [param-value-size 65536
         errcode-ret (int-array 1)
@@ -35,4 +45,5 @@
 (def platforms (clGetPlatformIDs))
 (def platform-info (get-platform-info (nth platforms 0)))
 (pprint platform-info)
+(def device-ids (clGetDeviceIDs (nth platforms 0)))
 
