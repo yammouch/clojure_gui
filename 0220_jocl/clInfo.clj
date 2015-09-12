@@ -50,7 +50,8 @@
 
 ; subroutines for get bunch of OpenCL infomation
 
-(def long-props '[VENDOR_ID
+(def long-props (map #(symbol (str "CL_DEVICE_" %))
+                '[VENDOR_ID
                   MAX_COMPUTE_UNITS
                   MAX_WORK_ITEM_DIMENSIONS
                   MAX_WORK_GROUP_SIZE
@@ -84,16 +85,18 @@
                   PROFILING_TIMER_RESOLUTION
                   ENDIAN_LITTLE
                   AVAILABLE
-                  COMPILER_AVAILABLE])
+                  COMPILER_AVAILABLE]))
 
-(def str-props '[NAME
+(def str-props (map #(symbol (str "CL_DEVICE_" %))
+               '[NAME
                  VENDOR
                  PROFILE
                  VERSION
-                 EXTENSIONS])
+                 EXTENSIONS]))
 
-(def hex-props '[SINGLE_FP_CONFIG
-                 QUEUE_PROPERTIES])
+(def hex-props (map #(symbol (str "CL_DEVICE_" %))
+               '[SINGLE_FP_CONFIG
+                 QUEUE_PROPERTIES]))
 
 
 ;/* XXX For completeness, it'd be nice to dump this one, too. */
@@ -109,12 +112,16 @@
   (apply str (map char (butlast array))))
 
 (defn get-device-info [device]
-  (let [names (map #(str "CL_DEVICE_" %) long-props)]
-    (map (fn [name] [name
-                     (parse-unsigned-info
-                      (clGetDeviceInfo device name))
-                      ])
-         names)))
+  (let [long-info (map #(clGetDeviceInfo device %)
+                       long-props)
+        str-info (map #(clGetDeviceInfo device %)
+                      str-props)
+        hex-info (map #(clGetDeviceInfo device %)
+                      hex-props)]
+    (concat (map vector long-props (map parse-unsigned-info long-info))
+            (map vector str-props (map parse-str-info str-info))
+            (map vector hex-props (map parse-unsigned-info hex-info))
+            )))
 
 (defn get-platform-info [platform]
   (let [names '[CL_PLATFORM_PROFILE
