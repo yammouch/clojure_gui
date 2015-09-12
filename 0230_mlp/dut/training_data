@@ -1,5 +1,3 @@
-(defn m*v [m v] (map #(reduce + (map * % v)) m)
-
 [0 1 1 1 0
  1 0 0 0 1
  1 0 0 0 1
