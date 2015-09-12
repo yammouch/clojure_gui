@@ -1,5 +1,29 @@
 ; $ java -cp /path/to/JOCL-x.x.x.jar:/path/to/clojure-x.x.x.jar -Djava.library.path="/path/to/JOCL-x.x.x-bin" clojure.main -i clInfo.clj
 
+; very thin wrapper of OpenCL API
+
+(defn clGetPlatformIDs []
+  (let [num-entries 256
+        platforms (make-array org.jocl.cl_platform_id num-entries)
+        num-platforms (int-array 1)]
+    (org.jocl.CL/clGetPlatformIDs num-entries platforms num-platforms)
+    (take (nth num-platforms 0) platforms)))
+
+(defn clGetPlatformInfo [platform param-name]
+  (let [param-value-size 65536
+        errcode-ret (int-array 1)
+        param-value-body (byte-array param-value-size)
+        param-value (org.jocl.Pointer/to param-value-body)
+        param-value-size-ret (long-array 1)]
+    (org.jocl.CL/clGetPlatformInfo
+     platform    
+     (.get (.getField org.jocl.CL (str param-name)) nil)
+     param-value-size
+     param-value
+     param-value-size-ret)
+    (take (nth param-value-size-ret 0)
+          param-value-body)))
+
 (defn clGetDeviceIDs [platform]
   (let [num-devices (int-array 1)
         _ (org.jocl.CL/clGetDeviceIDs
@@ -10,7 +34,7 @@
      devices num-devices)
     (seq devices)))
 
-(defn clGetDeviceInfo-raw [device param-name]
+(defn clGetDeviceInfo [device param-name]
   (let [param-value-size 65536
         param-value-body (byte-array param-value-size)
         param-value (org.jocl.Pointer/to param-value-body)
@@ -24,9 +48,11 @@
     (take (nth param-value-size-ret 0) param-value-body)
     ))
 
+; subroutines for get bunch of OpenCL infomation
+
 (def long-props '[VENDOR_ID
-                  MAX_COMPUTE_UNIT
-                  MAX_WORK_ITEM_DEMENSTIONS
+                  MAX_COMPUTE_UNITS
+                  MAX_WORK_ITEM_DIMENSIONS
                   MAX_WORK_GROUP_SIZE
                   PREFERRED_VECTOR_WIDTH_CHAR
                   PREFERRED_VECTOR_WIDTH_SHORT
@@ -74,31 +100,21 @@
 ;#define WEIRD_PROPS \
 ;   CL_DEVICE_MAX_WORK_ITEM_SIZES,
 
-;(defn get-device-info [device]
-;  (let [names (map #(str "CL_DEVICE_" %) hex-props)]
-    
 
-(defn clGetPlatformIDs []
-  (let [num-entries 256
-        platforms (make-array org.jocl.cl_platform_id num-entries)
-        num-platforms (int-array 1)]
-    (org.jocl.CL/clGetPlatformIDs num-entries platforms num-platforms)
-    (take (nth num-platforms 0) platforms)))
+(defn parse-unsigned-info [array]
+  (reduce (fn [acc x] (+ (* 256 acc) x))
+          (reverse (map (fn [x] (if (neg? x) (+ x 256) x))
+                        array))))
+(defn parse-str-info [array]
+  (apply str (map char (butlast array))))
 
-(defn clGetPlatformInfo [platform param-name]
-  (let [param-value-size 65536
-        errcode-ret (int-array 1)
-        param-value-body (byte-array param-value-size)
-        param-value (org.jocl.Pointer/to param-value-body)
-        param-value-size-ret (long-array 1)]
-    (org.jocl.CL/clGetPlatformInfo
-     platform    
-     (.get (.getField org.jocl.CL (str param-name)) nil)
-     param-value-size
-     param-value
-     param-value-size-ret)
-    (apply str (map char (take (dec (nth param-value-size-ret 0))
-                               param-value-body)))))
+(defn get-device-info [device]
+  (let [names (map #(str "CL_DEVICE_" %) long-props)]
+    (map (fn [name] [name
+                     (parse-unsigned-info
+                      (clGetDeviceInfo device name))
+                      ])
+         names)))
 
 (defn get-platform-info [platform]
   (let [names '[CL_PLATFORM_PROFILE
@@ -106,12 +122,15 @@
                 CL_PLATFORM_NAME
                 CL_PLATFORM_VENDOR
                 CL_PLATFORM_EXTENSIONS]]
-    (zipmap names
-            (map #(clGetPlatformInfo platform %) names)
-            )))
+    (map vector
+     names
+     (map #(parse-str-info (clGetPlatformInfo platform %)) names)
+     )))
 
 (def platforms (clGetPlatformIDs))
 (def platform-info (get-platform-info (nth platforms 0)))
 (pprint platform-info)
 (def device-ids (clGetDeviceIDs (nth platforms 0)))
+(def device-info (get-device-info (nth device-ids 0)))
+(pprint device-info)
 
