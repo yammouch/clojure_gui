@@ -1,6 +1,7 @@
 (ns test-mlp)
 
 (require 'mlp)
+(use '[clojure.pprint])
 
 
 (println "Tests m*v.")
@@ -43,3 +44,17 @@
       (print "[ER]" result))
     (println " test case " cv rv)
     ))
+
+
+(println "Tests calc-output.")
+
+(pprint (mlp/calc-output
+         [[[0.0 0.0]
+           [0.0 0.0]]
+          [[0.0 0.0]
+           [0.0 0.0]
+           ]]
+         [[0.0 0.0]
+          [0.0 0.0]]
+         [1.0 0.0]))
+
