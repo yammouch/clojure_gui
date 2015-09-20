@@ -46,6 +46,6 @@
       (if (or (empty? ds) (empty? os))
         [(cons deriv acc-w) (cons delta acc-b)]
         (recur (butlast ws) (butlast ds) (butlast os)
-               (m*v (transpose (last ws)) delta)
+               (map * (m*v (transpose (last ws)) delta) (last ds))
                (cons deriv acc-w) (cons delta acc-b)
                )))))
