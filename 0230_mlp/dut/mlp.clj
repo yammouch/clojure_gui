@@ -7,10 +7,10 @@
        c))
 (defn transpose [m] (apply map vector m))
 
-(def training-data
-  (partition 2
-   (read-string (str "[" (slurp "training_data") "]"))
-   ))
+;(def training-data
+;  (partition 2
+;   (read-string (str "[" (slurp "training_data") "]"))
+;   ))
 
 ; reference: http://neuralnetworksanddeeplearning.com/chap2.html
 ; out = a3
