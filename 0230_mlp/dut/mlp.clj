@@ -28,10 +28,10 @@
     (if (or (empty? ws) (empty? bs))
       [out deriv]
       (let [weighted (map + (m*v (first ws) (last out)) (first bs))
-            exps (map #(Math/exp %) weighted)
+            exps (map #(Math/exp (- %)) weighted)
             sigs (map #(/ (+ 1.0 %)) exps)]
         (recur (next ws) (next bs) (conj out sigs)
-               (conj deriv (map #(* (- %1) %2 %2) exps sigs)) ; s'(z)
+               (conj deriv (map #(* %1 %2 %2) exps sigs)) ; s'(z)
                )))))
 
 (defn calc-coeff-deriv [weight-array deriv-array out-array expc scale]
