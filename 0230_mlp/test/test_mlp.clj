@@ -1,8 +1,7 @@
 (ns test-mlp)
 
 (require 'mlp)
-(use '[clojure.pprint])
-
+(require 'clojure.pprint)
 
 (println "Tests m*v.")
 
@@ -48,13 +47,15 @@
 
 (println "Tests calc-output.")
 
-(pprint (mlp/calc-output
-         [[[0.0 0.0]
-           [0.0 0.0]]
-          [[0.0 0.0]
-           [0.0 0.0]
-           ]]
-         [[0.0 0.0]
-          [0.0 0.0]]
-         [1.0 0.0]))
+(let [weight-array [[[0.0 0.0]
+                     [0.0 0.0]]
+                    [[0.0 0.0]]]
+      b-array [[0.0 0.0]
+               [0.0]]
+      invec [1.0 0.0]
+      [out-array deriv-array] (mlp/calc-output weight-array b-array invec)]
+  (clojure.pprint/pprint [out-array deriv-array])
+  (clojure.pprint/pprint
+   (mlp/calc-coeff-deriv weight-array deriv-array out-array [1.0] 1.0)
+   ))
 
