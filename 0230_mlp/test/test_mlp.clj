@@ -3,6 +3,26 @@
 (require 'mlp)
 (require 'clojure.pprint)
 
+
+(println "Tests m+.")
+
+(def test-pattern
+  [ [[1 2]
+     [2 3]]
+    [[0 1]
+     [2 2]]
+    [[1 1]
+     [1 1]
+     ]])
+
+(let [result (apply mlp/m+ (take 1 test-patterns))]
+  (if (= result [[1 2] [2 3]])
+    (print "[OK]")
+    (print "[ER]" result))
+  (println " test case " m v)
+  ))
+
+
 (println "Tests m*v.")
 
 (def test-patterns
