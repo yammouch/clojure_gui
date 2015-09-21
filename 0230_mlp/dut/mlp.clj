@@ -1,5 +1,8 @@
 (ns mlp)
 
+(defn m+ [& ms]
+  (apply map (fn [& vs] (apply map + vs))
+             ms))
 (defn m*v [m v] (map #(reduce + (map * % v)) m))
 (defn cv*rv [c r] ; c: column vector, r: row vector
   (map (fn [ce] (map (fn [re] (* ce re))
