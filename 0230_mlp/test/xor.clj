@@ -15,12 +15,16 @@
          b-array [[0.0 0.0] [0.0]]]
     (if (<= 10 i)
       :done
-      (do (println "iter:" i)
-          (clojure.pprint/pprint [weight-array b-array])
-          (let [outputs (map (fn [[in _]]
-                               (mlp/calc-output weight-array b-array in))
-                             training-data)
-                updates (map (fn [[out-array deriv-array] [_ expc]]
-                               (mlp/calc-coeff-deriv weight-array deriv-array
-                                                     out-array expc -0.025)))
-                             outputs training-data)]
+      (let [outputs (map (fn [[in _]]
+                           (mlp/calc-output weight-array b-array in))
+                         training-data)
+            updates (map (fn [[out-array deriv-array] [_ expc]]
+                           (mlp/calc-coeff-deriv weight-array deriv-array
+                                                 out-array expc -0.025))
+                         outputs training-data)]
+        (println "iter:" i)
+        (clojure.pprint/pprint [weight-array b-array])
+        (recur (inc i)
+               (apply mlp/m+ weight-array (map first updates))
+               (apply map + b-array (map second updates))
+               )))))
