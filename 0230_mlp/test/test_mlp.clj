@@ -7,20 +7,20 @@
 (println "Tests r+.")
 
 (def test-patterns
-  [ [[1 2]
-     [2 3]]
-    [[0 1]
-     [2 2]]
-    [[1 1]
-     [1 1]
-     ]])
+  [ {:args [ [[1 2] [2 3]]
+             [[0 1] [2 2]] ]
+     :expc [[1 3] [4 5]] }
+    {:args [ [] [] ]
+     :expc [] }
+    {:args [1 2 3]
+     :expc 6}])
 
-(let [tc (take 1 test-patterns)
-      result (apply mlp/r+ tc)]
-  (if (= result [[1 2] [2 3]])
-    (print "[OK]")
-    (print "[ER]" result))
-  (println " test case " tc))
+(doseq [{args :args expc :expc} test-patterns]
+  (let [result (apply mlp/r+ args)]
+    (if (= result expc)
+      (print "[OK]")
+      (print "[ER]" result))
+    (println " test case " args)))
 
 
 (println "Tests m*v.")
