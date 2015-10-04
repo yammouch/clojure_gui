@@ -6,7 +6,7 @@
 
 (println "Tests m+.")
 
-(def test-pattern
+(def test-patterns
   [ [[1 2]
      [2 3]]
     [[0 1]
@@ -15,12 +15,12 @@
      [1 1]
      ]])
 
-(let [result (apply mlp/m+ (take 1 test-patterns))]
+(let [tc (take 1 test-patterns)
+      result (apply mlp/m+ tc)]
   (if (= result [[1 2] [2 3]])
     (print "[OK]")
     (print "[ER]" result))
-  (println " test case " m v)
-  ))
+  (println " test case " tc))
 
 
 (println "Tests m*v.")
