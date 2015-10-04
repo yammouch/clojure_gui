@@ -1,9 +1,11 @@
 (ns mlp)
 
 (defn r+2 [x y] ; recursive +, for matrix, matrix array, vector etc.
-  (cond (or (empty? x) (empty? y)) nil
-        (and (seq? x) (seq? y)) (cons (r+2 (first x) (first y))
-                                      (r+2 (next x) (next y)))
+  (cond (nil? x) []
+        (coll? x) (if (empty? x)
+                    []
+                    (cons (r+2 (first x) (first y))
+                          (r+2 (next x) (next y))))
         :else (+ x y)))
 (defn r+ [& xs] (reduce r+2 xs))
 
