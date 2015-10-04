@@ -1,8 +1,12 @@
 (ns mlp)
 
-(defn m+ [& ms]
-  (apply map (fn [& vs] (apply map + vs))
-             ms))
+(defn r+2 [x y] ; recursive +, for matrix, matrix array, vector etc.
+  (cond (or (empty? x) (empty? y)) nil
+        (and (seq? x) (seq? y)) (cons (r+2 (first x) (first y))
+                                      (r+2 (next x) (next y)))
+        :else (+ x y)))
+(defn r+ [& xs] (reduce r+2 xs))
+
 (defn m*v [m v] (map #(reduce + (map * % v)) m))
 (defn cv*rv [c r] ; c: column vector, r: row vector
   (map (fn [ce] (map (fn [re] (* ce re))

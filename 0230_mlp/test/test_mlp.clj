@@ -4,7 +4,7 @@
 (require 'clojure.pprint)
 
 
-(println "Tests m+.")
+(println "Tests r+.")
 
 (def test-patterns
   [ [[1 2]
@@ -16,7 +16,7 @@
      ]])
 
 (let [tc (take 1 test-patterns)
-      result (apply mlp/m+ tc)]
+      result (apply mlp/r+ tc)]
   (if (= result [[1 2] [2 3]])
     (print "[OK]")
     (print "[ER]" result))
