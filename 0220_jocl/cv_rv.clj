@@ -75,6 +75,7 @@
 ;(let [buf (char-array 1024)]
 ;(def buf (char-array 1024))
 (def buf (byte-array 1024))
+(def len (long-array 1))
   (org.jocl.CL/clGetProgramInfo
    program org.jocl.CL/CL_PROGRAM_SOURCE 1024 (org.jocl.Pointer/to buf) len)
   (print "clGetProgramInfo, source = ")
@@ -129,13 +130,18 @@
    0 nil nil)
    )
 
+(print "clEnqueueNDRangeKernel, errcode-ret = ")
 (let [kernel-done (make-array org.jocl.cl_event 1)]
-  (org.jocl.CL/clEnqueueNDRangeKernel
-   queue kernel 2 (long-array [4 4]) (long-array [4 4]) (long-array [1 1])
-   ;0 nil kernel-done))
-   0 nil nil))
+  (println
+    (org.jocl.CL/clEnqueueNDRangeKernel
+     queue kernel 2 nil (long-array [4 4]) (long-array [1 1])
+     ;queue kernel 1 nil (long-array [16]) (long-array [1])
+     ;queue kernel 1 nil (long-array [4]) (long-array [1])
+     0 nil nil))
+     )
 
-(def prod-array (float-array (* 4 4)))
+(def prod-array (float-array (* N N)))
+
 
 (org.jocl.CL/clEnqueueReadBuffer
  queue prod-mem org.jocl.CL/CL_TRUE
@@ -145,6 +151,13 @@
 (pprint cv-array)
 (pprint rv-array)
 (pprint (partition 4 prod-array))
+
+(def hoge-array (float-array N))
+(org.jocl.CL/clEnqueueReadBuffer
+ queue cv-mem org.jocl.CL/CL_TRUE
+ 0 (* 4 N) (org.jocl.Pointer/to hoge-array)
+ 0 nil nil)
+(pprint hoge-array)
 
 (org.jocl.CL/clFlush queue)
 (org.jocl.CL/clFinish queue)
