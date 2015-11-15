@@ -54,39 +54,80 @@
              ;(org.jocl.Pointer/to rv-array)
              nil
              errcode-ret))
+(print "clCreateBuffer for rv-mem, errcode-ret = ")
+(println (nth errcode-ret 0))
 
 (def prod-mem (org.jocl.CL/clCreateBuffer
                context org.jocl.CL/CL_MEM_READ_WRITE
                (* N N 4) ; 4 -> sizeof(float)
                nil errcode-ret))
+(print "clCreateBuffer for prod-mem, errcode-ret = ")
+(println (nth errcode-ret 0))
 
 (let [src (slurp "cv_rv.cl")]
+  (println src)
+  (println (count src))
   (def program (org.jocl.CL/clCreateProgramWithSource
                 context 1 (into-array String [src])
                 (long-array [(count src)]) errcode-ret)))
+(print "clCreateProgramWithSource, errcode-ret = ")
+(println (nth errcode-ret 0))
+;(let [buf (char-array 1024)]
+;(def buf (char-array 1024))
+(def buf (byte-array 1024))
+  (org.jocl.CL/clGetProgramInfo
+   program org.jocl.CL/CL_PROGRAM_SOURCE 1024 (org.jocl.Pointer/to buf) len)
+  (print "clGetProgramInfo, source = ")
+  (print (apply str buf))
+  (print ", len = ")
+  (print (first len))
+  ;)
+(println (nth errcode-ret 0))
 
 (org.jocl.CL/clBuildProgram
  program 1 (into-array org.jocl.cl_device_id devices) nil nil nil)
+(print "clBuildProgram, errcode-ret = ")
+(println (nth errcode-ret 0))
 
 (def kernel (org.jocl.CL/clCreateKernel program "cv_rv" errcode-ret))
+(print "clCreateKernel, errcode-ret = ")
+(println (nth errcode-ret 0))
 
-(org.jocl.CL/clSetKernelArg
- kernel 0 (* org.jocl.Sizeof/cl_float N N) (org.jocl.Pointer/to prod-mem))
-(org.jocl.CL/clSetKernelArg
- kernel 1 org.jocl.Sizeof/cl_mem (org.jocl.Pointer/to cv-mem))
-(org.jocl.CL/clSetKernelArg
- kernel 2 org.jocl.Sizeof/cl_mem (org.jocl.Pointer/to rv-mem))
-(org.jocl.CL/clSetKernelArg
- kernel 3 org.jocl.Sizeof/cl_int (org.jocl.Pointer/to (int-array [N])))
+(print "clSetKernalArg for arg 0, errcode-ret = ")
+(println
+  (org.jocl.CL/clSetKernelArg
+   kernel 0 org.jocl.Sizeof/cl_mem (org.jocl.Pointer/to prod-mem))
+   )
+(print "clSetKernalArg for arg 1, errcode-ret = ")
+(println
+  (org.jocl.CL/clSetKernelArg
+   kernel 1 org.jocl.Sizeof/cl_mem (org.jocl.Pointer/to cv-mem))
+   )
+(print "clSetKernalArg for arg 2, errcode-ret = ")
+(println
+  (org.jocl.CL/clSetKernelArg
+   kernel 2 org.jocl.Sizeof/cl_mem (org.jocl.Pointer/to rv-mem))
+   )
+(print "clSetKernalArg for arg 3, errcode-ret = ")
+(println
+  (org.jocl.CL/clSetKernelArg
+   kernel 3 org.jocl.Sizeof/cl_int (org.jocl.Pointer/to (int-array [N])))
+   )
 
-(org.jocl.CL/clEnqueueWriteBuffer
- queue cv-mem org.jocl.CL/CL_TRUE
- 0 (* 4 N) (org.jocl.Pointer/to cv-array)
- 0 nil nil)
-(org.jocl.CL/clEnqueueWriteBuffer
- queue rv-mem org.jocl.CL/CL_TRUE
- 0 (* 4 N) (org.jocl.Pointer/to rv-array)
- 0 nil nil)
+(print "clEnqueueWriteBuffer for cv-mem, errcode-ret = ")
+(println
+  (org.jocl.CL/clEnqueueWriteBuffer
+   queue cv-mem org.jocl.CL/CL_TRUE
+   0 (* 4 N) (org.jocl.Pointer/to cv-array)
+   0 nil nil)
+   )
+(print "clEnqueueWriteBuffer for rv-mem, errcode-ret = ")
+(println
+  (org.jocl.CL/clEnqueueWriteBuffer
+   queue rv-mem org.jocl.CL/CL_TRUE
+   0 (* 4 N) (org.jocl.Pointer/to rv-array)
+   0 nil nil)
+   )
 
 (let [kernel-done (make-array org.jocl.cl_event 1)]
   (org.jocl.CL/clEnqueueNDRangeKernel
