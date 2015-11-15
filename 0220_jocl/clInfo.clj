@@ -129,15 +129,13 @@
                 CL_PLATFORM_NAME
                 CL_PLATFORM_VENDOR
                 CL_PLATFORM_EXTENSIONS]]
-    (map vector
-     names
-     (map #(parse-str-info (clGetPlatformInfo platform %)) names)
-     )))
+    (concat (map vector
+             names
+             (map #(parse-str-info (clGetPlatformInfo platform %))
+                  names))
+            (map get-device-info (clGetDeviceIDs platform))
+            )))
 
 (def platforms (clGetPlatformIDs))
-(def platform-info (get-platform-info (nth platforms 0)))
-(pprint platform-info)
-(def device-ids (clGetDeviceIDs (nth platforms 0)))
-(def device-info (get-device-info (nth device-ids 0)))
-(pprint device-info)
-
+(def platforms-info (map get-platform-info platforms))
+(pprint platforms-info)
