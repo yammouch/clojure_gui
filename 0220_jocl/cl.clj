@@ -1,3 +1,5 @@
+(ns cl)
+
 ; wrapper of OpenCL API
 
 (defn clGetPlatformIDs []
