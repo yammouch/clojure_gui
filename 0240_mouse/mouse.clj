@@ -11,6 +11,9 @@
   [[] (atom [])])
 
 (def mouse-pos (ref [0 0]))
+(def offset [30 30])
+(def interval 20)
+(def size [20 20])
 
 (defn make-mouse-listener [panel]
   (proxy [MouseMotionListener] []
@@ -26,13 +29,21 @@
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
+      (.setColor g Color/GRAY)
+      (let [xs (take (get size 0)
+                     (iterate #(+ % interval) (get offset 0)))
+            x0 (first xs) x1 (last xs)
+            ys (take (get size 1)
+                     (iterate #(+ % interval) (get offset 1)))
+            y0 (first ys) y1 (last ys)]
+        (doseq [x xs] (.drawLine g x  y0 x  y1))
+        (doseq [y ys] (.drawLine g x0 y  x1 y )))
       (.setColor g Color/BLUE)
-      (.drawString g (str @mouse-pos) 10 10)
-      (.drawPolyline g (int-array [ 20 220])
-                       (int-array [220  20])
-                       2))
+      (.drawString g (str @mouse-pos) 10 10))
     (getPreferredSize []
-      (Dimension. 240 240))))
+      (Dimension. (+ (* (get offset 0) 2) (* interval (get size 0)))
+                  (+ (* (get offset 1) 2) (* interval (get size 1)))
+                  ))))
 
 (defn anime-panel []
   (let [frame (JFrame. "Mouse Motion")
