@@ -42,18 +42,18 @@
   (let [[gx gy lx ly] (calc-grid [x y])]
     (if (or (and (<= (- free-area) lx) (< lx free-area)
                  (<= (- free-area) ly) (< ly free-area))
-            (< gx 0) (< (get field-size 0) gx)
-            (< gy 0) (< (get field-size 1) gy))
+            (< gx 0) (<= (get field-size 0) gx)
+            (< gy 0) (<= (get field-size 1) gy))
       [nil nil :stay]
       (case (calc-local-direction [lx ly])
-        :down  (if (not= gy (get field-size 1))
-                 [gx  gy  :down ] [nil nil :stay])
-        :up    (if (not= gy 0)
-                 [gx  gy  :up   ] [nil nil :stay])
-        :right (if (not= gx (get field-size 0))
-                 [gx  gy  :right] [nil nil :stay])
-        :left  (if (not= gx 0)
-                 [gx  gy  :left ] [nil nil :stay])))))
+        :down  (if (<= (dec (get field-size 1)) gy)
+                 [nil nil :stay] [gx gy :down ])
+        :up    (if (<= gy 0)
+                 [nil nil :stay] [gx gy :up   ])
+        :right (if (<= (dec (get field-size 0)) gx)
+                 [nil nil :stay] [gx gy :right])
+        :left  (if (<= gx 0)
+                 [nil nil :stay] [gx gy :left ])))))
 
 (defn update-cursor [#^{:tag MouseEvent} e]
   (let [x (.getX e) y (.getY e)
@@ -110,10 +110,10 @@
     (paintComponent [g]
       (proxy-super paintComponent g)
       (.setColor g Color/GRAY)
-      (let [xs (take (inc (get field-size 0))
+      (let [xs (take (get field-size 0)
                      (iterate #(+ % interval) (get offset 0)))
             x0 (first xs) x1 (last xs)
-            ys (take (inc (get field-size 1))
+            ys (take (get field-size 1)
                      (iterate #(+ % interval) (get offset 1)))
             y0 (first ys) y1 (last ys)]
         (doseq [x xs] (.drawLine g x  y0 x  y1))
@@ -121,9 +121,11 @@
       (draw-status g)
       (draw-cursor g @cursor-pos))
     (getPreferredSize []
-      (Dimension. (+ (* (get offset 0) 2) (* interval (get field-size 0)))
-                  (+ (* (get offset 1) 2) (* interval (get field-size 1)))
-                  ))))
+      (Dimension. (+ (* (get offset 0) 2)
+                     (* interval (dec (get field-size 0))))
+                  (+ (* (get offset 1) 2)
+                     (* interval (dec (get field-size 1)))
+                     )))))
 
 (defn make-button-panel [schem-panel]
   (let [b-add-line (JButton. "add line")
