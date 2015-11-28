@@ -4,7 +4,8 @@
    :state state))
 
 (import '(java.awt Color Dimension BorderLayout GridLayout Font BasicStroke))
-(import '(java.awt.event ActionListener MouseMotionListener))
+(import '(java.awt.event ActionListener MouseEvent
+                         MouseListener MouseMotionListener))
 (import '(javax.swing JFrame JPanel JButton))
 
 (defn -init []
@@ -37,7 +38,7 @@
       (if down-right :down  :left)
       (if down-right :right :up))))
 
-(defn calc-cursor-pos [x y]
+(defn calc-cursor-pos [[x y]]
   (let [[gx gy lx ly] (calc-grid [x y])]
     (if (or (and (<= (- free-area) lx) (< lx free-area)
                  (<= (- free-area) ly) (< ly free-area))
@@ -54,19 +55,34 @@
         :left  (if (not= gx 0)
                  [gx  gy  :left ] [nil nil :stay])))))
 
+(defn update-cursor [#^{:tag MouseEvent} e]
+  (let [x (.getX e) y (.getY e)
+        [_ _ dir :as cp] (calc-cursor-pos [x y])]
+    (dosync
+      (ref-set mouse-pos [x y])
+      (when (not= dir :stay) (ref-set cursor-pos cp))
+      )))
+
 (defn make-mouse-listener [panel]
+  (proxy [MouseListener] []
+    (mousePressed [e]
+      (update-cursor e)
+      (println @cursor-pos))
+    (mouseClicked [_])
+    (mouseReleased [_])
+    (mouseEntered [_])
+    (mouseExited [_])))
+
+(defn make-mouse-motion-listener [panel]
   (proxy [MouseMotionListener] []
     (mouseMoved [e]
-      (let [x (.getX e)
-            y (.getY e)
-            [_ _ dir :as cp] (calc-cursor-pos x y)]
-        (dosync
-          (ref-set mouse-pos [x y])
-          (when (not= dir :stay) (ref-set cursor-pos cp))
-          ))
+      (update-cursor e)
       (.repaint panel))
-    ;(mouseDragged [e])
-    ))
+    (mouseDragged [e]
+      (update-cursor e)
+      (.repaint panel)
+      (println @cursor-pos)
+      )))
 
 (let [stroke (BasicStroke. 3)]
   (defn draw-cursor [g [gx gy dir]]
@@ -132,8 +148,10 @@
   (let [frame (JFrame. "Mouse Motion")
         schem-panel (make-panel)
         button-panel (make-button-panel schem-panel)
-        listener (make-mouse-listener schem-panel)]
-    (.addMouseMotionListener schem-panel listener)
+        mouse-listener (make-mouse-listener schem-panel)
+        mouse-motion-listener (make-mouse-motion-listener schem-panel)]
+    (.addMouseListener schem-panel mouse-listener)
+    (.addMouseMotionListener schem-panel mouse-motion-listener)
     (.. frame getContentPane (add button-panel BorderLayout/WEST))
     (.. frame getContentPane (add schem-panel BorderLayout/CENTER))
     (.pack frame)
