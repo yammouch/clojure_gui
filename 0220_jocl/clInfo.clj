@@ -110,6 +110,16 @@
                         array))))
 (defn parse-str-info [array]
   (apply str (map char (butlast array))))
+(defn parse-device-type [array]
+  (let [types (map #(symbol (str "CL_DEVICE_TYPE_" %))
+                   '[DEFAULT CPU GPU ACCELERATOR])
+        type-vals (map #(.get (.getField org.jocl.CL (str %)) nil)
+                       types)
+        u (parse-unsigned-info array)]
+    (map first
+         (remove #(= 0 (get % 1))
+                 (map (fn [t tv] [t (bit-and u tv)]) types type-vals)
+                 ))))
 
 (defn get-device-info [device]
   (let [long-info (map #(clGetDeviceInfo device %)
@@ -121,6 +131,8 @@
     (concat (map vector long-props (map parse-unsigned-info long-info))
             (map vector str-props (map parse-str-info str-info))
             (map vector hex-props (map parse-unsigned-info hex-info))
+            [['CL_DEVICE_TYPE
+             (parse-device-type (clGetDeviceInfo device 'CL_DEVICE_TYPE))]]
             )))
 
 (defn get-platform-info [platform]
