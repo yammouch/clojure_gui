@@ -3,8 +3,8 @@
    :init init
    :state state))
 
-(import '(java.awt Color Dimension BorderLayout GridLayout))
-(import '(java.awt.event MouseMotionListener))
+(import '(java.awt Color Dimension BorderLayout GridLayout Font))
+(import '(java.awt.event ActionListener MouseMotionListener))
 (import '(javax.swing JFrame JPanel JButton))
 
 (defn -init []
@@ -12,6 +12,7 @@
 
 (def mouse-pos (ref [0 0]))
 (def cursor-pos (ref [0 0 :right]))
+(def mode (ref :add-line))
 (def offset [30 30])
 (def free-area 5)
 (def interval-half 10)
@@ -78,6 +79,14 @@
     (.setColor g Color/CYAN)
     (.drawLine g x0 y0 x1 y1)))
 
+(let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
+  (defn draw-status [g]
+    (.setColor g Color/BLUE)
+    (.setFont g font)
+    (.drawString g (str @mouse-pos) 10 10)
+    (.drawString g (str @cursor-pos) 110 10)
+    (.drawString g (str @mode) 210 10)))
+
 (defn make-panel []
   (proxy [JPanel] []
     (paintComponent [g]
@@ -91,19 +100,27 @@
             y0 (first ys) y1 (last ys)]
         (doseq [x xs] (.drawLine g x  y0 x  y1))
         (doseq [y ys] (.drawLine g x0 y  x1 y )))
-      (draw-cursor g @cursor-pos)
-      (.setColor g Color/BLUE)
-      (.drawString g (str @mouse-pos) 10 10)
-      (.drawString g (str @cursor-pos) 10 22))
+      (draw-status g)
+      (draw-cursor g @cursor-pos))
     (getPreferredSize []
       (Dimension. (+ (* (get offset 0) 2) (* interval (get field-size 0)))
                   (+ (* (get offset 1) 2) (* interval (get field-size 1)))
                   ))))
 
-(defn make-button-panel []
+(defn make-button-panel [schem-panel]
   (let [b-add-line (JButton. "add line")
         b-del-line (JButton. "delete line")
         panel (JPanel.)]
+    (.addActionListener b-add-line
+     (proxy [ActionListener] []
+       (actionPerformed [_]
+         (dosync (ref-set mode :add-line))
+         (.repaint schem-panel))))
+    (.addActionListener b-del-line
+     (proxy [ActionListener] []
+       (actionPerformed [_]
+         (dosync (ref-set mode :del-line))
+         (.repaint schem-panel))))
     (.setLayout panel (GridLayout. 2 1))
     (.add panel b-add-line)
     (.add panel b-del-line)
@@ -112,7 +129,7 @@
 (defn anime-panel []
   (let [frame (JFrame. "Mouse Motion")
         schem-panel (make-panel)
-        button-panel (make-button-panel)
+        button-panel (make-button-panel schem-panel)
         listener (make-mouse-listener schem-panel)]
     (.addMouseMotionListener schem-panel listener)
     (.. frame getContentPane (add button-panel BorderLayout/WEST))
