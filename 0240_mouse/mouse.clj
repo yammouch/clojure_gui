@@ -3,9 +3,9 @@
    :init init
    :state state))
 
-(import '(java.awt Color Dimension))
+(import '(java.awt Color Dimension BorderLayout GridLayout))
 (import '(java.awt.event MouseMotionListener))
-(import '(javax.swing JFrame JPanel))
+(import '(javax.swing JFrame JPanel JButton))
 
 (defn -init []
   [[] (atom [])])
@@ -100,17 +100,27 @@
                   (+ (* (get offset 1) 2) (* interval (get field-size 1)))
                   ))))
 
+(defn make-button-panel []
+  (let [b-add-line (JButton. "add line")
+        b-del-line (JButton. "delete line")
+        panel (JPanel.)]
+    (.setLayout panel (GridLayout. 2 1))
+    (.add panel b-add-line)
+    (.add panel b-del-line)
+    panel))
+
 (defn anime-panel []
   (let [frame (JFrame. "Mouse Motion")
-        panel (make-panel)
-        listener (make-mouse-listener panel)]
-    (.addMouseMotionListener panel listener)
-    (doto frame
-      (.add panel)
-      (.pack)
-      ;(.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.setVisible true))
-    panel))
+        schem-panel (make-panel)
+        button-panel (make-button-panel)
+        listener (make-mouse-listener schem-panel)]
+    (.addMouseMotionListener schem-panel listener)
+    (.. frame getContentPane (add button-panel BorderLayout/WEST))
+    (.. frame getContentPane (add schem-panel BorderLayout/CENTER))
+    (.pack frame)
+    ;(.setDefaultCloseOperation frame JFrame/EXIT_ON_CLOSE)
+    (.setVisible frame true)
+    frame))
 
 (defn -main []
   (let [panel (anime-panel)]
