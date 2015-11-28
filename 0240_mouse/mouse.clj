@@ -3,7 +3,7 @@
    :init init
    :state state))
 
-(import '(java.awt Color Dimension BorderLayout GridLayout Font))
+(import '(java.awt Color Dimension BorderLayout GridLayout Font BasicStroke))
 (import '(java.awt.event ActionListener MouseMotionListener))
 (import '(javax.swing JFrame JPanel JButton))
 
@@ -68,16 +68,18 @@
     ;(mouseDragged [e])
     ))
 
-(defn draw-cursor [g [gx gy dir]]
-  (let [x0 (+ (get offset 0) (* gx interval))
-        y0 (+ (get offset 1) (* gy interval))
-        [x1 y1] (map + [x0 y0]
-                       (case dir :up    [0 (- interval-half)]
-                                 :down  [0 interval-half    ]
-                                 :left  [(- interval-half) 0]
-                                 :right [interval-half     0]))]
-    (.setColor g Color/CYAN)
-    (.drawLine g x0 y0 x1 y1)))
+(let [stroke (BasicStroke. 3)]
+  (defn draw-cursor [g [gx gy dir]]
+    (let [x0 (+ (get offset 0) (* gx interval))
+          y0 (+ (get offset 1) (* gy interval))
+          [x1 y1] (map + [x0 y0]
+                         (case dir :up    [0 (- interval-half)]
+                                   :down  [0 interval-half    ]
+                                   :left  [(- interval-half) 0]
+                                   :right [interval-half     0]))]
+      (.setStroke g stroke)
+      (.setColor g Color/BLUE)
+      (.drawLine g x0 y0 x1 y1))))
 
 (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-status [g]
