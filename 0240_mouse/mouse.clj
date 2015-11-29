@@ -143,6 +143,7 @@
       xs-out (map #(+ % 3) xs-in)]
   (defn draw-port [g [gx gy] dir]
     (.setColor g Color/BLACK)
+    (.setStroke g stroke)
     (.drawPolygon g
      (int-array (map #(+ (get offset 0) (* interval gx) (* interval-half %))
                      (if (= dir :in) xs-in xs-out)))
