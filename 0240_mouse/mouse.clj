@@ -20,7 +20,7 @@
 (def interval (* interval-half 2))
 (def field-size [20 20])
 (def field (ref (reduce #(vec (repeat %2 %1))
-                        (vec (repeat 4 0)) field-size)))
+                        (vec (repeat 7 0)) field-size)))
 
 (defn calc-grid [[x y]]
   (let [gx (int (Math/floor (/ (- (+ x interval-half)
@@ -72,7 +72,7 @@
 (defn set-part [[gx gy] part]
   (dosync
    (ref-set field
-    (reduce (fn [a [idx val]] (assoc-in a [gx gy idx] val))
+    (reduce (fn [a [idx val]] (assoc-in a [gy gx idx] val))
             @field
             (map vector [4 5 6] (case part :dot [1 0 0] :in  [0 1 0]
                                            :out [0 0 1] :del [0 0 0]))))))
@@ -92,7 +92,8 @@
         :add-out  (set-part @cursor-pos :out)
         :del-line (del-line @cursor-pos)
         :del-part (set-part @cursor-pos :del)
-        nil))
+        nil)
+      (.repaint panel))
     (mouseClicked [_])
     (mouseReleased [_])
     (mouseEntered [_])
@@ -105,11 +106,11 @@
       (.repaint panel))
     (mouseDragged [e]
       (update-cursor e)
-      (.repaint panel)
       (case @mode
         :add-line (add-line @cursor-pos)
         :del-line (del-line @cursor-pos)
-        nil))))
+        nil)
+      (.repaint panel))))
 
 (let [thick (BasicStroke. 3)
       thin  (BasicStroke. 1)]
@@ -127,7 +128,7 @@
         (.setColor g Color/BLACK))
       (.drawLine g x0 y0 x1 y1))))
 
-(let [dot-size 5
+(let [dot-size 9
       dot-size-half (int (/ dot-size 2))]
   (defn draw-dot [g [gx gy]]
     (let [x (- (+ (get offset 0) (* gx interval))
@@ -145,7 +146,7 @@
     (.drawPolygon g
      (int-array (map #(+ (get offset 0) (* interval gx) (* interval-half %))
                      (if (= dir :in) xs-in xs-out)))
-     (int-array (map #(+ (get offset 1) (* interval gx) (* interval-half %))
+     (int-array (map #(+ (get offset 1) (* interval gy) (* interval-half %))
                      [0 -1 -1  1  1]))
      5)))
 
