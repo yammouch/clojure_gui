@@ -158,7 +158,11 @@
 
 (defn make-button-panel [schem-panel]
   (let [b-add-line (JButton. "add line")
+        b-add-dot  (JButton. "add dot")
+        b-add-in   (JButton. "add in")
+        b-add-out  (JButton. "add out")
         b-del-line (JButton. "delete line")
+        b-del-part (JButton. "delete part")
         panel (JPanel.)]
     (.addActionListener b-add-line
      (proxy [ActionListener] []
@@ -170,9 +174,13 @@
        (actionPerformed [_]
          (dosync (ref-set mode :del-line))
          (.repaint schem-panel))))
-    (.setLayout panel (GridLayout. 2 1))
+    (.setLayout panel (GridLayout. 6 1))
     (.add panel b-add-line)
+    (.add panel b-add-dot)
+    (.add panel b-add-in)
+    (.add panel b-add-out)
     (.add panel b-del-line)
+    (.add panel b-del-part)
     panel))
 
 (defn anime-panel []
