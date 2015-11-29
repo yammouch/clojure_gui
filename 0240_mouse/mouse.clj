@@ -19,6 +19,8 @@
 (def interval-half 10)
 (def interval (* interval-half 2))
 (def field-size [20 20])
+(def field (reduce #(vec (repeat %2 %1))
+                   (vec (repeat 4 0)) field-size))
 
 (defn calc-grid [[x y]]
   (let [gx (int (Math/floor (/ (- (+ x interval-half)
@@ -63,11 +65,21 @@
       (when (not= dir :stay) (ref-set cursor-pos cp))
       )))
 
+(defn add-line [[gx gy dir :as cp]]
+  (dosync (alter field assoc-in
+                 [gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 1)))
+
+(defn del-line [[gx gy dir :as cp]]
+  (dosync (alter field assoc-in
+                 [gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 0)))
+
 (defn make-mouse-listener [panel]
   (proxy [MouseListener] []
     (mousePressed [e]
       (update-cursor e)
-      (println @cursor-pos))
+      (case @mode
+        :add-line (add-line @cursor-pos)
+        :del-line (del-line @cursor-pos)))
     (mouseClicked [_])
     (mouseReleased [_])
     (mouseEntered [_])
@@ -81,11 +93,13 @@
     (mouseDragged [e]
       (update-cursor e)
       (.repaint panel)
-      (println @cursor-pos)
-      )))
+      (case @mode
+        :add-line (add-line @cursor-pos)
+        :del-line (del-line @cursor-pos)))))
 
-(let [stroke (BasicStroke. 3)]
-  (defn draw-cursor [g [gx gy dir]]
+(let [thick (BasicStroke. 3)
+      thin  (BasicStroke. 1)]
+  (defn draw-line [g type [gx gy dir]]
     (let [x0 (+ (get offset 0) (* gx interval))
           y0 (+ (get offset 1) (* gy interval))
           [x1 y1] (map + [x0 y0]
@@ -93,9 +107,20 @@
                                    :down  [0 interval-half    ]
                                    :left  [(- interval-half) 0]
                                    :right [interval-half     0]))]
-      (.setStroke g stroke)
-      (.setColor g Color/BLUE)
+      (if (= type :cursor)
+        (do (.setStroke g thick)
+            (.setColor g Color/BLUE))
+        (do (.setStroke g thin)
+            (.setColor g Color/BLACK)))
       (.drawLine g x0 y0 x1 y1))))
+
+(defn draw-lines [g gx gy [up down left right]]
+  (for [gy (range (get field-size 1)) gx (range (get field-size 0))]
+    (let [[up down left right] (get-in field [gy gx])]
+      (when (= up    1) (draw-line g :line [gx gy :up   ]))
+      (when (= down  1) (draw-line g :line [gx gy :down ]))
+      (when (= left  1) (draw-line g :line [gx gy :left ]))
+      (when (= right 1) (draw-line g :line [gx gy :right])))))
 
 (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-status [g]
@@ -105,21 +130,25 @@
     (.drawString g (str @cursor-pos) 110 10)
     (.drawString g (str @mode) 210 10)))
 
+(defn draw-background [g]
+  (.setColor g Color/GRAY)
+  (let [xs (take (get field-size 0)
+                 (iterate #(+ % interval) (get offset 0)))
+        x0 (first xs) x1 (last xs)
+        ys (take (get field-size 1)
+                 (iterate #(+ % interval) (get offset 1)))
+        y0 (first ys) y1 (last ys)]
+    (doseq [x xs] (.drawLine g x  y0 x  y1))
+    (doseq [y ys] (.drawLine g x0 y  x1 y ))))
+
 (defn make-panel []
   (proxy [JPanel] []
     (paintComponent [g]
       (proxy-super paintComponent g)
-      (.setColor g Color/GRAY)
-      (let [xs (take (get field-size 0)
-                     (iterate #(+ % interval) (get offset 0)))
-            x0 (first xs) x1 (last xs)
-            ys (take (get field-size 1)
-                     (iterate #(+ % interval) (get offset 1)))
-            y0 (first ys) y1 (last ys)]
-        (doseq [x xs] (.drawLine g x  y0 x  y1))
-        (doseq [y ys] (.drawLine g x0 y  x1 y )))
-      (draw-status g)
-      (draw-cursor g @cursor-pos))
+      (draw-background g)
+      (draw-lines g)
+      (draw-line g :cursor @cursor-pos)
+      (draw-status g))
     (getPreferredSize []
       (Dimension. (+ (* (get offset 0) 2)
                      (* interval (dec (get field-size 0))))
