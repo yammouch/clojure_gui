@@ -69,6 +69,14 @@
   (dosync (alter field assoc-in
                  [gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 1)))
 
+(defn set-part [[gx gy] part]
+  (dosync
+   (ref-set field
+    (reduce (fn [a [idx val]] (assoc-in a [gx gy idx] val))
+            @field
+            (map vector [4 5 6] (case part :dot [1 0 0] :in  [0 1 0]
+                                           :out [0 0 1] :del [0 0 0]))))))
+
 (defn del-line [[gx gy dir :as cp]]
   (dosync (alter field assoc-in
                  [gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 0)))
@@ -79,7 +87,11 @@
       (update-cursor e)
       (case @mode
         :add-line (add-line @cursor-pos)
+        :add-dot  (set-part @cursor-pos :dot)
+        :add-in   (set-part @cursor-pos :in)
+        :add-out  (set-part @cursor-pos :out)
         :del-line (del-line @cursor-pos)
+        :del-part (set-part @cursor-pos :del)
         nil))
     (mouseClicked [_])
     (mouseReleased [_])
@@ -115,14 +127,40 @@
         (.setColor g Color/BLACK))
       (.drawLine g x0 y0 x1 y1))))
 
-(defn draw-lines [g]
+(let [dot-size 5
+      dot-size-half (int (/ dot-size 2))]
+  (defn draw-dot [g [gx gy]]
+    (let [x (- (+ (get offset 0) (* gx interval))
+               dot-size-half)
+          y (- (+ (get offset 0) (* gy interval))
+               dot-size-half)]
+      (.setColor g Color/BLACK)
+      (.fillOval g x y dot-size dot-size))))
+
+(let [stroke (BasicStroke. 3)
+      xs-in  [0 -1 -3 -3 -1]
+      xs-out (map #(+ % 3) xs-in)]
+  (defn draw-port [g [gx gy] dir]
+    (.setColor g Color/BLACK)
+    (.drawPolygon g
+     (int-array (map #(+ (get offset 0) (* interval gx) (* interval-half %))
+                     (if (= dir :in) xs-in xs-out)))
+     (int-array (map #(+ (get offset 1) (* interval gx) (* interval-half %))
+                     [0 -1 -1  1  1]))
+     5)))
+
+(defn draw-schem [g]
   (doseq [[gy gx] (for [gy (range (get field-size 1))
                         gx (range (get field-size 0))] [gy gx])]
-    (let [[up down left right] (get-in @field [gy gx])]
+    (let [[up down left right dot in out] (get-in @field [gy gx])]
       (when (= up    1) (draw-line g :line [gx gy :up   ]))
       (when (= down  1) (draw-line g :line [gx gy :down ]))
       (when (= left  1) (draw-line g :line [gx gy :left ]))
-      (when (= right 1) (draw-line g :line [gx gy :right])))))
+      (when (= right 1) (draw-line g :line [gx gy :right]))
+      (when (= dot   1) (draw-dot  g       [gx gy]))
+      (when (= in    1) (draw-port g       [gx gy] :in))
+      (when (= out   1) (draw-port g       [gx gy] :out))
+      )))
 
 (let [font (Font. Font/MONOSPACED Font/PLAIN 12)]
   (defn draw-status [g]
@@ -148,7 +186,7 @@
     (paintComponent [g]
       (proxy-super paintComponent g)
       (draw-background g)
-      (draw-lines g)
+      (draw-schem g)
       (draw-line g :cursor @cursor-pos)
       (draw-status g))
     (getPreferredSize []
