@@ -19,8 +19,8 @@
 (def interval-half 10)
 (def interval (* interval-half 2))
 (def field-size [20 20])
-(def field (reduce #(vec (repeat %2 %1))
-                   (vec (repeat 4 0)) field-size))
+(def field (ref (reduce #(vec (repeat %2 %1))
+                        (vec (repeat 4 0)) field-size)))
 
 (defn calc-grid [[x y]]
   (let [gx (int (Math/floor (/ (- (+ x interval-half)
@@ -107,16 +107,16 @@
                                    :down  [0 interval-half    ]
                                    :left  [(- interval-half) 0]
                                    :right [interval-half     0]))]
+      (.setStroke g thick)
       (if (= type :cursor)
-        (do (.setStroke g thick)
-            (.setColor g Color/BLUE))
-        (do (.setStroke g thin)
-            (.setColor g Color/BLACK)))
+        (.setColor g Color/BLUE)
+        (.setColor g Color/BLACK))
       (.drawLine g x0 y0 x1 y1))))
 
-(defn draw-lines [g gx gy [up down left right]]
-  (for [gy (range (get field-size 1)) gx (range (get field-size 0))]
-    (let [[up down left right] (get-in field [gy gx])]
+(defn draw-lines [g]
+  (doseq [[gy gx] (for [gy (range (get field-size 1))
+                        gx (range (get field-size 0))] [gy gx])]
+    (let [[up down left right] (get-in @field [gy gx])]
       (when (= up    1) (draw-line g :line [gx gy :up   ]))
       (when (= down  1) (draw-line g :line [gx gy :down ]))
       (when (= left  1) (draw-line g :line [gx gy :left ]))
