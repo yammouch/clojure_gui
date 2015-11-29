@@ -79,7 +79,8 @@
       (update-cursor e)
       (case @mode
         :add-line (add-line @cursor-pos)
-        :del-line (del-line @cursor-pos)))
+        :del-line (del-line @cursor-pos)
+        nil))
     (mouseClicked [_])
     (mouseReleased [_])
     (mouseEntered [_])
@@ -95,7 +96,8 @@
       (.repaint panel)
       (case @mode
         :add-line (add-line @cursor-pos)
-        :del-line (del-line @cursor-pos)))))
+        :del-line (del-line @cursor-pos)
+        nil))))
 
 (let [thick (BasicStroke. 3)
       thin  (BasicStroke. 1)]
@@ -156,6 +158,12 @@
                      (* interval (dec (get field-size 1)))
                      )))))
 
+(defn make-mode-changer [new-mode schem-panel]
+  (proxy [ActionListener] []
+    (actionPerformed [_]
+      (dosync (ref-set mode new-mode))
+      (.repaint schem-panel))))
+
 (defn make-button-panel [schem-panel]
   (let [b-add-line (JButton. "add line")
         b-add-dot  (JButton. "add dot")
@@ -164,16 +172,12 @@
         b-del-line (JButton. "delete line")
         b-del-part (JButton. "delete part")
         panel (JPanel.)]
-    (.addActionListener b-add-line
-     (proxy [ActionListener] []
-       (actionPerformed [_]
-         (dosync (ref-set mode :add-line))
-         (.repaint schem-panel))))
-    (.addActionListener b-del-line
-     (proxy [ActionListener] []
-       (actionPerformed [_]
-         (dosync (ref-set mode :del-line))
-         (.repaint schem-panel))))
+    (.addActionListener b-add-line (make-mode-changer :add-line schem-panel))
+    (.addActionListener b-add-dot  (make-mode-changer :add-dot  schem-panel))
+    (.addActionListener b-add-in   (make-mode-changer :add-in   schem-panel))
+    (.addActionListener b-add-out  (make-mode-changer :add-out  schem-panel))
+    (.addActionListener b-del-line (make-mode-changer :del-line schem-panel))
+    (.addActionListener b-del-part (make-mode-changer :del-part schem-panel))
     (.setLayout panel (GridLayout. 6 1))
     (.add panel b-add-line)
     (.add panel b-add-dot)
