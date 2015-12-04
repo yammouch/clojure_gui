@@ -35,25 +35,66 @@
   (let [num-devices (int-array 1)
         _ (org.jocl.CL/clGetDeviceIDs
            platform org.jocl.CL/CL_DEVICE_TYPE_ALL 0 nil num-devices)
-        devices (make-array org.jocl.cl_device_id (nth num-devices 0))]
-    (org.jocl.CL/clGetDeviceIDs
-     platform org.jocl.CL/CL_DEVICE_TYPE_ALL (nth num-devices 0)
-     devices num-devices)
-    (seq devices)))
+        devices (make-array org.jocl.cl_device_id (nth num-devices 0))
+        errcode-ret (org.jocl.CL/clGetDeviceIDs
+                     platform
+                     org.jocl.CL/CL_DEVICE_TYPE_ALL
+                     (nth num-devices 0)
+                     devices
+                     num-devices)]
+    (if (= errcode-ret org.jocl.CL/CL_SUCCESS)
+      (seq devices)
+      (throw (Exception. (org.jocl.CL/stringFor_errorCode errcode-ret)))
+      )))
 
 (defn clGetDeviceInfo [device param-name]
   (let [param-value-size 65536
         param-value-body (byte-array param-value-size)
         param-value (org.jocl.Pointer/to param-value-body)
-        param-value-size-ret (long-array 1)]
-    (org.jocl.CL/clGetDeviceInfo
-     device
-     (.get (.getField org.jocl.CL (str param-name)) nil)
-     param-value-size
-     param-value
-     param-value-size-ret)
-    (take (nth param-value-size-ret 0) param-value-body)
-    ))
+        param-value-size-ret (long-array 1)
+        errcode-ret (org.jocl.CL/clGetDeviceInfo
+                     device
+                     (.get (.getField org.jocl.CL (str param-name)) nil)
+                     param-value-size
+                     param-value
+                     param-value-size-ret)]
+    (if (= errcode-ret org.jocl.CL/CL_SUCCESS)
+      (take (nth param-value-size-ret 0) param-value-body)
+      (throw (Exception. (org.jocl.CL/stringFor_errorCode errcode-ret)))
+      )))
+
+(defn clCreateContext [devices]
+  (let [errcode-ret (int-array 1)
+        context
+        (org.jocl.CL/clCreateContext
+          nil             ; const cl_context_properties *properties
+          (count devices) ; cl_uint num_devices
+          (into-array org.jocl.cl_device_id devices)
+          ; const cl_device_id *devices
+          nil             ; (void CL_CALLBACK *pfn_notiry) (
+                          ;   const char *errinfo,
+                          ;   const void *private_info,
+                          ;   size_t cb,
+                          ;   void *user_data)
+          nil             ; void *user_data
+          errcode-ret     ; cl_int *errcode_ret
+          )]
+    (if (= (nth errcode-ret 0) org.jocl.CL/CL_SUCCESS)
+      context
+      (throw (Exception. (org.jocl.CL/stringFor_errorCode errcode-ret)))
+      )))
+
+(defn clCreateCommandQueue [context device]
+  (let [errcode-ret (int-array 1)
+        queue (org.jocl.CL/clCreateCommandQueue
+               context device
+               0  ; const cl_queue_properties *properties
+               errcode-ret)]
+    (if (= (nth errcode-ret 0) org.jocl.CL/CL_SUCCESS)
+      queue
+      (throw (Exception. (org.jocl.CL/stringFor_errorCode errcode-ret)))
+      )))
+
 
 ; subroutines for get bunch of OpenCL infomation
 
@@ -159,3 +200,28 @@
                      names)))
      :devices (map get-device (clGetDeviceIDs platform))
      }))
+
+(defn get-platforms [] (map get-platform (clGetPlatformIDs)))
+
+(defn find-devices [type platform]
+  (filter (fn [d] 
+            (some #(= % type)
+                  ((into {} (d :info)) 'CL_DEVICE_TYPE)
+                  ))
+          (platform :devices)))
+
+(defn context [device-type]
+  (loop [pfs (get-platforms)]
+    (if (empty? pfs)
+      nil
+      (let [pf (first pfs)
+            cpu (first #(find-devices device-type pf))]
+        (if cpu
+          (let [context (clCreateContext [cpu])
+                queue   (clCreateCommandQueue context cpu)]
+            {:platform pf
+             :device   cpu
+             :context  context
+             :queue    queue})
+          (recur (next pfs))
+          )))))
