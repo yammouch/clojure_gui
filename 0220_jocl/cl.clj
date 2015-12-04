@@ -215,10 +215,10 @@
     (if (empty? pfs)
       nil
       (let [pf (first pfs)
-            cpu (first #(find-devices device-type pf))]
+            cpu (first (find-devices device-type pf))]
         (if cpu
-          (let [context (clCreateContext [cpu])
-                queue   (clCreateCommandQueue context cpu)]
+          (let [context (clCreateContext [(cpu :id)])
+                queue   (clCreateCommandQueue context (cpu :id))]
             {:platform pf
              :device   cpu
              :context  context
