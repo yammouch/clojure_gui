@@ -98,12 +98,6 @@
                '[SINGLE_FP_CONFIG
                  QUEUE_PROPERTIES]))
 
-
-;/* XXX For completeness, it'd be nice to dump this one, too. */
-;#define WEIRD_PROPS \
-;   CL_DEVICE_MAX_WORK_ITEM_SIZES,
-
-
 (defn parse-unsigned-info [array]
   (reduce (fn [acc x] (+ (* 256 acc) x))
           (reverse (map (fn [x] (if (neg? x) (+ x 256) x))
@@ -116,10 +110,14 @@
         type-vals (map #(.get (.getField org.jocl.CL (str %)) nil)
                        types)
         u (parse-unsigned-info array)]
-    (map first
-         (remove #(= 0 (get % 1))
-                 (map (fn [t tv] [t (bit-and u tv)]) types type-vals)
-                 ))))
+    (vec (map first
+              (remove #(= 0 (get % 1))
+                      (map (fn [t tv] [t (bit-and u tv)]) types type-vals)
+                      )))))
+(defn parse-size-t-array [array]
+  (vec (map parse-unsigned-info
+            (partition org.jocl.Sizeof/size_t array)
+            )))
 
 (defn get-device-info [device]
   (let [long-info (map #(clGetDeviceInfo device %)
@@ -132,8 +130,11 @@
             (map vector str-props (map parse-str-info str-info))
             (map vector hex-props (map parse-unsigned-info hex-info))
             [['CL_DEVICE_TYPE
-             (parse-device-type (clGetDeviceInfo device 'CL_DEVICE_TYPE))]]
-            )))
+              (parse-device-type (clGetDeviceInfo device 'CL_DEVICE_TYPE))]
+             ['CL_DEVICE_MAX_WORK_ITEM_SIZES
+              (parse-size-t-array
+               (clGetDeviceInfo device 'CL_DEVICE_MAX_WORK_ITEM_SIZES))]]
+               )))
 
 (defn get-platform-info [platform]
   (let [names '[CL_PLATFORM_PROFILE
