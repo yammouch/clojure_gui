@@ -18,9 +18,11 @@
 (def free-area 5)
 (def interval-half 10)
 (def interval (* interval-half 2))
-(def field-size [20 20])
-(def field (ref (reduce #(vec (repeat %2 %1))
-                        (vec (repeat 7 0)) field-size)))
+(def field
+  (ref {:size [20 20]
+        :body (reduce #(vec (repeat %2 %1))
+                      (vec (repeat 7 0)) [20 20]
+                      )}))
 
 (defn calc-grid [[x y]]
   (let [gx (int (Math/floor (/ (- (+ x interval-half)
@@ -44,15 +46,15 @@
   (let [[gx gy lx ly] (calc-grid [x y])]
     (if (or (and (<= (- free-area) lx) (< lx free-area)
                  (<= (- free-area) ly) (< ly free-area))
-            (< gx 0) (<= (get field-size 0) gx)
-            (< gy 0) (<= (get field-size 1) gy))
+            (< gx 0) (<= (get-in @field [:size 0]) gx)
+            (< gy 0) (<= (get-in @field [:size 1]) gy))
       [nil nil :stay]
       (case (calc-local-direction [lx ly])
-        :down  (if (<= (dec (get field-size 1)) gy)
+        :down  (if (<= (dec (get-in @field [:size 1])) gy)
                  [nil nil :stay] [gx gy :down ])
         :up    (if (<= gy 0)
                  [nil nil :stay] [gx gy :up   ])
-        :right (if (<= (dec (get field-size 0)) gx)
+        :right (if (<= (dec (get-in @field [:size 0])) gx)
                  [nil nil :stay] [gx gy :right])
         :left  (if (<= gx 0)
                  [nil nil :stay] [gx gy :left ])))))
@@ -67,19 +69,19 @@
 
 (defn add-line [[gx gy dir :as cp]]
   (dosync (alter field assoc-in
-                 [gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 1)))
+                 [:body gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 1)))
 
 (defn set-part [[gx gy] part]
   (dosync
    (ref-set field
-    (reduce (fn [a [idx val]] (assoc-in a [gy gx idx] val))
+    (reduce (fn [a [idx val]] (assoc-in a [:body gy gx idx] val))
             @field
             (map vector [4 5 6] (case part :dot [1 0 0] :in  [0 1 0]
                                            :out [0 0 1] :del [0 0 0]))))))
 
 (defn del-line [[gx gy dir :as cp]]
   (dosync (alter field assoc-in
-                 [gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 0)))
+                 [:body gy gx (case dir :up 0 :down 1 :left 2 :right 3)] 0)))
 
 (defn make-mouse-listener [panel]
   (proxy [MouseListener] []
@@ -152,9 +154,9 @@
      5)))
 
 (defn draw-schem [g]
-  (doseq [[gy gx] (for [gy (range (get field-size 1))
-                        gx (range (get field-size 0))] [gy gx])]
-    (let [[up down left right dot in out] (get-in @field [gy gx])]
+  (doseq [[gy gx] (for [gy (range (get-in @field [:size 1]))
+                        gx (range (get-in @field [:size 0]))] [gy gx])]
+    (let [[up down left right dot in out] (get-in @field [:body gy gx])]
       (when (= up    1) (draw-line g :line [gx gy :up   ]))
       (when (= down  1) (draw-line g :line [gx gy :down ]))
       (when (= left  1) (draw-line g :line [gx gy :left ]))
@@ -174,10 +176,10 @@
 
 (defn draw-background [g]
   (.setColor g Color/GRAY)
-  (let [xs (take (get field-size 0)
+  (let [xs (take (get-in @field [:size 0])
                  (iterate #(+ % interval) (get offset 0)))
         x0 (first xs) x1 (last xs)
-        ys (take (get field-size 1)
+        ys (take (get-in @field [:size 1])
                  (iterate #(+ % interval) (get offset 1)))
         y0 (first ys) y1 (last ys)]
     (doseq [x xs] (.drawLine g x  y0 x  y1))
@@ -193,9 +195,9 @@
       (draw-status g))
     (getPreferredSize []
       (Dimension. (+ (* (get offset 0) 2)
-                     (* interval (dec (get field-size 0))))
+                     (* interval (dec (get-in @field [:size 0]))))
                   (+ (* (get offset 1) 2)
-                     (* interval (dec (get field-size 1)))
+                     (* interval (dec (get-in @field [:size 1])))
                      )))))
 
 (defn make-mode-changer [new-mode schem-panel]
