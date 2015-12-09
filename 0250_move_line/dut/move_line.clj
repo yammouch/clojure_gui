@@ -39,7 +39,7 @@
 
 (defn track-net [field [x y] axes]
   (loop [track (reduce #(repeat %1 %2)
-                       (repeat 4 0)
+                       (repeat 7 0)
                        [(count (first field)) (count field)])
          [[x y axes :as l1] left] [[x y axes]]]
     (cond (empty? l1) track
