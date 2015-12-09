@@ -18,11 +18,13 @@
 (def free-area 5)
 (def interval-half 10)
 (def interval (* interval-half 2))
-(def field
-  (ref {:size [20 20]
-        :body (reduce #(vec (repeat %2 %1))
-                      (vec (repeat 7 0)) [20 20]
-                      )}))
+
+(defn field-init [cx cy]
+  {:size [cx cy]
+   :body (reduce #(vec (repeat %2 %1))
+                 (vec (repeat 7 0)) [cx cy]
+                 )})
+(def field (ref (field-init 20 20)))
 
 (defn calc-grid [[x y]]
   (let [gx (int (Math/floor (/ (- (+ x interval-half)
