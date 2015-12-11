@@ -6,31 +6,16 @@
     (cons val (lazy-seq (lcg val)))
     ))
 
-(def platform (first (cl/clGetPlatformIDs)))
-(def devices (cl/clGetDeviceIDs platform))
+(let [{pf :platform
+       dev :device
+       ctx :context
+       q   :queue} (cl/context 'CL_DEVICE_TYPE_CPU)]
+  (def platform (pf :id))
+  (def devices [(dev :id)])
+  (def context ctx)
+  (def queue q))
 
 (def errcode-ret (int-array 1))
-
-;(defn clCreateContext [device]
-;  (let [errcode-ret (int-array 1)]
-;    (org.jocl.CL/clCreateContext nil 1 device nil nil errcode-ret)))
-;
-;(def context (clCreateContext (first devices)))
-
-
-(def context (org.jocl.CL/clCreateContext
-              ;nil 1 devices nil nil errcode-ret))
-              nil 1 (into-array org.jocl.cl_device_id devices)
-              nil nil errcode-ret))
-
-;(defn clCreateCommandQueue [context device]
-;  (let [errcode-ret (int-array 1)]
-;    (clCreateCommandQueue context device nil errcode-ret)))
-;
-;(def queue (clCreateCommandQueue context (first device)))
-
-(def queue (org.jocl.CL/clCreateCommandQueue context (first devices)
-                                             0 errcode-ret))
 
 (def N 4)
 
