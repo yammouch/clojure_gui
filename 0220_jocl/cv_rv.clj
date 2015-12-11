@@ -2,6 +2,10 @@
 
 (import '(org.jocl CL Sizeof Pointer cl_device_id cl_event))
 
+(defn handle-cl-error [err-code]
+  (when (not= err-code CL/CL_SUCCESS)
+    (throw (Exception. (CL/stringFor_errorCode err-code)))))
+
 (defn lcg [seed]
   (let [val (mod (+ (* seed 1103515245) 12345)
                  (bit-shift-left 1 32))]
@@ -23,18 +27,28 @@
   (let [err (int-array 1)
         cv-mem (CL/clCreateBuffer context CL/CL_MEM_READ_WRITE
                 (* N Sizeof/cl_float) nil err)
-        _ (when (not= (first err) CL/CL_SUCCESS)
-            (throw (Exception. (CL/stringFor_errorCode (first err)))))
+        _ (handle-cl-error (first err))
         rv-mem (CL/clCreateBuffer context CL/CL_MEM_READ_WRITE
                 (* N Sizeof/cl_float) nil err)
-        _ (when (not= (first err) CL/CL_SUCCESS)
-            (throw (Exception. (CL/stringFor_errorCode (first err)))))
+        _ (handle-cl-error (first err))
         prod-mem (CL/clCreateBuffer context CL/CL_MEM_READ_WRITE
                   (* N N Sizeof/cl_float) nil err)
-        _ (when (not= (first err) CL/CL_SUCCESS)
-            (throw (Exception. (CL/stringFor_errorCode (first err)))))
-            ]
+        _ (handle-cl-error (first err))]
     {:cv cv-mem :rv rv-mem :prod prod-mem}))
+
+(defn prepare-kernels [context devices]
+  (let [src (slurp "cv_rv.cl")
+        err (int-array 1)
+        program (CL/clCreateProgramWithSource
+                 context 1 (into-array String [src])
+                 (long-array [(count src)]) err)
+        _ (handle-cl-error (first err))
+        er (CL/clBuildProgram
+            program 1 (into-array cl_device_id devices) nil nil nil)
+        _ (handle-cl-error er)
+        kernel (CL/clCreateKernel program "cv_rv" err) 
+        _ (handle-cl-error er)]
+    {:program program :kernel kernel}))
 
 (def errcode-ret (int-array 1))
 
@@ -47,36 +61,14 @@
 (def rv [2 3 4 5])
 (def rv-array (float-array rv))
 
-(let [src (slurp "cv_rv.cl")]
-  (println src)
-  (println (count src))
-  (def program (CL/clCreateProgramWithSource
-                context 1 (into-array String [src])
-                (long-array [(count src)]) errcode-ret)))
-(def buf (byte-array 1024))
-(def len (long-array 1))
-  (CL/clGetProgramInfo
-   program CL/CL_PROGRAM_SOURCE 1024 (Pointer/to buf) len)
-  (print "clGetProgramInfo, source = ")
-  (print (apply str buf))
-  (print ", len = ")
-  (print (first len))
-  ;)
-(println (nth errcode-ret 0))
-
-(CL/clBuildProgram
- program 1 (into-array cl_device_id devices) nil nil nil)
-(print "clBuildProgram, errcode-ret = ")
-(println (nth errcode-ret 0))
-
-(def kernel (CL/clCreateKernel program "cv_rv" errcode-ret))
-(print "clCreateKernel, errcode-ret = ")
-(println (nth errcode-ret 0))
-
 (let [{cv :cv rv :rv prod :prod} (prepare-mem context)]
   (def cv-mem cv)
   (def rv-mem rv)
   (def prod-mem prod))
+
+(let [{kernel :kernel program :program} (prepare-kernels context devices)]
+  (def program program)
+  (def kernel kernel))
 
 (print "clSetKernalArg for arg 0, errcode-ret = ")
 (println
