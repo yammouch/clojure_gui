@@ -15,39 +15,38 @@
   (def context ctx)
   (def queue q))
 
-(def errcode-ret (int-array 1))
-
 (def N 4)
+
+(defn prepare-mem [context]
+  (let [err (int-array 1)
+        cv-mem (org.jocl.CL/clCreateBuffer
+                context org.jocl.CL/CL_MEM_READ_WRITE
+                (* N org.jocl.Sizeof/cl_float) nil err)
+        _ (when (not= (first err) org.jocl.CL/CL_SUCCESS)
+            (throw (Exception. (org.jocl.CL/stringFor_errorCode (first err)))))
+        rv-mem (org.jocl.CL/clCreateBuffer
+                context org.jocl.CL/CL_MEM_READ_WRITE
+                (* N org.jocl.Sizeof/cl_float) nil err)
+        _ (when (not= (first err) org.jocl.CL/CL_SUCCESS)
+            (throw (Exception. (org.jocl.CL/stringFor_errorCode (first err)))))
+        prod-mem (org.jocl.CL/clCreateBuffer
+                  context org.jocl.CL/CL_MEM_READ_WRITE
+                  (* N N org.jocl.Sizeof/cl_float) nil err)
+        _ (when (not= (first err) org.jocl.CL/CL_SUCCESS)
+            (throw (Exception. (org.jocl.CL/stringFor_errorCode (first err)))))
+            ]
+    {:cv cv-mem :rv rv-mem :prod prod-mem}))
+
+(def errcode-ret (int-array 1))
 
 ;(def cv (map #(/ % 1.0 (bit-shift-left 1 32)) (take N (lcg 1))))
 ;(def cv (map #(- (mod % 19) 9) (take N (lcg 1))))
 (def cv [1 2 3 4])
 (def cv-array (float-array cv))
-(def cv-mem (org.jocl.CL/clCreateBuffer
-             context org.jocl.CL/CL_MEM_READ_WRITE
-             (* N 4) ; 4 -> sizeof(float)
-             ;(org.jocl.Pointer/to cv-array)
-             nil
-             errcode-ret))
 
 ;(def rv (map #(- (mod % 19) 9) (take N (lcg 2))))
 (def rv [2 3 4 5])
 (def rv-array (float-array rv))
-(def rv-mem (org.jocl.CL/clCreateBuffer
-             context org.jocl.CL/CL_MEM_READ_WRITE
-             (* N 4) ; 4 -> sizeof(float)
-             ;(org.jocl.Pointer/to rv-array)
-             nil
-             errcode-ret))
-(print "clCreateBuffer for rv-mem, errcode-ret = ")
-(println (nth errcode-ret 0))
-
-(def prod-mem (org.jocl.CL/clCreateBuffer
-               context org.jocl.CL/CL_MEM_READ_WRITE
-               (* N N 4) ; 4 -> sizeof(float)
-               nil errcode-ret))
-(print "clCreateBuffer for prod-mem, errcode-ret = ")
-(println (nth errcode-ret 0))
 
 (let [src (slurp "cv_rv.cl")]
   (println src)
@@ -78,6 +77,11 @@
 (def kernel (org.jocl.CL/clCreateKernel program "cv_rv" errcode-ret))
 (print "clCreateKernel, errcode-ret = ")
 (println (nth errcode-ret 0))
+
+(let [{cv :cv rv :rv prod :prod} (prepare-mem context)]
+  (def cv-mem cv)
+  (def rv-mem rv)
+  (def prod-mem prod))
 
 (print "clSetKernalArg for arg 0, errcode-ret = ")
 (println
