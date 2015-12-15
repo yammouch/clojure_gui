@@ -12,14 +12,6 @@
     (cons val (lazy-seq (lcg val)))
     ))
 
-(let [{pf :platform
-       dev :device
-       ctx :context
-       q   :queue} (cl/context 'CL_DEVICE_TYPE_CPU)]
-  (def platform (pf :id))
-  (def devices [(dev :id)])
-  (def context ctx)
-  (def queue q))
 
 (def N 4)
 
@@ -36,6 +28,24 @@
         _ (handle-cl-error (first err))]
     {:cv cv-mem :rv rv-mem :prod prod-mem}))
 
+(defn init-mem [queue {cv :cv rv :rv}]
+  (let [er (CL/clEnqueueWriteBuffer
+            queue cv CL/CL_TRUE 0 (* N Sizeof/cl_float)
+            (Pointer/to (float-array [1 2 3 4]))
+            ;(Pointer/to (float-array
+            ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
+            ;             ))
+            0 nil nil)
+        _ (handle-cl-error er)
+        er (CL/clEnqueueWriteBuffer
+            queue rv CL/CL_TRUE 0 (* N Sizeof/cl_float)
+            (Pointer/to (float-array [2 3 4 5]))
+            ;(Pointer/to (float-array
+            ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
+            ;             ))
+            0 nil nil)]
+    (handle-cl-error er)))
+
 (defn prepare-kernels [context devices]
   (let [src (slurp "cv_rv.cl")
         err (int-array 1)
@@ -50,16 +60,29 @@
         _ (handle-cl-error er)]
     {:program program :kernel kernel}))
 
-(def errcode-ret (int-array 1))
+(defn engine [queue kernel {cv :cv rv :rv prod :prod}]
+  (let [er (CL/clSetKernelArg kernel 0 Sizeof/cl_mem (Pointer/to prod))
+        _ (handle-cl-error er)
+        er (CL/clSetKernelArg kernel 1 Sizeof/cl_mem (Pointer/to cv))
+        _ (handle-cl-error er)
+        er (CL/clSetKernelArg kernel 2 Sizeof/cl_mem (Pointer/to rv))
+        _ (handle-cl-error er)
+        er (CL/clSetKernelArg kernel 3 Sizeof/cl_int
+            (Pointer/to (int-array [N])))
+        _ (handle-cl-error er)
+        er (CL/clEnqueueNDRangeKernel
+            queue kernel 2 nil (long-array [4 4]) (long-array [1 1])
+            0 nil nil)]
+    (handle-cl-error er)))
 
-;(def cv (map #(/ % 1.0 (bit-shift-left 1 32)) (take N (lcg 1))))
-;(def cv (map #(- (mod % 19) 9) (take N (lcg 1))))
-(def cv [1 2 3 4])
-(def cv-array (float-array cv))
-
-;(def rv (map #(- (mod % 19) 9) (take N (lcg 2))))
-(def rv [2 3 4 5])
-(def rv-array (float-array rv))
+(let [{pf :platform
+       dev :device
+       ctx :context
+       q   :queue} (cl/context 'CL_DEVICE_TYPE_CPU)]
+  (def platform (pf :id))
+  (def devices [(dev :id)])
+  (def context ctx)
+  (def queue q))
 
 (let [{cv :cv rv :rv prod :prod} (prepare-mem context)]
   (def cv-mem cv)
@@ -70,49 +93,11 @@
   (def program program)
   (def kernel kernel))
 
-(print "clSetKernalArg for arg 0, errcode-ret = ")
-(println
-  (CL/clSetKernelArg
-   kernel 0 Sizeof/cl_mem (Pointer/to prod-mem))
-   )
-(print "clSetKernalArg for arg 1, errcode-ret = ")
-(println
-  (CL/clSetKernelArg
-   kernel 1 Sizeof/cl_mem (Pointer/to cv-mem))
-   )
-(print "clSetKernalArg for arg 2, errcode-ret = ")
-(println
-  (CL/clSetKernelArg
-   kernel 2 Sizeof/cl_mem (Pointer/to rv-mem))
-   )
-(print "clSetKernalArg for arg 3, errcode-ret = ")
-(println
-  (CL/clSetKernelArg
-   kernel 3 Sizeof/cl_int (Pointer/to (int-array [N])))
-   )
+(init-mem queue {:cv cv-mem :rv rv-mem})
 
-(print "clEnqueueWriteBuffer for cv-mem, errcode-ret = ")
-(println
-  (CL/clEnqueueWriteBuffer
-   queue cv-mem CL/CL_TRUE 0 (* N Sizeof/cl_float) (Pointer/to cv-array)
-   0 nil nil)
-   )
-(print "clEnqueueWriteBuffer for rv-mem, errcode-ret = ")
-(println
-  (CL/clEnqueueWriteBuffer
-   queue rv-mem CL/CL_TRUE 0 (* N Sizeof/cl_float) (Pointer/to rv-array)
-   0 nil nil)
-   )
+(engine queue kernel {:cv cv-mem :rv rv-mem :prod prod-mem})
 
-(print "clEnqueueNDRangeKernel, errcode-ret = ")
-(let [kernel-done (make-array cl_event 1)]
-  (println
-    (CL/clEnqueueNDRangeKernel
-     queue kernel 2 nil (long-array [4 4]) (long-array [1 1])
-     ;queue kernel 1 nil (long-array [16]) (long-array [1])
-     ;queue kernel 1 nil (long-array [4]) (long-array [1])
-     0 nil nil))
-     )
+(def errcode-ret (int-array 1))
 
 (def prod-array (float-array (* N N)))
 
@@ -121,8 +106,6 @@
  queue prod-mem CL/CL_TRUE 0 (* N N Sizeof/cl_float) (Pointer/to prod-array)
  0 nil nil)
 
-(pprint cv-array)
-(pprint rv-array)
 (pprint (partition 4 prod-array))
 
 (def hoge-array (float-array N))
