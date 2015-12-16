@@ -1,7 +1,13 @@
 (ns move-line)
 
-(defn find-line-end [field [x y] axes dir]
-  (let [is-end? (case [axes dir]
+(defn xy<->q [[q q-other & els] axes]
+  (if (= axes :x)
+    (apply vector q q-other els)
+    (apply vector q-other q els)))
+
+(defn find-line-end [field [q q-other :as qqo] axes dir]
+  (let [[x y] (xy<->q qqo)
+        is-end? (case [axes dir]
                   [:x :+] #(= 0 (get-in field [% y 3]))
                   [:x :-] #(= 0 (get-in field [% y 2]))
                   [:y :+] #(= 0 (get-in field [x % 1]))
@@ -13,46 +19,34 @@
              [:y :-] (range y -1 -1))]
     (first (filter is-end? qs))))
 
-(defn tracked? [track [x y] axes]
+(defn tracked? [track [q q-other :as qqo] axes]
   (not= [0 0] ((if (= axes :x) #(drop 2 %) #(take 2 %))
-               (get-in track [x y]))))
+               (get-in track (xy<->q qqo))
+               )))
 
-(defn track-line-x [track x0 x1 y]
+(defn track-line [track q0 q1 q-other axes]
   (reduce #(-> %1
-               (assoc-in [     %2  y 3] 1)
-               (assoc-in [(inc %2) y 2] 1))
-          track (range x0 x1)))
+               (assoc-in (xy<->q [%2 q-other (if (= axes :y) 3 1)] axes) 1)
+               (assoc-in (xy<->q [%2 q-other (if (= axes :y) 2 0)] axes) 1))
+          track (range q0 q1)))
 
-(defn track-line-y [track x y0 y1]
-  (reduce #(-> %1
-               (assoc-in [x      %2  1] 1)
-               (assoc-in [x (inc %2) 0] 1))
-          track (range y0 y1)))
-
-(defn find-dot-x [field x0 x1 y]
-  (filter #(= 1 (get-in field [% y 4]))
-          (range x0 x1)))
-
-(defn find-dot-y [field x y0 y1]
-  (filter #(= 1 (get-in field [x % 4]))
-          (range y0 y1)))
+(defn find-dots [field q0 q1 q-other axes]
+  (filter #(= 1 (get-in field (xy<->q [% q-other 4] axes)))
+          (range q0 (inc q1))))
 
 (defn track-net [field [x y] axes]
   (loop [track (reduce #(repeat %1 %2)
                        (repeat 7 0)
                        [(count (first field)) (count field)])
-         [[x y axes :as l1] left] [[x y axes]]]
+         [[q q-other axes :as l1] left] [(xy<->q [x y axes] axes)]]
     (cond (empty? l1) track
-          (tracked? track [x y] axes) (recur track left)
+          (tracked? track [q q-other] axes) (recur track left)
           :else (let [[q0 q1] (map #(find-line-end field [x y] axes %) 
                                    [:- :+])]
-                  (recur (if (= axes :x)
-                           (track-line-x track q0 q1 y)
-                           (track-line-y track x q0 q1))
-                         (concat (map (if (= axes :x)
-                                        (fn [x] [x y :y])
-                                        (fn [y] [x y :x]))
-                                      (if (= axes :x)
-                                        (find-dot-x field q0 q1 y)
-                                        (find-dot-y field x q0 q1)))
-                                 left)))))) 
+                  (recur
+                   (track-line track q0 q1 q-other :x)
+                   (concat (map (fn [q] [q-other q (if (= axes :x) :y :x)])
+                                (concat [q0 q1]
+                                        (find-dots field (inc q0) (dec q1)
+                                                   q-other axes)))
+                           left))))))
