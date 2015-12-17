@@ -95,6 +95,38 @@
       (throw (Exception. (org.jocl.CL/stringFor_errorCode errcode-ret)))
       )))
 
+(defn clGetProgramInfo [program param-name]
+  (let [param-value-size 65536
+        param-value-body (byte-array param-value-size)
+        param-value (org.jocl.Pointer/to param-value-body)
+        param-value-size-ret (long-array 1)
+        errcode-ret (org.jocl.CL/clGetProgramInfo
+                     program
+                     (.get (.getField org.jocl.CL (str param-name)) nil)
+                     param-value-size
+                     param-value
+                     param-value-size-ret)]
+    (if (= errcode-ret org.jocl.CL/CL_SUCCESS)
+      (take (nth param-value-size-ret 0) param-value-body)
+      (throw (Exception. (org.jocl.CL/stringFor_errorCode errcode-ret)))
+      )))
+
+(defn clGetProgramBuildInfo [program device param-name]
+  (let [param-value-size 65536
+        param-value-body (byte-array param-value-size)
+        param-value (org.jocl.Pointer/to param-value-body)
+        param-value-size-ret (long-array 1)
+        errcode-ret (org.jocl.CL/clGetProgramBuildInfo
+                     program
+                     device
+                     (.get (.getField org.jocl.CL (str param-name)) nil)
+                     param-value-size
+                     param-value
+                     param-value-size-ret)]
+    (if (= errcode-ret org.jocl.CL/CL_SUCCESS)
+      (take (nth param-value-size-ret 0) param-value-body)
+      (throw (Exception. (org.jocl.CL/stringFor_errorCode errcode-ret)))
+      )))
 
 ; subroutines for get bunch of OpenCL infomation
 
@@ -166,6 +198,22 @@
   (vec (map parse-unsigned-info
             (partition org.jocl.Sizeof/size_t array)
             )))
+
+;(defn device-info [device]
+;  (let [long-info (map #(clGetDeviceInfo device %)
+;                       long-props)
+;        str-info (map #(clGetDeviceInfo device %)
+;                      str-props)
+;        hex-info (map #(clGetDeviceInfo device %)
+;                      hex-props)]
+;    (concat (map vector long-props (map parse-unsigned-info long-info))
+;            (map vector str-props (map parse-str-info str-info))
+;            (map vector hex-props (map parse-unsigned-info hex-info))
+;            [['CL_DEVICE_TYPE
+;              (parse-device-type (clGetDeviceInfo device 'CL_DEVICE_TYPE))]
+;             ['CL_DEVICE_MAX_WORK_ITEM_SIZES
+;              (parse-size-t-array
+;               (clGetDeviceInfo device 'CL_DEVICE_MAX_WORK_ITEM_SIZES))]])))
 
 (defn get-device [device]
   (let [long-info (map #(clGetDeviceInfo device %)
