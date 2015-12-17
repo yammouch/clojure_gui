@@ -54,6 +54,10 @@
         _ (handle-cl-error (first err))
         er (CL/clBuildProgram
             program 1 (into-array cl_device_id devices) nil nil nil)
+        _ (doseq [d devices]
+            (println (cl/parse-str-info
+                      (cl/clGetProgramBuildInfo program d
+                       'CL_PROGRAM_BUILD_LOG))))
         _ (handle-cl-error er)
         kernel (CL/clCreateKernel program "cv_rv" err) 
         _ (handle-cl-error (first err))]
