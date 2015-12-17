@@ -73,7 +73,7 @@
     nil (long-array [4 4]) (long-array [1 1]) 0 nil nil
     )))
 
-(defn print-result [queue cv rv prod]
+(defn print-result [queue {cv :cv rv :rv prod :prod}]
   (let [cv-array (float-array N)
         rv-array (float-array N)
         prod-array (float-array (* N N))]
@@ -102,28 +102,10 @@
   (CL/clReleaseCommandQueue queue)
   (CL/clReleaseContext context))
 
-(let [{pf :platform
-       dev :device
-       ctx :context
-       q   :queue} (cl/context 'CL_DEVICE_TYPE_CPU)]
-  (def platform (pf :id))
-  (def devices [(dev :id)])
-  (def context ctx)
-  (def queue q))
-
-(let [{cv :cv rv :rv prod :prod} (prepare-mem context)]
-  (def cv-mem cv)
-  (def rv-mem rv)
-  (def prod-mem prod))
-
-(let [{kernel :kernel program :program} (prepare-kernels context devices)]
-  (def program program)
-  (def kernel kernel))
-
-(init-mem queue {:cv cv-mem :rv rv-mem})
-
-(engine queue kernel {:cv cv-mem :rv rv-mem :prod prod-mem})
-
-(print-result queue cv-mem rv-mem prod-mem)
-
-(finalize queue kernel program {:cv cv-mem :rv rv-mem :prod prod-mem} context)
+(let [{dev :device ctx :context q :queue} (cl/context 'CL_DEVICE_TYPE_CPU)
+      {cv :cv rv :rv prod :prod :as mem} (prepare-mem ctx)
+      {kernel :kernel program :program} (prepare-kernels ctx [(dev :id)])]
+  (init-mem q mem)
+  (engine q kernel mem)
+  (print-result q mem)
+  (finalize q kernel program mem ctx))
