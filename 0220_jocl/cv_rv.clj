@@ -12,7 +12,6 @@
     (cons val (lazy-seq (lcg val)))
     ))
 
-
 (def N 4)
 
 (defn prepare-mem [context]
@@ -29,22 +28,22 @@
     {:cv cv-mem :rv rv-mem :prod prod-mem}))
 
 (defn init-mem [queue {cv :cv rv :rv}]
-  (let [er (CL/clEnqueueWriteBuffer
-            queue cv CL/CL_TRUE 0 (* N Sizeof/cl_float)
-            (Pointer/to (float-array [1 2 3 4]))
-            ;(Pointer/to (float-array
-            ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
-            ;             ))
-            0 nil nil)
-        _ (handle-cl-error er)
-        er (CL/clEnqueueWriteBuffer
-            queue rv CL/CL_TRUE 0 (* N Sizeof/cl_float)
-            (Pointer/to (float-array [2 3 4 5]))
-            ;(Pointer/to (float-array
-            ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
-            ;             ))
-            0 nil nil)]
-    (handle-cl-error er)))
+  (handle-cl-error
+   (CL/clEnqueueWriteBuffer
+    queue cv CL/CL_TRUE 0 (* N Sizeof/cl_float)
+    (Pointer/to (float-array [1 2 3 4]))
+    ;(Pointer/to (float-array
+    ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
+    ;             ))
+    0 nil nil))
+  (handle-cl-error
+   (CL/clEnqueueWriteBuffer
+    queue rv CL/CL_TRUE 0 (* N Sizeof/cl_float)
+    (Pointer/to (float-array [2 3 4 5]))
+    ;(Pointer/to (float-array
+    ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
+    ;             ))
+    0 nil nil)))
 
 (defn prepare-kernels [context devices]
   (let [src (slurp "cv_rv.cl")
@@ -57,23 +56,22 @@
             program 1 (into-array cl_device_id devices) nil nil nil)
         _ (handle-cl-error er)
         kernel (CL/clCreateKernel program "cv_rv" err) 
-        _ (handle-cl-error er)]
+        _ (handle-cl-error (first err))]
     {:program program :kernel kernel}))
 
 (defn engine [queue kernel {cv :cv rv :rv prod :prod}]
-  (let [er (CL/clSetKernelArg kernel 0 Sizeof/cl_mem (Pointer/to prod))
-        _ (handle-cl-error er)
-        er (CL/clSetKernelArg kernel 1 Sizeof/cl_mem (Pointer/to cv))
-        _ (handle-cl-error er)
-        er (CL/clSetKernelArg kernel 2 Sizeof/cl_mem (Pointer/to rv))
-        _ (handle-cl-error er)
-        er (CL/clSetKernelArg kernel 3 Sizeof/cl_int
-            (Pointer/to (int-array [N])))
-        _ (handle-cl-error er)
-        er (CL/clEnqueueNDRangeKernel
-            queue kernel 2 nil (long-array [4 4]) (long-array [1 1])
-            0 nil nil)]
-    (handle-cl-error er)))
+  (handle-cl-error
+   (CL/clSetKernelArg kernel 0 Sizeof/cl_mem (Pointer/to prod)))
+  (handle-cl-error
+   (CL/clSetKernelArg kernel 1 Sizeof/cl_mem (Pointer/to cv)))
+  (handle-cl-error
+   (CL/clSetKernelArg kernel 2 Sizeof/cl_mem (Pointer/to rv)))
+  (handle-cl-error
+   (CL/clSetKernelArg kernel 3 Sizeof/cl_int (Pointer/to (int-array [N]))))
+  (handle-cl-error
+   (CL/clEnqueueNDRangeKernel queue kernel 2
+    nil (long-array [4 4]) (long-array [1 1]) 0 nil nil
+    )))
 
 (let [{pf :platform
        dev :device
@@ -100,7 +98,6 @@
 (def errcode-ret (int-array 1))
 
 (def prod-array (float-array (* N N)))
-
 
 (CL/clEnqueueReadBuffer
  queue prod-mem CL/CL_TRUE 0 (* N N Sizeof/cl_float) (Pointer/to prod-array)
