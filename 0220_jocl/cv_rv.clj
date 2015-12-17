@@ -73,6 +73,24 @@
     nil (long-array [4 4]) (long-array [1 1]) 0 nil nil
     )))
 
+(defn print-result [queue cv rv prod]
+  (let [cv-array (float-array N)
+        rv-array (float-array N)
+        prod-array (float-array (* N N))]
+    (handle-cl-error
+     (CL/clEnqueueReadBuffer queue cv CL/CL_TRUE
+      0 (* N Sizeof/cl_float) (Pointer/to cv-array) 0 nil nil))
+    (handle-cl-error
+     (CL/clEnqueueReadBuffer queue rv CL/CL_TRUE
+      0 (* N Sizeof/cl_float) (Pointer/to rv-array) 0 nil nil))
+    (handle-cl-error
+     (CL/clEnqueueReadBuffer queue prod CL/CL_TRUE
+      0 (* N N Sizeof/cl_float) (Pointer/to prod-array) 0 nil nil))
+    (println "col vector:") (pprint cv-array)
+    (println "row vector:") (pprint rv-array)
+    (println "product:")
+    (pprint (partition 4 prod-array))))
+
 (let [{pf :platform
        dev :device
        ctx :context
@@ -95,21 +113,7 @@
 
 (engine queue kernel {:cv cv-mem :rv rv-mem :prod prod-mem})
 
-(def errcode-ret (int-array 1))
-
-(def prod-array (float-array (* N N)))
-
-(CL/clEnqueueReadBuffer
- queue prod-mem CL/CL_TRUE 0 (* N N Sizeof/cl_float) (Pointer/to prod-array)
- 0 nil nil)
-
-(pprint (partition 4 prod-array))
-
-(def hoge-array (float-array N))
-(CL/clEnqueueReadBuffer
- queue cv-mem CL/CL_TRUE 0 (* N Sizeof/cl_float) (Pointer/to hoge-array)
- 0 nil nil)
-(pprint hoge-array)
+(print-result queue cv-mem rv-mem prod-mem)
 
 (CL/clFlush queue)
 (CL/clFinish queue)
