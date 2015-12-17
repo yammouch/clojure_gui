@@ -91,6 +91,17 @@
     (println "product:")
     (pprint (partition 4 prod-array))))
 
+(defn finalize [queue kernel program {cv :cv rv :rv prod :prod} context]
+  (CL/clFlush queue)
+  (CL/clFinish queue)
+  (CL/clReleaseKernel kernel)
+  (CL/clReleaseProgram program)
+  (CL/clReleaseMemObject cv)
+  (CL/clReleaseMemObject rv)
+  (CL/clReleaseMemObject prod)
+  (CL/clReleaseCommandQueue queue)
+  (CL/clReleaseContext context))
+
 (let [{pf :platform
        dev :device
        ctx :context
@@ -115,12 +126,4 @@
 
 (print-result queue cv-mem rv-mem prod-mem)
 
-(CL/clFlush queue)
-(CL/clFinish queue)
-(CL/clReleaseKernel kernel)
-(CL/clReleaseProgram program)
-(CL/clReleaseMemObject cv-mem)
-(CL/clReleaseMemObject rv-mem)
-(CL/clReleaseMemObject prod-mem)
-(CL/clReleaseCommandQueue queue)
-(CL/clReleaseContext context)
+(finalize queue kernel program {:cv cv-mem :rv rv-mem :prod prod-mem} context)
