@@ -13,6 +13,12 @@
     ))
 
 (def N 4)
+(def col-vec (float-array [1 2 3 4]))
+(def row-vec (float-array [2 3 4 5]))
+;(def col-vec (float-array (map #(- (mod % 19) 9)
+;                               (take N (lcg 1)))))
+;(def row-vec (float-array (map #(- (mod % 19) 9)
+;                               (take N (lcg 2)))))
 
 (defn prepare-mem [context]
   (let [err (int-array 1)
@@ -31,19 +37,11 @@
   (handle-cl-error
    (CL/clEnqueueWriteBuffer
     queue cv CL/CL_TRUE 0 (* N Sizeof/cl_float)
-    (Pointer/to (float-array [1 2 3 4]))
-    ;(Pointer/to (float-array
-    ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
-    ;             ))
-    0 nil nil))
+    (Pointer/to (float-array col-vec)) 0 nil nil))
   (handle-cl-error
    (CL/clEnqueueWriteBuffer
     queue rv CL/CL_TRUE 0 (* N Sizeof/cl_float)
-    (Pointer/to (float-array [2 3 4 5]))
-    ;(Pointer/to (float-array
-    ;             (map #(- (mod % 19) 9) (take N (lcg 1)))
-    ;             ))
-    0 nil nil)))
+    (Pointer/to (float-array row-vec)) 0 nil nil)))
 
 (defn prepare-kernels [context devices]
   (let [src (slurp "cv_rv.cl")
@@ -95,6 +93,23 @@
     (println "product:")
     (pprint (partition 4 prod-array))))
 
+(defn compare-result [queue {prod :prod}]
+  (let [prod-array (float-array (* N N))
+        prod-ref (apply concat (map (fn [ce] (map (fn [re] (* ce re))
+                                                  row-vec))
+                                    col-vec))
+        calc-err (fn [val ref]
+                   (if (< -0.005 ref 0.005)
+                     val
+                     (- (/ val ref) 1.0)))]
+    (handle-cl-error
+     (CL/clEnqueueReadBuffer queue prod CL/CL_TRUE
+      0 (* N N Sizeof/cl_float) (Pointer/to prod-array) 0 nil nil))
+    (print "compare ")
+    (if (every? #(< -0.01 % 0.01) (map calc-err prod-array prod-ref))
+      (println "[OK]")
+      (println "[ER]"))))
+
 (defn finalize [queue kernel program {cv :cv rv :rv prod :prod} context]
   (CL/clFlush queue)
   (CL/clFinish queue)
@@ -112,4 +127,5 @@
   (init-mem q mem)
   (engine q kernel mem)
   (print-result q mem)
+  (compare-result q mem)
   (finalize q kernel program mem ctx))
