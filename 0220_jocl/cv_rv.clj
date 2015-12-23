@@ -12,9 +12,13 @@
     (cons val (lazy-seq (lcg val)))
     ))
 
-(def N 1024)
-;(def col-vec (float-array [1 2 3 4]))
-;(def row-vec (float-array [2 3 4 5]))
+(def simd true)
+;(def simd false)
+
+;(def N 8)
+;(def col-vec (float-array [1 2 3 4 5 6 7 8]))
+;(def row-vec (float-array [2 3 4 5 6 7 8 9]))
+(def N 8192)
 (def col-vec (float-array (map #(- (mod % 19) 9)
                                (take N (lcg 1)))))
 (def row-vec (float-array (map #(- (mod % 19) 9)
@@ -51,7 +55,9 @@
                  (long-array [(count src)]) err)
         _ (handle-cl-error (first err))
         er (CL/clBuildProgram
-            program 1 (into-array cl_device_id devices) nil nil nil)
+            program 1 (into-array cl_device_id devices)
+            (if simd "-D SIMD=1" nil)
+            nil nil)
         _ (doseq [d devices]
             (println (cl/parse-str-info
                       (cl/clGetProgramBuildInfo program d
@@ -74,10 +80,12 @@
     (handle-cl-error
      (CL/clSetKernelArg kernel 2 Sizeof/cl_mem (Pointer/to rv)))
     (handle-cl-error
-     (CL/clSetKernelArg kernel 3 Sizeof/cl_int (Pointer/to (int-array [N]))))
+     (CL/clSetKernelArg kernel 3 Sizeof/cl_int
+      (Pointer/to (int-array [(if simd (/ N 4) N)]))))
     (handle-cl-error
      (CL/clEnqueueNDRangeKernel queue kernel 2
-      nil (long-array [N N]) (long-array [1 1]) 0 nil event))
+      nil (long-array [(if simd (/ N 4) N) N]) (long-array [1024 1])
+      0 nil event))
     (handle-cl-error (CL/clWaitForEvents 1 events))
     (printf "It took %.3f seconds.\n"
             (/ (- (System/currentTimeMillis) start) 1000.0)
