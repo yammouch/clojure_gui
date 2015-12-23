@@ -12,7 +12,7 @@
     (cons val (lazy-seq (lcg val)))
     ))
 
-(def N 2048)
+(def N 1024)
 ;(def col-vec (float-array [1 2 3 4]))
 ;(def row-vec (float-array [2 3 4 5]))
 (def col-vec (float-array (map #(- (mod % 19) 9)
@@ -61,9 +61,12 @@
         _ (handle-cl-error (first err))]
     {:program program :kernel kernel}))
 
-(defn engine [queue kernel {cv :cv rv :rv prod :prod}]
-  (let [start (ref nil)]
-    (dosync (ref-set start (System/currentTimeMillis)))
+(defn engine [ctx queue kernel {cv :cv rv :rv prod :prod}]
+  (let [err (int-array 1)
+        event (CL/clCreateUserEvent ctx err)
+        _ (handle-cl-error (nth err 0))
+        events (into-array cl_event [event])
+        start (System/currentTimeMillis)]
     (handle-cl-error
      (CL/clSetKernelArg kernel 0 Sizeof/cl_mem (Pointer/to prod)))
     (handle-cl-error
@@ -74,9 +77,10 @@
      (CL/clSetKernelArg kernel 3 Sizeof/cl_int (Pointer/to (int-array [N]))))
     (handle-cl-error
      (CL/clEnqueueNDRangeKernel queue kernel 2
-      nil (long-array [N N]) (long-array [1 1]) 0 nil nil))
-    (printf "%.3f seconds took.\n"
-            (/ (- (System/currentTimeMillis) @start) 1000.0)
+      nil (long-array [N N]) (long-array [1 1]) 0 nil event))
+    (handle-cl-error (CL/clWaitForEvents 1 events))
+    (printf "It took %.3f seconds.\n"
+            (/ (- (System/currentTimeMillis) start) 1000.0)
             )))
 
 (defn print-result [queue {cv :cv rv :rv prod :prod}]
@@ -129,7 +133,7 @@
       {cv :cv rv :rv prod :prod :as mem} (prepare-mem ctx)
       {kernel :kernel program :program} (prepare-kernels ctx [(dev :id)])]
   (init-mem q mem)
-  (engine q kernel mem)
+  (engine ctx q kernel mem)
   ;(print-result q mem)
-  (compare-result q mem)
+  ;(compare-result q mem)
   (finalize q kernel program mem ctx))
