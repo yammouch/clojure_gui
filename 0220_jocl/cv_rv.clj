@@ -19,13 +19,13 @@
     (cons val (lazy-seq (lcg val)))
     ))
 
-(def simd true)
-;(def simd false)
+;(def simd true)
+(def simd false)
 
 ;(def N 8)
 ;(def col-vec (float-array [1 2 3 4 5 6 7 8]))
 ;(def row-vec (float-array [2 3 4 5 6 7 8 9]))
-(def N 1024)
+(def N 8192)
 (def col-vec (float-array (map #(- (mod % 19) 9)
                                (take N (lcg 1)))))
 (def row-vec (float-array (map #(- (mod % 19) 9)
@@ -71,6 +71,7 @@
                        'CL_PROGRAM_BUILD_LOG))))
         _ (handle-cl-error er)
         kernel (CL/clCreateKernel program "cv_rv" err) 
+        ;kernel (CL/clCreateKernel program "cv_rv_loop" err) 
         _ (handle-cl-error (first err))]
     {:program program :kernel kernel}))
 
@@ -92,6 +93,7 @@
      (CL/clEnqueueNDRangeKernel queue kernel 2
       nil (long-array [(if simd (/ N 4) N) N]) (long-array [128 1])
       0 nil event))
+    ;(handle-cl-error (CL/clEnqueueTask queue kernel 0 nil event))
     (handle-cl-error (CL/clWaitForEvents 1 events))
     ))
 
