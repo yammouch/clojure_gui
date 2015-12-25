@@ -25,7 +25,7 @@
 ;(def N 8)
 ;(def col-vec (float-array [1 2 3 4 5 6 7 8]))
 ;(def row-vec (float-array [2 3 4 5 6 7 8 9]))
-(def N 8192)
+(def N 1024)
 (def col-vec (float-array (map #(- (mod % 19) 9)
                                (take N (lcg 1)))))
 (def row-vec (float-array (map #(- (mod % 19) 9)
@@ -130,27 +130,27 @@
       (println "[OK]")
       (println "[ER]"))))
 
-;(defn compare-result [queue {prod :prod}]
-;  (let [prod-read (float-array (* N N))
-;        prod-array (make-array Float/TYPE N N)
-;        calc-err (fn [val ref]
-;                   (if (< -0.005 ref 0.005)
-;                     val
-;                     (- (/ val ref) 1.0)))]
-;    (time
-;      (dotimes [i N]
-;        (dotimes [j N]
-;          (aset-float prod-array i j
-;                      (* (aget col-vec i) (aget row-vec j))
-;                      ))))
-;    (handle-cl-error
-;     (CL/clEnqueueReadBuffer queue prod CL/CL_TRUE
-;      0 (* N N Sizeof/cl_float) (Pointer/to prod-read) 0 nil nil))
-;    (print "compare ")
-;    (if (every? #(< -0.01 % 0.01)
-;                (map calc-err (apply concat prod-array) prod-read))
-;      (println "[OK]")
-;      (println "[ER]"))))
+(defn compare-result-loop [queue {prod :prod}]
+  (let [prod-read (float-array (* N N))
+        prod-array (make-array Float/TYPE N N)
+        calc-err (fn [val ref]
+                   (if (< -0.005 ref 0.005)
+                     val
+                     (- (/ val ref) 1.0)))]
+    (time
+      (dotimes [i N]
+        (dotimes [j N]
+          (aset-float prod-array i j
+                      (* (aget col-vec i) (aget row-vec j))
+                      ))))
+    (handle-cl-error
+     (CL/clEnqueueReadBuffer queue prod CL/CL_TRUE
+      0 (* N N Sizeof/cl_float) (Pointer/to prod-read) 0 nil nil))
+    (print "compare ")
+    (if (every? #(< -0.01 % 0.01)
+                (map calc-err (apply concat prod-array) prod-read))
+      (println "[OK]")
+      (println "[ER]"))))
 
 (defn finalize [queue kernel program {cv :cv rv :rv prod :prod} context]
   (CL/clFlush queue)
@@ -171,4 +171,5 @@
     (time (engine ctx q kernel mem))
     ;(print-result q mem)
     (time (compare-result q mem))
+    ;(compare-result-loop q mem)
     (finalize q kernel program mem ctx)))
