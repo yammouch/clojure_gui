@@ -1,4 +1,11 @@
+(ns cv-rv)
+
 (require 'cl)
+(require 'clojure.pprint)
+
+(gen-class
+  :name "cv_rv"
+  :main true)
 
 (import '(org.jocl CL Sizeof Pointer cl_device_id cl_event))
 
@@ -71,8 +78,7 @@
   (let [err (int-array 1)
         event (CL/clCreateUserEvent ctx err)
         _ (handle-cl-error (nth err 0))
-        events (into-array cl_event [event])
-        start (System/currentTimeMillis)]
+        events (into-array cl_event [event])]
     (handle-cl-error
      (CL/clSetKernelArg kernel 0 Sizeof/cl_mem (Pointer/to prod)))
     (handle-cl-error
@@ -84,12 +90,10 @@
       (Pointer/to (int-array [(if simd (/ N 4) N)]))))
     (handle-cl-error
      (CL/clEnqueueNDRangeKernel queue kernel 2
-      nil (long-array [(if simd (/ N 4) N) N]) (long-array [1024 1])
+      nil (long-array [(if simd (/ N 4) N) N]) (long-array [128 1])
       0 nil event))
     (handle-cl-error (CL/clWaitForEvents 1 events))
-    (printf "It took %.3f seconds.\n"
-            (/ (- (System/currentTimeMillis) start) 1000.0)
-            )))
+    ))
 
 (defn print-result [queue {cv :cv rv :rv prod :prod}]
   (let [cv-array (float-array N)
@@ -104,16 +108,16 @@
     (handle-cl-error
      (CL/clEnqueueReadBuffer queue prod CL/CL_TRUE
       0 (* N N Sizeof/cl_float) (Pointer/to prod-array) 0 nil nil))
-    (println "col vector:") (pprint cv-array)
-    (println "row vector:") (pprint rv-array)
+    (println "col vector:") (clojure.pprint/pprint cv-array)
+    (println "row vector:") (clojure.pprint/pprint rv-array)
     (println "product:")
-    (pprint (partition N prod-array))))
+    (clojure.pprint/pprint (partition N prod-array))))
 
 (defn compare-result [queue {prod :prod}]
   (let [prod-array (float-array (* N N))
-        prod-ref (apply concat (map (fn [ce] (map (fn [re] (* ce re))
-                                                  row-vec))
-                                    col-vec))
+        prod-ref (mapcat (fn [ce] (map (fn [re] (* ce re))
+                                       row-vec))
+                         col-vec)
         calc-err (fn [val ref]
                    (if (< -0.005 ref 0.005)
                      val
@@ -126,6 +130,28 @@
       (println "[OK]")
       (println "[ER]"))))
 
+;(defn compare-result [queue {prod :prod}]
+;  (let [prod-read (float-array (* N N))
+;        prod-array (make-array Float/TYPE N N)
+;        calc-err (fn [val ref]
+;                   (if (< -0.005 ref 0.005)
+;                     val
+;                     (- (/ val ref) 1.0)))]
+;    (time
+;      (dotimes [i N]
+;        (dotimes [j N]
+;          (aset-float prod-array i j
+;                      (* (aget col-vec i) (aget row-vec j))
+;                      ))))
+;    (handle-cl-error
+;     (CL/clEnqueueReadBuffer queue prod CL/CL_TRUE
+;      0 (* N N Sizeof/cl_float) (Pointer/to prod-read) 0 nil nil))
+;    (print "compare ")
+;    (if (every? #(< -0.01 % 0.01)
+;                (map calc-err (apply concat prod-array) prod-read))
+;      (println "[OK]")
+;      (println "[ER]"))))
+
 (defn finalize [queue kernel program {cv :cv rv :rv prod :prod} context]
   (CL/clFlush queue)
   (CL/clFinish queue)
@@ -137,11 +163,12 @@
   (CL/clReleaseCommandQueue queue)
   (CL/clReleaseContext context))
 
-(let [{dev :device ctx :context q :queue} (cl/context 'CL_DEVICE_TYPE_CPU)
-      {cv :cv rv :rv prod :prod :as mem} (prepare-mem ctx)
-      {kernel :kernel program :program} (prepare-kernels ctx [(dev :id)])]
-  (init-mem q mem)
-  (engine ctx q kernel mem)
-  ;(print-result q mem)
-  ;(compare-result q mem)
-  (finalize q kernel program mem ctx))
+(defn -main [& args]
+  (let [{dev :device ctx :context q :queue} (cl/context 'CL_DEVICE_TYPE_CPU)
+        {cv :cv rv :rv prod :prod :as mem} (prepare-mem ctx)
+        {kernel :kernel program :program} (prepare-kernels ctx [(dev :id)])]
+    (init-mem q mem)
+    (time (engine ctx q kernel mem))
+    ;(print-result q mem)
+    (time (compare-result q mem))
+    (finalize q kernel program mem ctx)))
