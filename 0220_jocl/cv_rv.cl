@@ -20,3 +20,15 @@ __kernel void cv_rv(
   prod[i*n+j] = cv[i]*rv[j];
 #endif
 }
+
+__kernel void cv_rv_loop(
+ __global float *prod,
+ __global float *cv,
+ __global float *rv,
+ int n) {
+  unsigned int i, j;
+
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++)
+      prod[i*n+j] = cv[i]*rv[j];
+}
