@@ -49,11 +49,11 @@
         nov (map #(/ (+ 1.0 %)) expv)]
     {:nov nov :ndv (map #(* %1 %2 %2) expv nov)}))
 
-(defn bw1 [{wm :wm bm :bm} niv psv {wam :wam bav :bav}]
-  {:wam (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
+(defn bw1 [{wm :wm bm :bm} niv psv {wam :wm bav :bv}]
+  {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
                                 wrow niv))
              wm psv)
-   :bav (map + bav psv)
+   :bv  (map + bav psv)
    :psv (reduce #(map + %1 %2)
                 (map (fn [wrow ps] (map #(* % ps)) wrow)
                      wm psv))})
@@ -67,14 +67,14 @@
         ))))
 
 (defn bw [wbs {nivs :nivs ndvs :ndvs} eov wbas speed]
-  (loop [wbs wbs nivs (butlast nivs) ndvs ndvs wbas wbas
-         psv (map #(* (- %1 %2) speed) eov (last nivs)) acc []]
+  (loop [psv (map #(* (- %1 %2) speed) eov (last nivs))
+         wbs wbs nivs (butlast nivs) ndvs ndvs wbas wbas acc []]
     (if (empty? wbs)
       acc
-      (let [{wam :wam bav :bav psv :psv}
+      (let [{wam :wm bav :bv psv :psv}
             (bw1 (last wbs) (last nivs) psv (last wbas))]
-        (recur (butlast wbs) (butlast nivs) (butlast ndvs) (butlast wbas)
-               psv (conj acc {:wam wam :bav bav})
+        (recur psv (butlast wbs) (butlast nivs) (butlast ndvs) (butlast wbas)
+               (conj acc {:wm wam :bv bav})
                )))))
 
 (defn init-wbas [wbs]
@@ -88,7 +88,10 @@
 (defn learn1 [wbs training-data speed]
   (loop [td training-data wbas (init-wbas wbs)]
     (if (empty? td)
-      (r+ wbas)
+      (map (fn [wb wba]
+             {:wm (map #(map + %1 %2) (:wm wb) (:wm wba))
+              :bv (map + (:bv wb) (:bv wba))})
+           wbs wbas)
       (recur (next td)
              (bw wbs (fw wbs (:niv (first td)))
                  (:eov (first td)) wbas speed
