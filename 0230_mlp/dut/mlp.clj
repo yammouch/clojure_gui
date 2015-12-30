@@ -1,26 +1,5 @@
 (ns mlp)
 
-(defn r+2 [x y] ; recursive +, for matrix, matrix array, vector etc.
-  (cond (nil? x) []
-        (coll? x) (if (empty? x)
-                    []
-                    (cons (r+2 (first x) (first y))
-                          (r+2 (next x) (next y))))
-        :else (+ x y)))
-(defn r+ [& xs] (reduce r+2 xs))
-
-(defn m*v [m v] (map #(reduce + (map * % v)) m))
-(defn cv*rv [c r] ; c: column vector, r: row vector
-  (map (fn [ce] (map (fn [re] (* ce re))
-                     r))
-       c))
-(defn transpose [m] (apply map vector m))
-
-;(def training-data
-;  (partition 2
-;   (read-string (str "[" (slurp "training_data") "]"))
-;   ))
-
 ; reference: http://neuralnetworksanddeeplearning.com/chap2.html
 ; out = a3
 ; a3 = s(z2)  z2 = b2+w2*a2
@@ -52,7 +31,7 @@
 (defn bw1 [{wm :wm bm :bm} niv psv {wam :wm bav :bv}]
   {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
                                 wrow niv))
-             wm psv)
+             wam psv)
    :bv  (map + bav psv)
    :psv (reduce #(map + %1 %2)
                 (map (fn [wrow ps] (map #(* % ps)) wrow)
@@ -104,30 +83,3 @@
                :bv (vec (repeat bc 0.0))})
             n-neuron-vector
             (next n-neuron-vector))))
-
-(defn calc-output [weight-array b-array invec]
-  (loop [ws weight-array, bs b-array, out [invec], deriv []]
-    (if (or (empty? ws) (empty? bs))
-      [out deriv]
-      (let [weighted (map + (m*v (first ws) (last out)) (first bs))
-            exps (map #(Math/exp (- %)) weighted)
-            sigs (map #(/ (+ 1.0 %)) exps)]
-        (recur (next ws) (next bs) (conj out sigs)
-               (conj deriv (map #(* %1 %2 %2) exps sigs)) ; s'(z)
-               )))))
-
-(defn calc-coeff-deriv [weight-array deriv-array out-array expc scale]
-  (loop [ws weight-array
-         ds (butlast deriv-array)
-         os (butlast out-array)
-         delta (map #(* (- %1 %2) %3 scale)
-                    (last out-array) expc (last deriv-array))
-         acc-w []
-         acc-b []]
-    (let [deriv (cv*rv delta (last os))]
-      (if (or (empty? ds) (empty? os))
-        [(cons deriv acc-w) (cons delta acc-b)]
-        (recur (butlast ws) (butlast ds) (butlast os)
-               (map * (m*v (transpose (last ws)) delta) (last ds))
-               (cons deriv acc-w) (cons delta acc-b)
-               )))))
