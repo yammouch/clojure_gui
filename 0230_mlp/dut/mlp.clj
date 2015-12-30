@@ -83,3 +83,14 @@
                :bv (vec (repeat bc 0.0))})
             n-neuron-vector
             (next n-neuron-vector))))
+
+(defn calc-err [wbs training-data]
+  (loop [td training-data acc []]
+    (if (empty? td)
+      {:avg (Math/sqrt (/ (apply + acc) (count acc)))
+       :max (Math/sqrt (apply max acc))}
+      (let [{nivs :nivs} (fw wbs (:niv (first td)))]
+        (recur (next td)
+               (concat (map #(let [d (- %1 %2)] (* d d))
+                            (last nivs) (:eov (first td)))
+                       acc))))))
