@@ -4,41 +4,27 @@
 (require 'clojure.pprint)
 
 
-(def training-data [[[0.0 0.0] [0.0]]
-                    [[0.0 1.0] [1.0]]
-                    [[1.0 0.0] [1.0]]
-                    [[1.0 1.0] [0.0]]
-                    ])
+(def training-data
+  [{:niv [0.0 0.0] :eov [0.0]}
+   {:niv [0.0 1.0] :eov [1.0]}
+   {:niv [1.0 0.0] :eov [1.0]}
+   {:niv [1.0 1.0] :eov [0.0]}])
 
 (loop [i 0
-       weight-array [[[0.0 0.0]
-                      [0.0 0.1]
-                      [0.0 0.0]]
-                     [[0.1 0.0 0.0]
-                      [0.0 -0.1 0.0]
-                      [0.0 0.0 0.0]]
-                     [[0.0 0.0 0.0]]]
-       b-array [[0.1 0.0 -0.1] [0.0 0.0 0.0] [0.0]]
-       td (cycle training-data)]
+       wbs [{:wm [[0.0 0.0]
+                  [0.0 0.1]
+                  [0.0 0.0]]
+             :bv [0.1 0.0 -0.1]}
+            {:wm [[0.1  0.0 0.0]
+                  [0.0 -0.1 0.0]
+                  [0.0  0.0 0.0]]
+             :bv [0.0 0.0 0.0]}
+            {:wm [[0.0 0.0 0.0]]
+             :bv [0.0]}]]
+  (when (= (mod i 100000) 0)
+    (let [err (mlp/calc-err wbs training-data)]
+      (printf "iter: %7d  avg err: %.3f  max err: %.3f\n"
+              i (:avg err) (:max err))))
   (if (<= 4000000 i)
-    :done
-    (let [outputs (map (fn [[in _]]
-                         (mlp/calc-output weight-array b-array in))
-                       (take 1 td))
-          updates (map (fn [[out-array deriv-array] [_ expc]]
-                         (mlp/calc-coeff-deriv weight-array deriv-array
-                                               out-array expc -0.025))
-                       outputs (take 1 td))]
-      (when (= (mod i 10001) 0)
-        (println "iter:" i)
-        (clojure.pprint/pprint outputs)
-        (clojure.pprint/pprint updates)
-        (clojure.pprint/pprint [weight-array b-array])
-        (clojure.pprint/pprint (first (first updates)))
-        (clojure.pprint/pprint (mlp/r+ weight-array (first (first updates))))
-        )
-      (recur (inc i)
-             (apply mlp/r+ weight-array (map first updates))
-             (apply mlp/r+ b-array (map second updates))
-             (drop 1 td)
-             ))))
+    (prn wbs)
+    (recur (inc i) (mlp/learn1 wbs [(nth training-data (mod i 4))] 0.025))))
