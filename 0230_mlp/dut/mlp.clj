@@ -53,7 +53,7 @@
       (let [{wam :wm bav :bv psv :psv}
             (bw1 (last wbs) (last nivs) psv (last wbas))]
         (recur psv (butlast wbs) (butlast nivs) (butlast ndvs) (butlast wbas)
-               (conj acc {:wm wam :bv bav})
+               (cons {:wm wam :bv bav} acc)
                )))))
 
 (defn init-wbas [wbs]
