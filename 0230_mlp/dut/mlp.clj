@@ -33,9 +33,8 @@
                                 wrow niv))
              wam psv)
    :bv  (map + bav psv)
-   :psv (reduce #(map + %1 %2)
-                (map (fn [wrow ps] (map #(* % ps) wrow))
-                     wm psv))})
+   :psv (apply map + (map #(map (partial * %2) %1)
+                          wm psv))})
 
 (defn fw [wbs niv]
   (loop [wbs wbs nivs [niv] ndvs []]
