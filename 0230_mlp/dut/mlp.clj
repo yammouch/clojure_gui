@@ -28,13 +28,13 @@
         nov (map #(/ (+ 1.0 %)) expv)]
     {:nov nov :ndv (map #(* %1 %2 %2) expv nov)}))
 
-(defn bw1 [{wm :wm bm :bm} niv psv {wam :wm bav :bv}]
+(defn bw1 [{wm :wm} niv psv {wam :wm bav :bv}]
   {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
                                 wrow niv))
              wam psv)
    :bv  (map + bav psv)
    :psv (reduce #(map + %1 %2)
-                (map (fn [wrow ps] (map #(* % ps)) wrow)
+                (map (fn [wrow ps] (map #(* % ps) wrow))
                      wm psv))})
 
 (defn fw [wbs niv]
