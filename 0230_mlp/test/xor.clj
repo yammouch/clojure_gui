@@ -31,10 +31,8 @@
     (let [err (mlp/calc-err wbs training-data)]
       (printf "iter: %7d  avg err: %.3f  max err: %.3f\n"
               i (:avg err) (:max err)))
-      (prn wbs)
     (flush))
-  (if (<= 10000000 i)
-  ;(if (<= 4 i)
+  (if (<= 1000000 i)
     (prn wbs)
     (recur (inc i)
            (mlp/learn1 wbs

@@ -28,13 +28,14 @@
         nov (map #(/ (+ 1.0 %)) expv)]
     {:nov nov :ndv (map #(* %1 %2 %2) expv nov)}))
 
-(defn bw1 [{wm :wm} niv psv {wam :wm bav :bv}]
-  {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
-                                wrow niv))
-             wam psv)
-   :bv  (map + bav psv)
-   :psv (apply map + (map #(map (partial * %2) %1)
-                          wm psv))})
+(defn bw1 [{wm :wm} niv ndv psv {wam :wm bav :bv}]
+  (let [ndv-psv (map * ndv psv)]
+    {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
+                                  wrow niv))
+               wam ndv-psv)
+     :bv  (map + bav ndv-psv)
+     :psv (apply map + (map #(map (partial * %2) %1)
+                            wm ndv-psv))}))
 
 (defn fw [wbs niv]
   (loop [wbs wbs nivs [niv] ndvs []]
@@ -50,7 +51,7 @@
     (if (empty? wbs)
       acc
       (let [{wam :wm bav :bv psv :psv}
-            (bw1 (last wbs) (last nivs) psv (last wbas))]
+            (bw1 (last wbs) (last nivs) (last ndvs) psv (last wbas))]
         (recur psv (butlast wbs) (butlast nivs) (butlast ndvs) (butlast wbas)
                (cons {:wm wam :bv bav} acc)
                )))))
