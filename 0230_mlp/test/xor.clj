@@ -16,16 +16,8 @@
    {:niv [1.0 1.0] :eov [0.0]}])
 
 (loop [i 0
-       wbs [{:wm [[0.0 0.0]
-                  [0.0 0.1]
-                  [0.0 0.0]]
-             :bv [0.1 0.0 -0.1]}
-            {:wm [[0.1  0.0 0.0]
-                  [0.0 -0.1 0.0]
-                  [0.0  0.0 0.0]]
-             :bv [0.0 0.0 0.0]}
-            {:wm [[0.0 0.0 0.0]]
-             :bv [0.0]}]
+       wbs (mlp/init-wbs [2 3 3 1] (map #(* 1e-3 (- (mod % 201) 100))
+                                        (lcg 1)))
        rnd (map #(mod (mod % 131) (count training-data)) (lcg 1))]
   (when (= (mod i 10000) 0)
     (let [err (mlp/calc-err wbs training-data)]
@@ -36,7 +28,7 @@
     (prn wbs)
     (recur (inc i)
            (mlp/learn1 wbs
-                       ;(map (partial get training-data) (take 2 rnd))
-                       [(nth training-data (mod i (count training-data)))]
+                       (map (partial get training-data) (take 2 rnd))
+                       ;[(nth training-data (mod i (count training-data)))]
                        0.025)
            (drop 2 rnd))))

@@ -76,13 +76,16 @@
                  (:eov (first td)) wbas speed
                  )))))
 
-(defn init-wbs [n-neuron-vector]
-  (vec (map (fn [wcolc bc]
-              {:wm (vec (repeat bc 
-                                (vec (repeat wcolc 0.0))))
-               :bv (vec (repeat bc 0.0))})
-            n-neuron-vector
-            (next n-neuron-vector))))
+(defn init-wbs
+ ([n-neuron-vector] (init-wbs n-neuron-vector (repeat 0.0)))
+ ([n-neuron-vector seq]
+  (loop [seq seq, [n & ns] n-neuron-vector, acc []]
+    (if (empty? ns)
+      acc
+      (let [[s1 s2] (split-at (* n (first ns)) seq)]
+        (recur s2 ns (conj acc {:wm (partition n s1)
+                                :bv (repeat (first ns) 0.0)
+                                })))))))
 
 (defn calc-err [wbs training-data]
   (loop [td training-data acc []]
