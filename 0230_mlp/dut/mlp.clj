@@ -67,7 +67,8 @@
   (loop [td training-data wbas (init-wbas wbs)]
     (if (empty? td)
       (map (fn [wb wba]
-             {:wm (map #(map + %1 %2) (:wm wb) (:wm wba))
+             {:wm (map #(map + (map (partial * 0.99999) %1) %2)
+                       (:wm wb) (:wm wba))
               :bv (map + (:bv wb) (:bv wba))})
            wbs wbas)
       (recur (next td)
