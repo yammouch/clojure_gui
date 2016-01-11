@@ -28,14 +28,17 @@
         nov (map #(/ (+ 1.0 %)) expv)]
     {:nov nov :ndv (map #(* %1 %2 %2) expv nov)}))
 
-(defn bw1 [{wm :wm} niv ndv psv {wam :wm bav :bv}]
-  (let [ndv-psv (map * ndv psv)]
-    {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
-                                  wrow niv))
-               wam ndv-psv)
-     :bv  (map + bav ndv-psv)
-     :psv (apply map + (map #(map (partial * %2) %1)
-                            wm ndv-psv))}))
+(defn bw-wb [niv psv {wam :wm bav :bv}]
+  {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
+                                wrow niv))
+             wam psv)
+   :bv  (map + bav psv)})
+
+(defn bw-psv [wm psv niv]
+  (map #(* %1 %2 (- 1.0 %2))
+       (apply map + (map #(map (partial * %2) %1)
+                          wm psv))
+       niv))
 
 (defn fw [wbs niv]
   (loop [wbs wbs nivs [niv] ndvs []]
@@ -45,16 +48,15 @@
         (recur (next wbs) (conj nivs nov) (conj ndvs ndv))
         ))))
 
-(defn bw [wbs {nivs :nivs ndvs :ndvs} eov wbas speed]
-  (loop [psv (map #(* (- %1 %2) speed) eov (last nivs))
-         wbs wbs nivs (butlast nivs) ndvs ndvs wbas wbas acc []]
-    (if (empty? wbs)
-      acc
-      (let [{wam :wm bav :bv psv :psv}
-            (bw1 (last wbs) (last nivs) (last ndvs) psv (last wbas))]
-        (recur psv (butlast wbs) (butlast nivs) (butlast ndvs) (butlast wbas)
-               (cons {:wm wam :bv bav} acc)
-               )))))
+(defn bw [wbs {nivs :nivs} eov wbas speed]
+  (loop [psv (map #(* (- %1 %2) %2 (- 1.0 %2) speed) eov (last nivs)),
+         wbs wbs, nivs (butlast nivs), wbas wbas, acc []]
+    (let [wb-updated (bw-wb (last nivs) psv (last wbas))]
+      (if (empty? (butlast wbas))
+        (cons wb-updated acc)
+        (recur (bw-psv (:wm (last wbs)) psv (last nivs))
+               (butlast wbs) (butlast nivs) (butlast wbas)
+               (cons wb-updated acc))))))
 
 (defn init-wbas [wbs]
   (vec (map (fn [{wm :wm bv :bv}]
