@@ -24,11 +24,11 @@
       (printf "iter: %7d  avg err: %.3f  max err: %.3f\n"
               i (:avg err) (:max err)))
     (flush))
-  (if (<= 4000000 i)
+  (if (<= 500000 i)
     (prn wbs)
     (recur (inc i)
            (mlp/learn1 wbs
                        (map (partial get training-data) (take 2 rnd))
                        ;[(nth training-data (mod i (count training-data)))]
-                       0.025)
+                       0.05)
            (drop 2 rnd))))
