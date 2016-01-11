@@ -12,15 +12,12 @@
 ; sigs: vector of 1/(1+exp(-z)) = s(z)
 
 ; niv : neuron input vector
-; nov : neuron output vector
-; ndv : neuron output derivative vector
 ; psv : propagated slope vector
 ; wm  : weight matrix
 ; wam : weight matrix to be accumulated
 ; bv  : intercept vector
 ; bav : intercept vector to be accumulated
 ; eov : expected output vector
-; edv : error derivative vector
 
 (defn fw1 [{wm :wm bv :bv} niv]
   (let [weighed (map #(+ (reduce + (map * %1 niv)) %2) wm bv)
@@ -49,7 +46,7 @@
              ))))
 
 (defn bw [wbs nivs eov wbas speed]
-  (loop [psv (map #(* (- %1 %2) %2 (- 1.0 %2) speed) eov (last nivs)),
+  (loop [psv (map #(* (- %1 %2) speed) eov (last nivs)),
          wbs wbs, nivs (butlast nivs), wbas wbas, acc []]
     (let [wb-updated (bw-wb (last nivs) psv (last wbas))]
       (if (empty? (butlast wbas))
