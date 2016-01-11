@@ -26,7 +26,7 @@
   (let [weighed (map #(+ (reduce + (map * %1 niv)) %2) wm bv)
         expv (map #(Math/exp (- %)) weighed)
         nov (map #(/ (+ 1.0 %)) expv)]
-    {:nov nov :ndv (map #(* %1 %2 %2) expv nov)}))
+    nov))
 
 (defn bw-wb [niv psv {wam :wm bav :bv}]
   {:wm  (map (fn [wrow ps] (map (fn [wel ni] (+ wel (* ni ps)))
@@ -41,14 +41,14 @@
        niv))
 
 (defn fw [wbs niv]
-  (loop [wbs wbs nivs [niv] ndvs []]
+  (loop [wbs wbs acc [niv]]
     (if (empty? wbs)
-      {:nivs nivs :ndvs ndvs}
-      (let [{nov :nov ndv :ndv} (fw1 (first wbs) (last nivs))]
-        (recur (next wbs) (conj nivs nov) (conj ndvs ndv))
-        ))))
+      acc
+      (recur (next wbs)
+             (conj acc (fw1 (first wbs) (last acc)))
+             ))))
 
-(defn bw [wbs {nivs :nivs} eov wbas speed]
+(defn bw [wbs nivs eov wbas speed]
   (loop [psv (map #(* (- %1 %2) %2 (- 1.0 %2) speed) eov (last nivs)),
          wbs wbs, nivs (butlast nivs), wbas wbas, acc []]
     (let [wb-updated (bw-wb (last nivs) psv (last wbas))]
@@ -94,7 +94,7 @@
     (if (empty? td)
       {:avg (Math/sqrt (/ (apply + acc) (count acc)))
        :max (Math/sqrt (apply max acc))}
-      (let [{nivs :nivs} (fw wbs (:niv (first td)))]
+      (let [nivs (fw wbs (:niv (first td)))]
         (recur (next td)
                (concat (map #(let [d (- %1 %2)] (* d d))
                             (last nivs) (:eov (first td)))
