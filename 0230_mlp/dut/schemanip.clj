@@ -4,7 +4,7 @@
 
 (defn slide-upper-field [field]
   (assoc field :body
-         (concat (vec (next (get field :body)))
+         (concat (next (get field :body))
                  [(reduce #(repeat %2 %1) 0
                           [(count (get-in field [:body 0 0]))
                            (get-in field [:size 0])])])))
@@ -41,3 +41,23 @@
           x)
         (update-in [:field] slide-lower-field)
         (update-in [:cmd :org 1] inc))))
+
+(defn slide-left-field [field]
+  (assoc field :body
+         (map #(concat (next %)
+                       [(repeat (count (get-in field [:body 0 0]))
+                                0)])
+              (:body field))))
+
+(defn slide-left [{field :field cmd :cmd :as x}]
+  (if (or (= (get-in cmd [:org 0]) 0)
+          (and (= (:cmd cmd) :move-y)
+               (= (:dst cmd) 0))
+          (some (partial some (complement zero?))
+                (map first (:body field))))
+    nil
+    (-> (if (= (:cmd cmd) :move-x)
+          (update-in x [:cmd :dst] dec)
+          x)
+        (update-in [:field] slide-left-field)
+        (update-in [:cmd :org 0] dec))))
