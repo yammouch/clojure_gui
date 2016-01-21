@@ -80,3 +80,29 @@
           x)
         (update-in [:field] slide-right-field)
         (update-in [:cmd :org 0] inc))))
+
+(defn expand-v [x] ; x -> {field :field cmd :cmd}
+  (concat (reverse (take-while identity (iterate slide-upper x)))
+          (next (take-while identity (iterate slide-lower x)))))
+
+(defn expand-h [x] ; x -> {field :field cmd :cmd}
+  (concat (reverse (take-while identity (iterate slide-left x)))
+          (next (take-while identity (iterate slide-right x)))))
+
+(defn expand [x] (mapcat expand-h (expand-v x)))
+
+(defn one-hot [val len]
+  (take len (concat (repeat val 0) [1] (repeat 0))))
+
+(defn mlp-input-field [{body :body}]
+  (apply concat (apply concat body)))
+
+(defn mlp-input-cmd [{cmd :cmd [x y] :org dst :dst} [cx cy]]
+  (concat (case cmd :move-x [1 0] [0 1])
+          (one-hot x cx)
+          (one-hot y cy)
+          (one-hot dst (max cx cy))))
+
+(defn mlp-input [{field :field cmd :cmd}] 
+  {:niv (mlp-input-field field)
+   :eov (mlp-input-cmd cmd (:size field))})
